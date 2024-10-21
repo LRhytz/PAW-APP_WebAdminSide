@@ -1,0 +1,107 @@
+/* General styling */
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    background-color: #F5F5DC; /* Light beige background */
+    color: #333;
+}
+
+h1 {
+    font-size: 28px;
+    color: #4CAF50; /* Earthy green */
+    margin-top: 20px;
+}
+
+p {
+    font-size: 16px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.navbar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #4CAF50; /* Earthy green background */
+    overflow-x: hidden;
+    transition: 0.5s;
+    padding-top: 60px;
+}
+
+.navbar a {
+    padding: 12px 8px 12px 32px;
+    text-decoration: none;
+    font-size: 18px;
+    color: #FFFFFF; /* White text */
+    display: block;
+    transition: 0.3s;
+}
+
+.navbar a:hover {
+    color: #FF9800; /* Warm orange hover */
+}
+
+.navbar .closebtn {
+    position: absolute;
+    top: 0;
+    right: 25px;
+    font-size: 36px;
+    margin-left: 50px;
+    color: #FFFFFF;
+}
+
+.main-content {
+    transition: margin-left 0.5s;
+    padding: 16px;
+    margin-left: 0;
+    opacity: 1;
+    transition: opacity 0.5s;
+}
+
+.openbtn {
+    font-size: 20px;
+    cursor: pointer;
+    background-color: #795548; /* Dark brown button */
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+}
+
+.openbtn:hover {
+    background-color: #5D4037; /* Darker brown hover */
+}
+
+.dashboard-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.card {
+    background-color: #FFFFFF; /* White cards */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    min-width: 250px;
+}
+
+.card h4 {
+    font-size: 22px;
+    color: #4CAF50; /* Earthy green for headings */
+}
+
+.card p {
+    font-size: 16px;
+    color: #777;
+    margin-top: 10px;
+}
+
+h3 {
+    color: #4CAF50;
+}

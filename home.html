@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW APP Admin Panel</title>
+    <link rel="stylesheet" href="home.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-analytics.js"></script>
+
+    <!-- Firebase Initialization -->
+    <script>
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6NU-QTsPTRQ2ytvhqElEtinUl0vZnSo4",
+            authDomain: "pawappproject.firebaseapp.com",
+            databaseURL: "https://pawappproject-default-rtdb.firebaseio.com",
+            projectId: "pawappproject",
+            storageBucket: "pawappproject.appspot.com",
+            messagingSenderId: "635093605118",
+            appId: "1:635093605118:web:8e8515afaa445ffe0da3af",
+            measurementId: "G-L2J5QK9HCS"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+    </script>
+
+</head>
+<body>
+    <div id="navbar" class="navbar">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <a href="#dashboard" class="nav-item">Dashboard</a>
+        <a href="#notifications" class="nav-item">Notifications & Alerts</a>
+        <a href="#settings" class="nav-item">Settings & Customization</a>
+        <a href="#security" class="nav-item">Security & Compliance</a>
+        <a href="#help" class="nav-item">Help & Support</a>
+        <a href="javascript:void(0)" id="logout-btn" class="nav-item">Logout</a>
+    </div>
+
+    <div id="main-content" class="main-content">
+        <span class="openbtn" onclick="openNav()">&#9776; Menu</span>
+        <h1 id="welcome-message">PAW APP Admin Panel</h1>
+        <p>Welcome to the PAW APP Admin Panel. Here you can manage users, animal reports, donations, subscriptions, and more.</p>
+        
+        <div id="content">
+            <h3>Admin Dashboard Overview</h3>
+            <div class="dashboard-cards">
+                <div class="card">
+                    <h4>User Management</h4>
+                    <p>Monitor user subscriptions, renewals, cancellations, and login logs.</p>
+                </div>
+                <div class="card">
+                    <h4>Animal Report Management</h4>
+                    <p>View and filter animal reports, update statuses, and review evidence.</p>
+                </div>
+                <div class="card">
+                    <h4>Content Management</h4>
+                    <p>Manage admin and organization-submitted articles.</p>
+                </div>
+                <div class="card">
+                    <h4>Subscription Management</h4>
+                    <p>Oversee user and organization subscriptions, monitor renewals, and cancellations.</p>
+                </div>
+                <div class="card">
+                    <h4>Animal Welfare Organization Management</h4>
+                    <p>Manage welfare organizations, assign cases, and track activity.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openNav() {
+            document.getElementById("navbar").style.width = "250px";
+            document.getElementById("main-content").style.marginLeft = "250px";
+            document.getElementById("main-content").style.opacity = "0.5";
+        }
+
+        function closeNav() {
+            document.getElementById("navbar").style.width = "0";
+            document.getElementById("main-content").style.marginLeft = "0";
+            document.getElementById("main-content").style.opacity = "1";
+        }
+
+        // Firebase authentication check
+        firebase.auth().onAuthStateChanged(user => {
+            if (!user) {
+                // Redirect to login page if not logged in
+                window.location.href = 'Login.html';
+            } else {
+                // Display the logged-in user's email
+                document.getElementById('welcome-message').innerText = `Welcome, ${user.email}`;
+            }
+        });
+
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            firebase.auth().signOut().then(() => {
+                // Redirect to login page after logging out
+                window.location.href = 'Login.html';
+            }).catch(error => {
+                console.error('Error logging out: ', error);
+            });
+        });
+    </script>
+
+    <!-- Custom JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
