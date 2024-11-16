@@ -92,7 +92,7 @@
         firebase.auth().onAuthStateChanged(user => {
             if (!user) {
                 // Redirect to login page if not logged in
-                window.location.href = 'Login.html';
+                window.location.href = 'index.html';
             } else {
                 // Display the logged-in user's email
                 document.getElementById('welcome-message').innerText = `Welcome, ${user.email}`;
@@ -103,7 +103,7 @@
         document.getElementById('logout-btn').addEventListener('click', () => {
             firebase.auth().signOut().then(() => {
                 // Redirect to login page after logging out
-                window.location.href = 'Login.html';
+                window.location.href = 'index.html';
             }).catch(error => {
                 console.error('Error logging out: ', error);
             });
