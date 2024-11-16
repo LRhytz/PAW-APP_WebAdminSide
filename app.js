@@ -36,7 +36,7 @@
         logoutButton.addEventListener('click', () => {
             firebase.auth().signOut().then(() => {
                 // User successfully logged out, redirect to login page
-                window.location.href = 'Login.html';
+                window.location.href = 'index.html';
             }).catch((error) => {
                 console.error('Error logging out: ', error);
             });
