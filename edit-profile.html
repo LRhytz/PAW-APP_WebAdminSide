@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Profile</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="home.css">
+  <!-- Firebase SDKs + config -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="js/config.js"></script>
+</head>
+<body>
+  <!-- same navbar -->
+  <div id="navbar" class="navbar">…</div>
+
+  <div id="main-content" class="main-content">
+    <span class="openbtn" onclick="openNav()">&#9776; Menu</span>
+    <h1>Edit Profile</h1>
+
+    <form id="edit-profile-form">
+      <label>First Name
+        <input type="text" id="firstName" />
+      </label><br/>
+      <label>Last Name
+        <input type="text" id="lastName" />
+      </label><br/>
+      <button type="submit">Save Changes</button>
+    </form>
+    <div id="edit-msg"></div>
+  </div>
+
+  <script>
+    function openNav() {
+      document.getElementById("navbar").style.width = "250px";
+      document.getElementById("main-content").style.marginLeft = "250px";
+      document.getElementById("main-content").style.opacity = "0.5";
+    }
+    function closeNav() {
+      document.getElementById("navbar").style.width = "0";
+      document.getElementById("main-content").style.marginLeft = "0";
+      document.getElementById("main-content").style.opacity = "1";
+    }
+  </script>
+
+  <!-- edit logic -->
+  <script src="js/edit-profile.js"></script>
+</body>
+</html>
