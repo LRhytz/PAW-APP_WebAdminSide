@@ -1,0 +1,129 @@
+:root {
+  --bg:       #F5F5DC;
+  --card-bg:  #FFFFFF;
+  --primary:  #4CAF50;
+  --text:     #333333;
+  --border:   #CCCCCC;
+  --shadow:   rgba(0, 0, 0, 0.1);
+}
+
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Body background and font */
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--bg);
+}
+
+/* Sidebar navbar */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background-color: var(--primary);
+  overflow-x: hidden;
+  transition: width 0.5s;
+  padding-top: 60px;
+}
+.navbar a {
+  display: block;
+  padding: 12px 32px;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 18px;
+  transition: background-color 0.3s;
+}
+.navbar a:hover,
+.navbar a.active {
+  background-color: #388E3C;
+}
+.navbar .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* Menu open button */
+.openbtn {
+  font-size: 20px;
+  cursor: pointer;
+  background-color: var(--primary);
+  color: #ffffff;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  margin: 20px;
+}
+
+/* Main content area shifts when sidebar opens */
+.main-content {
+  margin-left: 0;
+  padding: 20px;
+  transition: margin-left 0.5s;
+}
+
+/* Card container */
+.container {
+  max-width: 600px;
+  margin: 40px auto;
+}
+.card {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px var(--shadow);
+  padding: 30px;
+}
+.card h1 {
+  text-align: center;
+  margin-bottom: 24px;
+  color: var(--primary);
+}
+
+/* Field blocks */
+.field {
+  margin-bottom: 20px;
+}
+.field label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.readonly {
+  padding: 8px 12px;
+  background-color: #fafafa;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  min-height: 24px;
+}
+
+/* Group spacing */
+.fields-group + .fields-group {
+  margin-top: 20px;
+}
+
+/* Back button */
+.btn.cancel {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background-color: #AAAAAA;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+.btn.cancel:hover {
+  background-color: #888888;
+}

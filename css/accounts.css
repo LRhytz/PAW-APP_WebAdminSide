@@ -1,0 +1,151 @@
+:root {
+    --bg:       #F5F5DC;
+    --card-bg:  #FFFFFF;
+    --primary:  #4CAF50;
+    --text:     #333333;
+    --border:   #CCCCCC;
+    --shadow:   rgba(0, 0, 0, 0.1);
+    --inactive: #AAAAAA;
+  }
+  
+  /* Reset */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Body */
+  body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg);
+  }
+  
+  /* Navbar */
+  .navbar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    background-color: var(--primary);
+    overflow-x: hidden;
+    transition: width 0.5s;
+    padding-top: 60px;
+  }
+  .navbar a {
+    display: block;
+    padding: 12px 32px;
+    text-decoration: none;
+    color: #ffffff;
+    font-size: 18px;
+    transition: background-color 0.3s;
+  }
+  .navbar a:hover,
+  .navbar a.active {
+    background-color: #388E3C;
+  }
+  .navbar .closebtn {
+    position: absolute;
+    top: 0;
+    right: 25px;
+    font-size: 36px;
+    cursor: pointer;
+  }
+  
+  /* Open button */
+  .openbtn {
+    font-size: 20px;
+    cursor: pointer;
+    background-color: var(--primary);
+    color: #ffffff;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    margin: 20px;
+  }
+  
+  /* Main content */
+  .main-content {
+    transition: margin-left 0.5s;
+    padding: 20px;
+    margin-left: 0;
+  }
+  
+  /* Card */
+  .container {
+    max-width: 900px;
+    margin: 40px auto;
+  }
+  .card {
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px var(--shadow);
+    padding: 30px;
+  }
+  .card h1 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: var(--primary);
+  }
+  .container h2 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+    font-size: 20px;
+    color: var(--primary);
+  }
+  
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 32px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 12px;
+    text-align: left;
+  }
+  th {
+    background-color: var(--primary);
+    color: #fff;
+  }
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  /* Status cell */
+  .status-cell {
+    white-space: nowrap;
+  }
+  
+  /* Status badge */
+  .status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+  }
+  .status.active {
+    background-color: var(--primary);
+  }
+  .status.inactive {
+    background-color: var(--inactive);
+  }
+  
+  /* View button */
+  .view-btn {
+    margin-left: 8px;
+    padding: 6px 12px;
+    background-color: #2196F3;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  .view-btn:hover {
+    background-color: #1976D2;
+  }
+  

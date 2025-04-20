@@ -1,50 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Edit Profile</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="home.css">
-  <!-- Firebase SDKs + config -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Edit User Profile</title>
+  <link rel="stylesheet" href="css/edit-profile.css" />
+
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- Config & Nav -->
   <script src="js/config.js"></script>
+  <script src="js/nav.js" defer></script>
 </head>
 <body>
-  <!-- same navbar -->
-  <div id="navbar" class="navbar">…</div>
-
-  <div id="main-content" class="main-content">
-    <span class="openbtn" onclick="openNav()">&#9776; Menu</span>
-    <h1>Edit Profile</h1>
-
-    <form id="edit-profile-form">
-      <label>First Name
-        <input type="text" id="firstName" />
-      </label><br/>
-      <label>Last Name
-        <input type="text" id="lastName" />
-      </label><br/>
-      <button type="submit">Save Changes</button>
-    </form>
-    <div id="edit-msg"></div>
+  <div id="navbar" class="navbar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <a href="home.html">Dashboard</a>
+    <a href="profile.html">Profile Management</a>
+    <a href="subscriptions.html">Subscription Management</a>
+    <a href="users.html">User Accounts Mgmt</a>
+    <a href="javascript:void(0)" id="logout-btn">Logout</a>
   </div>
 
-  <script>
-    function openNav() {
-      document.getElementById("navbar").style.width = "250px";
-      document.getElementById("main-content").style.marginLeft = "250px";
-      document.getElementById("main-content").style.opacity = "0.5";
-    }
-    function closeNav() {
-      document.getElementById("navbar").style.width = "0";
-      document.getElementById("main-content").style.marginLeft = "0";
-      document.getElementById("main-content").style.opacity = "1";
-    }
-  </script>
+  <div id="main-content" class="main-content">
+    <span class="openbtn" onclick="openNav()">☰ Menu</span>
 
-  <!-- edit logic -->
+    <div class="container">
+      <div class="card">
+        <h1>Edit User Profile</h1>
+        <form id="edit-profile-form">
+          <div id="fields-container"></div>
+          <div class="buttons">
+            <button type="submit" class="btn save">Save Changes</button>
+            <button type="button" class="btn cancel" onclick="history.back()">
+              Cancel
+            </button>
+          </div>
+          <div id="edit-msg" class="message"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="js/edit-profile.js"></script>
 </body>
 </html>

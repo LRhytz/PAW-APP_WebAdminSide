@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>View Account</title>
+  <link rel="stylesheet" href="css/view-account.css"/>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script src="js/config.js"></script>
+  <script src="js/nav.js" defer></script>
+</head>
+<body>
+  <div id="navbar" class="navbar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <a href="home.html">Dashboard</a>
+    <a href="profile.html">Profile Management</a>
+    <a href="subscriptions.html">Subscription Management</a>
+    <a href="accounts.html" class="active">Accounts Management</a>
+    <a href="javascript:void(0)" id="logout-btn">Logout</a>
+  </div>
+
+  <div id="main-content" class="main-content">
+    <button class="openbtn" onclick="openNav()">☰ Menu</button>
+    <div class="container card">
+      <h1>View Account</h1>
+
+      <div class="field">
+        <label>Email</label>
+        <p id="email" class="readonly">Loading…</p>
+      </div>
+      <div class="field">
+        <label>Contact Number</label>
+        <p id="contact" class="readonly">Loading…</p>
+      </div>
+
+      <!-- Local Citizen fields -->
+      <div id="citizen-fields" class="fields-group">
+        <div class="field">
+          <label>First Name</label>
+          <p id="firstName" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <p id="lastName" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <p id="username" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Bio</label>
+          <p id="bio" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Birthdate</label>
+          <p id="birthdate" class="readonly"></p>
+        </div>
+      </div>
+
+      <!-- Organization fields -->
+      <div id="org-fields" class="fields-group">
+        <div class="field">
+          <label>Organization Name</label>
+          <p id="orgName" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Admin Name</label>
+          <p id="adminName" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Admin Email</label>
+          <p id="adminEmail" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Founding Year</label>
+          <p id="foundingYear" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Address</label>
+          <p id="address" class="readonly"></p>
+        </div>
+        <div class="field">
+          <label>Bio</label>
+          <p id="bioOrg" class="readonly"></p>
+        </div>
+      </div>
+
+      <button class="btn cancel" onclick="history.back()">Back</button>
+    </div>
+  </div>
+
+  <script src="js/view-account.js" defer></script>
+</body>
+</html>

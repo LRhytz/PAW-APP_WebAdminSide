@@ -1,0 +1,81 @@
+:root {
+  --bg:       #F5F5DC;
+  --card-bg:  #FFFFFF;
+  --primary:  #4CAF50;
+  --text:     #333333;
+  --shadow:   rgba(0, 0, 0, 0.1);
+  --border:   #CCC;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--bg);
+}
+
+.navbar {
+  height:100%; width:0; position:fixed;
+  background-color:var(--primary);
+  overflow-x:hidden; transition:0.5s; padding-top:60px;
+}
+.navbar a {
+  padding:12px 32px; color:#fff; text-decoration:none; display:block; transition:0.3s;
+}
+.navbar a.active,
+.navbar a:hover {
+  background-color:#388E3C;
+}
+.navbar .closebtn {
+  position:absolute; top:0; right:25px; font-size:36px;
+}
+
+.openbtn {
+  font-size:20px; cursor:pointer;
+  background-color:var(--primary); color:#fff;
+  padding:10px 15px; border:none; border-radius:5px; margin:20px;
+}
+
+.main-content {
+  transition:margin-left .5s; padding:20px; margin-left:0;
+}
+
+.container { max-width:600px; margin:40px auto; }
+
+.card {
+  background:var(--card-bg); border-radius:12px;
+  box-shadow:0 4px 12px var(--shadow); padding:30px; text-align:center;
+}
+
+.card h1 {
+  color:var(--primary); margin-bottom:24px;
+}
+
+.profile-info {
+  display:flex; align-items:center; gap:24px; margin-bottom:32px;
+}
+.profile-avatar {
+  width:96px; height:96px; border-radius:50%; object-fit:cover; background:#eee;
+}
+.profile-details p {
+  font-size:18px; color:var(--text); margin-bottom:8px; text-align:left;
+}
+
+.field { margin-bottom:20px; text-align:left; }
+.field label { display:block; margin-bottom:6px; color:var(--text); }
+.field input[type="text"],
+.field input[type="file"] {
+  width:100%; padding:10px 12px; font-size:16px;
+  border:1px solid var(--border); border-radius:6px;
+}
+
+.buttons { text-align:center; margin-top:10px; }
+.btn.save {
+  background:var(--primary); color:#fff; border:none;
+  padding:12px 24px; border-radius:6px; cursor:pointer;
+}
+.btn.save:hover { background:#388E3C; }
+
+.message {
+  margin-top:12px; color:var(--primary);
+}

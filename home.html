@@ -1,116 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAW APP Admin Panel</title>
-    <link rel="stylesheet" href="css/home.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="css/dashboard.css"/>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-analytics.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-    <!-- Firebase Initialization -->
-    <script>
-        // Your Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyD6NU-QTsPTRQ2ytvhqElEtinUl0vZnSo4",
-            authDomain: "pawappproject.firebaseapp.com",
-            databaseURL: "https://pawappproject-default-rtdb.firebaseio.com",
-            projectId: "pawappproject",
-            storageBucket: "pawappproject.appspot.com",
-            messagingSenderId: "635093605118",
-            appId: "1:635093605118:web:8e8515afaa445ffe0da3af",
-            measurementId: "G-L2J5QK9HCS"
-        };
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        firebase.analytics();
-    </script>
-
+  <!-- Your config + nav logic -->
+  <script src="js/config.js"></script>
+  <script src="js/nav.js" defer></script>
 </head>
 <body>
-    <div id="navbar" class="navbar">
-        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-        <a href="#dashboard" class="nav-item">Dashboard</a>
-        <a href="#notifications" class="nav-item">Notifications & Alerts</a>
-        <a href="#settings" class="nav-item">Settings & Customization</a>
-        <a href="#security" class="nav-item">Security & Compliance</a>
-        <a href="#help" class="nav-item">Help & Support</a>
-        <a href="javascript:void(0)" id="logout-btn" class="nav-item">Logout</a>
-    </div>
+  <div id="navbar" class="navbar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    <a href="home.html" class="active">Dashboard</a>
+    <a href="profile.html">Profile Management</a>
+    <a href="subscriptions.html">Subscription Management</a>
+    <a href="accounts.html">Accounts Management</a>
+    <a href="javascript:void(0)" id="logout-btn">Logout</a>
+  </div>
 
-    <div id="main-content" class="main-content">
-        <span class="openbtn" onclick="openNav()">&#9776; Menu</span>
-        <h1 id="welcome-message">PAW APP Admin Panel</h1>
-        <p>Welcome to the PAW APP Admin Panel. Here you can manage users, animal reports, donations, subscriptions, and more.</p>
-        
-        <div id="content">
-            <h3>Admin Dashboard Overview</h3>
-            <div class="dashboard-cards">
-                <div class="card">
-                    <h4>User Management</h4>
-                    <p>Monitor user subscriptions, renewals, cancellations, and login logs.</p>
-                </div>
-                <div class="card">
-                    <h4>Animal Report Management</h4>
-                    <p>View and filter animal reports, update statuses, and review evidence.</p>
-                </div>
-                <div class="card">
-                    <h4>Content Management</h4>
-                    <p>Manage admin and organization-submitted articles.</p>
-                </div>
-                <div class="card">
-                    <h4>Subscription Management</h4>
-                    <p>Oversee user and organization subscriptions, monitor renewals, and cancellations.</p>
-                </div>
-                <div class="card">
-                    <h4>Animal Welfare Organization Management</h4>
-                    <p>Manage welfare organizations, assign cases, and track activity.</p>
-                </div>
-            </div>
+  <div id="main-content" class="main-content">
+    <button class="openbtn" onclick="openNav()">☰ Menu</button>
+
+    <div class="container card dashboard-grid">
+      <!-- Bar chart -->
+      <div class="chart-panel">
+        <h2>Registrations</h2>
+        <canvas id="registrationChart"></canvas>
+      </div>
+
+      <!-- Accounts summary -->
+      <div class="summary-panel accounts-panel">
+        <h3>Accounts Summary</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h4>Local Citizens</h4>
+            <p id="totalCitizens">0</p>
+          </div>
+          <div class="stat-card">
+            <h4>Animal Organizations</h4>
+            <p id="totalOrgs">0</p>
+          </div>
         </div>
+      </div>
+
+      <!-- Subscriptions summary -->
+      <div class="summary-panel subs-panel">
+        <h3>Subscriptions Summary</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h4>Active</h4>
+            <p id="activeSubs">0</p>
+          </div>
+          <div class="stat-card">
+            <h4>Inactive</h4>
+            <p id="inactiveSubs">0</p>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        function openNav() {
-            document.getElementById("navbar").style.width = "250px";
-            document.getElementById("main-content").style.marginLeft = "250px";
-            document.getElementById("main-content").style.opacity = "0.5";
-        }
-
-        function closeNav() {
-            document.getElementById("navbar").style.width = "0";
-            document.getElementById("main-content").style.marginLeft = "0";
-            document.getElementById("main-content").style.opacity = "1";
-        }
-
-        // Firebase authentication check
-        firebase.auth().onAuthStateChanged(user => {
-            if (!user) {
-                // Redirect to login page if not logged in
-                window.location.href = 'index.html';
-            } else {
-                // Display the logged-in user's email
-                document.getElementById('welcome-message').innerText = `Welcome, ${user.email}`;
-            }
-        });
-
-        // Logout functionality
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            firebase.auth().signOut().then(() => {
-                // Redirect to login page after logging out
-                window.location.href = 'index.html';
-            }).catch(error => {
-                console.error('Error logging out: ', error);
-            });
-        });
-    </script>
-
-    <!-- Custom JavaScript -->
-    <script src="app.js"></script>
+  <script src="js/dashboard.js" defer></script>
 </body>
 </html>

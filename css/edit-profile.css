@@ -1,0 +1,128 @@
+:root {
+    --bg:       #F5F5DC;
+    --card-bg:  #FFFFFF;
+    --primary:  #4CAF50;
+    --accent:   #FF9800;
+    --text:     #333;
+    --border:   #CCC;
+    --shadow:   rgba(0,0,0,0.1);
+  }
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--bg);
+  }
+  
+  .navbar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    background-color: var(--primary);
+    overflow-x: hidden;
+    transition: 0.5s;
+    padding-top: 60px;
+  }
+  .navbar a {
+    padding: 12px 32px;
+    color: #fff;
+    text-decoration: none;
+    display: block;
+    transition: 0.3s;
+  }
+  .navbar a:hover { background: #388E3C; }
+  .navbar .closebtn {
+    position: absolute; top: 0; right: 25px; font-size: 36px;
+  }
+  
+  .openbtn {
+    font-size: 20px;
+    cursor: pointer;
+    background-color: var(--accent);
+    color: #fff;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    margin: 20px;
+  }
+  
+  .main-content {
+    margin-left: 0;
+    transition: margin-left 0.5s;
+    padding: 20px;
+  }
+  
+  .container {
+    max-width: 600px;
+    margin: 40px auto;
+  }
+  
+  .card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px var(--shadow);
+    padding: 30px;
+  }
+  
+  .card h1 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: var(--primary);
+  }
+  
+  .field {
+    margin-bottom: 18px;
+  }
+  .field label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  
+  .buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .btn.save {
+    background: var(--primary);
+    color: #fff;
+  }
+  .btn.save:hover {
+    background: #388E3C;
+  }
+  .btn.cancel {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn.cancel:hover {
+    background: #E68900;
+  }
+  
+  .message {
+    margin-top: 12px;
+    text-align: center;
+    color: var(--primary);
+  }
+  

@@ -1,7 +1,5 @@
-// js/config.js
-// ————— initialize Firebase once for all pages —————
 const firebaseConfig = {
-    apiKey: "AIzaSyD6NU‑QTsPTRQ2ytvhqElEtinUl0vZnSo4",
+    apiKey: "AIzaSyD6NU-QTsPTRQ2ytvhqElEtinUl0vZnSo4",
     authDomain: "pawappproject.firebaseapp.com",
     databaseURL: "https://pawappproject-default-rtdb.firebaseio.com",
     projectId: "pawappproject",
@@ -11,5 +9,4 @@ const firebaseConfig = {
     measurementId: "G-L2J5QK9HCS"
   };
   firebase.initializeApp(firebaseConfig);
-  firebase.analytics();
   
