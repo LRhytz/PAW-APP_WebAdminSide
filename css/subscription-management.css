@@ -1,0 +1,126 @@
+:root {
+    --bg:          #F5F5DC;
+    --card-bg:     #FFFFFF;
+    --primary:     #4CAF50;
+    --accent:      #FF9800;
+    --text:        #333;
+    --table-bg:    #FAFAFA;
+    --active-bg:   #C8E6C9;
+    --inactive-bg: #FFCDD2;
+    --shadow:      rgba(0,0,0,0.1);
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  
+  .navbar {
+    position: fixed; top: 0; left: 0;
+    width: 0; height: 100%;
+    background: var(--primary);
+    overflow-x: hidden;
+    transition: width 0.3s;
+    padding-top: 60px;
+  }
+  .navbar a {
+    display: block; padding: 12px 24px;
+    color: #fff; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .navbar a.active,
+  .navbar a:hover {
+    background: rgba(255,255,255,0.2);
+  }
+  .navbar .closebtn {
+    position: absolute; top: 10px; right: 16px;
+    font-size: 36px; background: none; border: none;
+    color: #fff; cursor: pointer;
+  }
+  
+  .openbtn {
+    font-size: 20px; cursor: pointer;
+    background: var(--primary); color: #fff;
+    border: none; padding: 10px 15px; border-radius: 5px;
+    margin: 20px;
+  }
+  
+  .main-content {
+    margin-left: 0; padding: 20px;
+    transition: margin-left 0.3s;
+  }
+  
+  .container.card {
+    max-width: 1000px; margin: 40px auto;
+    background: var(--card-bg); border-radius: 10px;
+    box-shadow: 0 4px 12px var(--shadow); padding: 30px;
+  }
+  
+  .container.card h1 {
+    color: var(--primary); margin-bottom: 8px;
+  }
+  
+  .container.card p {
+    color: #666; margin-bottom: 20px;
+  }
+  
+  #subs-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--table-bg);
+  }
+  #subs-table th,
+  #subs-table td {
+    padding: 12px 8px; border-bottom: 1px solid #ddd;
+    text-align: left;
+  }
+  #subs-table th {
+    background: var(--card-bg); font-weight: 500;
+  }
+  #subs-table tr:nth-child(even) {
+    background: rgba(0,0,0,0.02);
+  }
+  
+  .status {
+    display: inline-block; padding: 4px 8px;
+    border-radius: 4px; font-size: 0.9em;
+  }
+  .status.active {
+    background: var(--active-bg); color: #256029;
+  }
+  .status.inactive {
+    background: var(--inactive-bg); color: #C62828;
+  }
+  
+  .action-btn {
+    padding: 6px 12px; background: var(--primary);
+    color: #fff; border: none; border-radius: 4px;
+    cursor: pointer; font-size: 0.9em;
+  }
+  .action-btn.cancel {
+    background: #E53935;
+  }
+  
+  .action-btn.notify {
+    background: var(--accent);
+    margin-left: 6px;
+  }
+  .action-btn.notify:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  /* nav.css (or at the bottom of your dashboard.css / accounts.css / profile-management.css, etc.) */
+.navbar .closebtn {
+  background-color: transparent !important;
+  border: none !important;
+  color: #fff;             /* keep the × white */
+  font-size: 36px;         /* same as before */
+  line-height: 1;          /* tighten up the button box */
+  padding: 0;              /* remove any extra padding */
+  cursor: pointer;
+  outline: none;           /* removes focus ring if you want */
+}
+
+  

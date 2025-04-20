@@ -148,4 +148,16 @@
   .view-btn:hover {
     background-color: #1976D2;
   }
+  /* nav.css (or at the bottom of your dashboard.css / accounts.css / profile-management.css, etc.) */
+.navbar .closebtn {
+  background-color: transparent !important;
+  border: none !important;
+  color: #fff;             /* keep the × white */
+  font-size: 36px;         /* same as before */
+  line-height: 1;          /* tighten up the button box */
+  padding: 0;              /* remove any extra padding */
+  cursor: pointer;
+  outline: none;           /* removes focus ring if you want */
+}
+
   

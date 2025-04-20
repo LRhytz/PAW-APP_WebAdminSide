@@ -16,14 +16,16 @@
 </head>
 <body>
   <div id="navbar" class="navbar">
-    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-    <a href="home.html">Dashboard</a>
-    <a href="profile.html">Profile Management</a>
-    <a href="subscriptions.html">Subscription Management</a>
-    <a href="accounts.html" class="active">Accounts Management</a>
-    <a href="javascript:void(0)" id="logout-btn">Logout</a>
+    <button class="closebtn" onclick="closeNav()">&times;</button>
+    <ul class="nav-links">
+      <li><a href="home.html"        class="active">Dashboard</a></li>
+      <li><a href="profile.html">Profile Management</a></li>
+      <li><a href="subscription-management.html">Subscription Management</a></li>
+      <li><a href="accounts.html">Accounts Management</a></li>
+      <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+    </ul>
   </div>
-
+  
   <div id="main-content" class="main-content">
     <button class="openbtn" onclick="openNav()">☰ Menu</button>
     <div class="container card">
