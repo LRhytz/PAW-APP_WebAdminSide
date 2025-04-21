@@ -1,153 +1,135 @@
 :root {
-    --bg:       #F5F5DC;
-    --card-bg:  #FFFFFF;
-    --primary:  #4CAF50;
-    --accent:   #FF9800;
-    --text:     #333333;
-    --border:   #CCCCCC;
-    --shadow:   rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Reset */
-  * {
-    box-sizing: border-box;
-    margin: 0; padding: 0;
-  }
-  
-  /* Base */
-  body {
-    font-family: 'Roboto', sans-serif;
-    background-color: var(--bg);
-  }
-  
-  /* Sidebar nav */
-  .navbar {
-    position: fixed; top: 0; left: 0;
-    width: 0; height: 100%;
-    background-color: var(--primary);
-    overflow-x: hidden;
-    transition: width 0.5s;
-    padding-top: 60px;
-  }
-  .navbar a {
-    display: block;
-    padding: 12px 32px;
-    color: #fff;
-    text-decoration: none;
-    transition: background-color 0.3s;
-  }
-  .navbar a:hover,
-  .navbar a.active {
-    background-color: #388E3C;
-  }
-  .navbar .closebtn {
-    position: absolute; top: 0; right: 25px;
-    font-size: 36px; color: #fff; cursor: pointer;
-  }
-  
-  /* Open menu button */
-  .openbtn {
-    font-size: 20px; cursor: pointer;
-    background-color: var(--primary); color: #fff;
-    padding: 10px 15px; border: none; border-radius: 5px;
-    margin: 20px;
-  }
-  
-  /* Main content area */
-  .main-content {
-    margin-left: 0;
-    padding: 20px;
-    transition: margin-left 0.5s;
-  }
-  
-  /* White card container */
-  .container {
-    max-width: 1000px;
-    margin: 40px auto;
-  }
-  .card {
-    background-color: var(--card-bg);
-    border-radius: 10px;
-    box-shadow: 0 4px 12px var(--shadow);
-    padding: 30px;
-  }
-  
-  /* Grid layout: chart spans left, summaries stack right */
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "chart accounts"
-      "chart subs";
-    gap: 20px 30px;
-  }
-  
-  .chart-panel {
-    grid-area: chart;
-  }
-  .accounts-panel {
-    grid-area: accounts;
-  }
-  .subs-panel {
-    grid-area: subs;
-  }
-  
-  /* Headings */
-  .chart-panel h2,
-  .summary-panel h3 {
-    color: var(--primary);
-    margin-bottom: 16px;
-    text-align: center;
-  }
-  
-  /* Chart canvas fills */
-  #registrationChart {
-    width: 100% !important;
-    height: 260px !important;
-  }
-  
-  /* Summary panels */
-  .summary-panel {
-    background-color: #fcfcfc;
-    border-radius: 8px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  }
-  
-  /* Stats grid inside summary */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  
-  /* Individual stat card */
-  .stat-card {
-    background-color: #fff;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    padding: 12px;
-    text-align: center;
-  }
-  .stat-card h4 {
-    color: var(--text);
-    font-size: 16px;
-    margin-bottom: 8px;
-  }
-  .stat-card p {
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--primary);
-  }
-  /* nav.css (or at the bottom of your dashboard.css / accounts.css / profile-management.css, etc.) */
+  --bg:          #F5F5DC;
+  --header-bg:   #4CAF50;
+  --card-bg:     #FFFFFF;
+  --primary:     #4CAF50;
+  --accent:      #FF9800;
+  --text:        #333333;
+  --shadow-md:   rgba(0, 0, 0, 0.1);
+  --shadow-lg:   rgba(0, 0, 0, 0.15);
+  --gap:         1.5rem;
+}
+
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
+
+/* Body */
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* App Header */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 60px; background: var(--header-bg);
+  display: flex; align-items: center;
+  padding: 0 var(--gap);
+  box-shadow: 0 2px 8px var(--shadow-md);
+  z-index: 1001;
+}
+.app-header .openbtn {
+  background: none; border: none; color: #fff;
+  font-size: 1.1rem; cursor: pointer; margin-right: var(--gap);
+}
+.app-header .app-title {
+  color: #fff; font-size: 1.4rem; flex: 1;
+}
+
+/* Sidebar Nav */
+.navbar {
+  position: fixed; top: 60px; left: 0;
+  width: 0; height: calc(100% - 60px);
+  background: var(--header-bg);
+  overflow-x: hidden; transition: width 0.3s ease;
+  z-index: 1000;
+}
 .navbar .closebtn {
-  background-color: transparent !important;
-  border: none !important;
-  color: #fff;             /* keep the × white */
-  font-size: 36px;         /* same as before */
-  line-height: 1;          /* tighten up the button box */
-  padding: 0;              /* remove any extra padding */
-  cursor: pointer;
-  outline: none;           /* removes focus ring if you want */
+  position: absolute; top: 8px; right: 8px;
+  background: none; border: none; color: #fff;
+  font-size: 1.5rem; cursor: pointer;
+}
+.navbar .nav-links {
+  list-style: none; padding: 1rem;
+}
+.navbar .nav-links li + li { margin-top: 0.5rem; }
+.navbar .nav-links a {
+  display: block; color: #fff; text-decoration: none;
+  padding: 0.5rem 1rem; border-radius: 4px;
+  transition: background 0.2s;
+}
+.navbar .nav-links a:hover,
+.navbar .nav-links a.active {
+  background: #388E3C;
+}
+
+/* Main Content */
+.main-content {
+  margin-top: 60px; padding: var(--gap);
+  transition: margin-left 0.3s ease;
+}
+
+/* Section Title */
+.section-title {
+  font-size: 1.8rem; font-weight: 600;
+  margin-bottom: 1rem; position: relative;
+}
+.section-title::after {
+  content: ''; display: block;
+  width: 3rem; height: 4px;
+  background: var(--accent);
+  margin-top: 0.3rem; border-radius: 2px;
+}
+
+/* Cards & Layout */
+.card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow-md);
+  padding: var(--gap);
+  margin-bottom: var(--gap);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px var(--shadow-lg);
+}
+
+/* Chart container */
+.chart-card {
+  max-width: 900px; margin: 0 auto var(--gap);
+}
+
+/* Summary grid */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+  gap: var(--gap);
+}
+
+/* Summary cards */
+.summary-card {
+  text-align: center;
+}
+.summary-card .card-header {
+  display: flex; align-items: center;
+  justify-content: center; gap: 0.5rem;
+  font-weight: 500; margin-bottom: 0.5rem;
+}
+.summary-card .card-header i {
+  color: var(--primary); font-size: 1.2rem;
+}
+.stat-number {
+  font-size: 2.4rem; font-weight: 600;
+  color: var(--primary); margin-top: 0.5rem;
+}
+
+/* Chart.js canvas sizing */
+#registrationChart {
+  width: 100% !important;
+  height: 300px !important;
 }

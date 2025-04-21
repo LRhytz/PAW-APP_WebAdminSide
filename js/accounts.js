@@ -12,6 +12,7 @@ firebase.auth().onAuthStateChanged(user => {
     const d = new Date(ts);
     return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
   }
+
   function getStatus(ts) {
     if (!ts) return 'inactive';
     return (now - ts <= WEEK_MS) ? 'active' : 'inactive';
@@ -45,29 +46,65 @@ firebase.auth().onAuthStateChanged(user => {
     return tr;
   }
 
-  // Local Citizens
+  function attachModalHandlers() {
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const uid  = btn.dataset.uid;
+        const type = btn.dataset.type;
+        const node = type === 'organization' ? 'organizations' : 'users';
+
+        firebase.database().ref(`${node}/${uid}`).once('value')
+          .then(snap => {
+            const d = snap.val()||{};
+            // common
+            document.getElementById('mEmail').value   = d.email    || d.adminEmail || '';
+            document.getElementById('mContact').value = d.phone    || d.contactNum || '';
+
+            // toggle groups
+            document.getElementById('mCitizenFields').style.display =
+              type==='citizen' ? 'block' : 'none';
+            document.getElementById('mOrgFields').style.display =
+              type==='organization' ? 'block' : 'none';
+
+            if (type==='citizen') {
+              document.getElementById('mFirstName').value  = d.firstName     || '';
+              document.getElementById('mLastName').value   = d.lastName      || '';
+              document.getElementById('mUsername').value   = d.username      || '';
+              document.getElementById('mBio').value        = d.bio           || '';
+              document.getElementById('mBirthdate').value  = d.birthdate     || '';
+            } else {
+              document.getElementById('mOrgName').value      = d.orgName       || '';
+              document.getElementById('mAdminName').value    = d.adminName     || '';
+              document.getElementById('mAdminEmail').value   = d.adminEmail    || '';
+              document.getElementById('mFoundingYear').value = d.foundingYear  || '';
+              document.getElementById('mAddress').value      = d.address       || '';
+              document.getElementById('mBioOrg').value       = d.bio           || '';
+            }
+
+            showModal();
+          });
+      });
+    });
+  }
+
+  // Load Local Citizens
   firebase.database().ref('users').once('value')
     .then(snap => {
       citizensTbody.innerHTML = '';
       Object.entries(snap.val()||{}).forEach(([uid,data]) => {
         citizensTbody.appendChild(renderRow(data, uid, 'citizen'));
       });
-      citizensTbody.querySelectorAll('.view-btn')
-        .forEach(btn => btn.addEventListener('click', () => {
-          window.location = `view-account.html?uid=${btn.dataset.uid}&type=citizen`;
-        }));
+      attachModalHandlers();
     });
 
-  // Animal Organizations
+  // Load Animal Organizations
   firebase.database().ref('organizations').once('value')
     .then(snap => {
       orgsTbody.innerHTML = '';
       Object.entries(snap.val()||{}).forEach(([uid,data]) => {
         orgsTbody.appendChild(renderRow(data, uid, 'organization'));
       });
-      orgsTbody.querySelectorAll('.view-btn')
-        .forEach(btn => btn.addEventListener('click', () => {
-          window.location = `view-account.html?uid=${btn.dataset.uid}&type=organization`;
-        }));
+      attachModalHandlers();
     });
+
 });

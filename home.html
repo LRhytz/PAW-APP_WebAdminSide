@@ -4,6 +4,20 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Dashboard</title>
+
+  <!-- Font Awesome for icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
+
+  <!-- AOS for scroll‑based fades -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/aos@2.3.4/dist/aos.css"
+  />
+
+  <!-- Your custom styles -->
   <link rel="stylesheet" href="css/dashboard.css"/>
 
   <!-- Firebase SDKs -->
@@ -14,64 +28,67 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Your config + nav logic -->
+  <!-- AOS, nav & dashboard logic -->
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
   <script src="js/config.js"></script>
   <script src="js/nav.js" defer></script>
+  <script src="js/dashboard.js" defer></script>
 </head>
 <body>
+  <header class="app-header">
+    <button class="openbtn" onclick="openNav()">
+      <i class="fas fa-bars"></i> Menu
+    </button>
+    <h1 class="app-title">🐾 PAW Admin Dashboard</h1>
+  </header>
+
   <div id="navbar" class="navbar">
     <button class="closebtn" onclick="closeNav()">&times;</button>
     <ul class="nav-links">
-      <li><a href="home.html"        class="active">Dashboard</a></li>
+      <li><a href="home.html" class="active">Dashboard</a></li>
       <li><a href="profile.html">Profile Management</a></li>
       <li><a href="subscription-management.html">Subscription Management</a></li>
       <li><a href="accounts.html">Accounts Management</a></li>
       <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
     </ul>
   </div>
-  
-  <div id="main-content" class="main-content">
-    <button class="openbtn" onclick="openNav()">☰ Menu</button>
 
-    <div class="container card dashboard-grid">
-      <!-- Bar chart -->
-      <div class="chart-panel">
-        <h2>Registrations</h2>
-        <canvas id="registrationChart"></canvas>
-      </div>
+  <main id="main-content" class="main-content">
+    <section class="card chart-card" data-aos="fade-up">
+      <h2 class="section-title">Registrations</h2>
+      <canvas id="registrationChart"></canvas>
+    </section>
 
-      <!-- Accounts summary -->
-      <div class="summary-panel accounts-panel">
-        <h3>Accounts Summary</h3>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h4>Local Citizens</h4>
-            <p id="totalCitizens">0</p>
-          </div>
-          <div class="stat-card">
-            <h4>Animal Organizations</h4>
-            <p id="totalOrgs">0</p>
-          </div>
+    <section class="summary-grid">
+      <div class="card summary-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="card-header">
+          <i class="fas fa-user"></i>
+          <span>Local Citizens</span>
         </div>
+        <p class="stat-number" id="totalCitizens">0</p>
       </div>
-
-      <!-- Subscriptions summary -->
-      <div class="summary-panel subs-panel">
-        <h3>Subscriptions Summary</h3>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <h4>Active</h4>
-            <p id="activeSubs">0</p>
-          </div>
-          <div class="stat-card">
-            <h4>Inactive</h4>
-            <p id="inactiveSubs">0</p>
-          </div>
+      <div class="card summary-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="card-header">
+          <i class="fas fa-users"></i>
+          <span>Animal Organizations</span>
         </div>
+        <p class="stat-number" id="totalOrgs">0</p>
       </div>
-    </div>
-  </div>
-
-  <script src="js/dashboard.js" defer></script>
+      <div class="card summary-card" data-aos="fade-up" data-aos-delay="300">
+        <div class="card-header">
+          <i class="fas fa-check-circle"></i>
+          <span>Active Subscriptions</span>
+        </div>
+        <p class="stat-number" id="activeSubs">0</p>
+      </div>
+      <div class="card summary-card" data-aos="fade-up" data-aos-delay="400">
+        <div class="card-header">
+          <i class="fas fa-times-circle"></i>
+          <span>Inactive Subscriptions</span>
+        </div>
+        <p class="stat-number" id="inactiveSubs">0</p>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

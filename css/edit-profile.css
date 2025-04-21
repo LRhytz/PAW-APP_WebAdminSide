@@ -1,138 +1,143 @@
 :root {
-    --bg:       #F5F5DC;
-    --card-bg:  #FFFFFF;
-    --primary:  #4CAF50;
-    --accent:   #FF9800;
-    --text:     #333;
-    --border:   #CCC;
-    --shadow:   rgba(0,0,0,0.1);
-  }
-  
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  body {
-    font-family: 'Roboto', sans-serif;
-    background-color: var(--bg);
-  }
-  
-  .navbar {
-    height: 100%;
-    width: 0;
-    position: fixed;
-    background-color: var(--primary);
-    overflow-x: hidden;
-    transition: 0.5s;
-    padding-top: 60px;
-  }
-  .navbar a {
-    padding: 12px 32px;
-    color: #fff;
-    text-decoration: none;
-    display: block;
-    transition: 0.3s;
-  }
-  .navbar a:hover { background: #388E3C; }
-  .navbar .closebtn {
-    position: absolute; top: 0; right: 25px; font-size: 36px;
-  }
-  
-  .openbtn {
-    font-size: 20px;
-    cursor: pointer;
-    background-color: var(--accent);
-    color: #fff;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    margin: 20px;
-  }
-  
-  .main-content {
-    margin-left: 0;
-    transition: margin-left 0.5s;
-    padding: 20px;
-  }
-  
-  .container {
-    max-width: 600px;
-    margin: 40px auto;
-  }
-  
-  .card {
-    background: var(--card-bg);
-    border-radius: 10px;
-    box-shadow: 0 4px 12px var(--shadow);
-    padding: 30px;
-  }
-  
-  .card h1 {
-    text-align: center;
-    margin-bottom: 24px;
-    color: var(--primary);
-  }
-  
-  .field {
-    margin-bottom: 18px;
-  }
-  .field label {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--text);
-  }
-  .field input,
-  .field select {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 16px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-  }
-  
-  .buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-  }
-  .btn {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-  .btn.save {
-    background: var(--primary);
-    color: #fff;
-  }
-  .btn.save:hover {
-    background: #388E3C;
-  }
-  .btn.cancel {
-    background: var(--accent);
-    color: #fff;
-  }
-  .btn.cancel:hover {
-    background: #E68900;
-  }
-  
-  .message {
-    margin-top: 12px;
-    text-align: center;
-    color: var(--primary);
-  }
-  /* nav.css (or at the bottom of your dashboard.css / accounts.css / profile-management.css, etc.) */
+  --bg:         #F5F5DC;
+  --header-bg:  #4CAF50;
+  --card-bg:    #FFFFFF;
+  --primary:    #4CAF50;
+  --text:       #333333;
+  --border:     #CCCCCC;
+  --shadow-md:  rgba(0, 0, 0, 0.1);
+  --gap:        1.5rem;
+}
+
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
+
+/* Body */
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* App Header */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--header-bg);
+  display: flex; align-items: center;
+  padding: 0 var(--gap);
+  box-shadow: 0 2px 8px var(--shadow-md);
+  z-index: 1001;
+}
+.app-header .openbtn {
+  background: none; border: none; color: #fff;
+  font-size: 1.2rem; cursor: pointer; margin-right: var(--gap);
+}
+.app-header .app-title {
+  color: #fff; font-size: 1.4rem; flex: 1;
+}
+
+/* Sidebar Nav (same as Profile) */
+.navbar {
+  position: fixed; top: 60px; left: 0;
+  width: 0; height: calc(100% - 60px);
+  background: var(--header-bg);
+  overflow-x: hidden; transition: width 0.3s ease;
+  z-index: 1000;
+}
 .navbar .closebtn {
-  background-color: transparent !important;
-  border: none !important;
-  color: #fff;             /* keep the × white */
-  font-size: 36px;         /* same as before */
-  line-height: 1;          /* tighten up the button box */
-  padding: 0;              /* remove any extra padding */
+  position: absolute; top: 8px; right: 8px;
+  background: none; border: none; color: #fff;
+  font-size: 1.5rem; cursor: pointer;
+}
+.navbar .nav-links { list-style: none; padding: 1rem; }
+.navbar .nav-links li + li { margin-top: 0.5rem; }
+.navbar .nav-links a {
+  display: block; color: #fff; text-decoration: none;
+  padding: 0.5rem 1rem; border-radius: 4px;
+  transition: background 0.2s;
+}
+.navbar .nav-links a:hover,
+.navbar .nav-links a.active {
+  background: #388E3C;
+}
+
+/* Main Content */
+.main-content {
+  margin-top: 60px; padding: var(--gap);
+  transition: margin-left 0.3s ease;
+}
+
+/* Container & Card */
+.container {
+  max-width: 600px; margin: 40px auto;
+}
+.card.edit-card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow-md);
+  padding: var(--gap);
+  text-align: center;
+}
+.card.edit-card h2 {
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+}
+
+/* Form Fields */
+.field {
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+.field label {
+  display: block; margin-bottom: 0.4rem;
+  font-weight: 500;
+}
+.field input,
+.field select {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+/* Buttons */
+.buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+.btn {
+  flex: 1;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
   cursor: pointer;
-  outline: none;           /* removes focus ring if you want */
+}
+.btn.save {
+  background: var(--primary);
+  color: #fff;
+}
+.btn.save:hover {
+  background: #388E3C;
+}
+.btn.cancel {
+  background: #FF9800;
+  color: #fff;
+}
+.btn.cancel:hover {
+  background: #E68900;
+}
+
+/* Feedback Message */
+.message {
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: var(--primary);
 }

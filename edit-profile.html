@@ -1,10 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Edit User Profile</title>
-  <link rel="stylesheet" href="css/edit-profile.css" />
+
+  <!-- Font Awesome & AOS -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/aos@2.3.1/dist/aos.css"
+  />
+
+  <!-- Your custom styles -->
+  <link rel="stylesheet" href="css/edit-profile.css"/>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -14,24 +26,34 @@
   <!-- Config & Nav -->
   <script src="js/config.js"></script>
   <script src="js/nav.js" defer></script>
+  <script src="js/edit-profile.js" defer></script>
 </head>
 <body>
+  <!-- fixed header -->
+  <header class="app-header">
+    <button class="openbtn" onclick="openNav()">
+      <i class="fas fa-bars"></i>
+    </button>
+    <h1 class="app-title">Edit User Profile</h1>
+  </header>
+
+  <!-- sidebar -->
   <div id="navbar" class="navbar">
     <button class="closebtn" onclick="closeNav()">&times;</button>
-    <a href="home.html" class="active">Dashboard</a>
-    <a href="profile.html">Profile Management</a>
-    <a href="subscription-management.html">Subscription Management</a>
-    <a href="accounts.html">Accounts Management</a>
-    <a href="javascript:void(0)" id="logout-btn">Logout</a>
+    <ul class="nav-links">
+      <li><a href="home.html">Dashboard</a></li>
+      <li><a href="profile.html">Profile Management</a></li>
+      <li><a href="subscription-management.html">Subscription Management</a></li>
+      <li><a href="accounts.html">Accounts Management</a></li>
+      <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+    </ul>
   </div>
-  
 
-  <div id="main-content" class="main-content">
-    <span class="openbtn" onclick="openNav()">☰ Menu</span>
-
+  <!-- main content -->
+  <main id="main-content" class="main-content">
     <div class="container">
-      <div class="card">
-        <h1>Edit User Profile</h1>
+      <div class="card edit-card" data-aos="fade-up">
+        <h2>Edit User Profile</h2>
         <form id="edit-profile-form">
           <div id="fields-container"></div>
           <div class="buttons">
@@ -44,8 +66,12 @@
         </form>
       </div>
     </div>
-  </div>
+  </main>
 
-  <script src="js/edit-profile.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      AOS.init({ duration: 500, once: true });
+    });
+  </script>
 </body>
 </html>

@@ -1,163 +1,212 @@
 :root {
-    --bg:       #F5F5DC;
-    --card-bg:  #FFFFFF;
-    --primary:  #4CAF50;
-    --text:     #333333;
-    --border:   #CCCCCC;
-    --shadow:   rgba(0, 0, 0, 0.1);
-    --inactive: #AAAAAA;
-  }
-  
-  /* Reset */
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  /* Body */
-  body {
-    font-family: 'Roboto', sans-serif;
-    background-color: var(--bg);
-  }
-  
-  /* Navbar */
-  .navbar {
-    height: 100%;
-    width: 0;
-    position: fixed;
-    background-color: var(--primary);
-    overflow-x: hidden;
-    transition: width 0.5s;
-    padding-top: 60px;
-  }
-  .navbar a {
-    display: block;
-    padding: 12px 32px;
-    text-decoration: none;
-    color: #ffffff;
-    font-size: 18px;
-    transition: background-color 0.3s;
-  }
-  .navbar a:hover,
-  .navbar a.active {
-    background-color: #388E3C;
-  }
-  .navbar .closebtn {
-    position: absolute;
-    top: 0;
-    right: 25px;
-    font-size: 36px;
-    cursor: pointer;
-  }
-  
-  /* Open button */
-  .openbtn {
-    font-size: 20px;
-    cursor: pointer;
-    background-color: var(--primary);
-    color: #ffffff;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    margin: 20px;
-  }
-  
-  /* Main content */
-  .main-content {
-    transition: margin-left 0.5s;
-    padding: 20px;
-    margin-left: 0;
-  }
-  
-  /* Card */
-  .container {
-    max-width: 900px;
-    margin: 40px auto;
-  }
-  .card {
-    background-color: var(--card-bg);
-    border-radius: 10px;
-    box-shadow: 0 4px 12px var(--shadow);
-    padding: 30px;
-  }
-  .card h1 {
-    text-align: center;
-    margin-bottom: 24px;
-    color: var(--primary);
-  }
-  .container h2 {
-    margin-top: 24px;
-    margin-bottom: 12px;
-    font-size: 20px;
-    color: var(--primary);
-  }
-  
-  /* Tables */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 32px;
-  }
-  th, td {
-    border: 1px solid var(--border);
-    padding: 12px;
-    text-align: left;
-  }
-  th {
-    background-color: var(--primary);
-    color: #fff;
-  }
-  tr:nth-child(even) {
-    background-color: #f9f9f9;
-  }
-  
-  /* Status cell */
-  .status-cell {
-    white-space: nowrap;
-  }
-  
-  /* Status badge */
-  .status {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #fff;
-  }
-  .status.active {
-    background-color: var(--primary);
-  }
-  .status.inactive {
-    background-color: var(--inactive);
-  }
-  
-  /* View button */
-  .view-btn {
-    margin-left: 8px;
-    padding: 6px 12px;
-    background-color: #2196F3;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    cursor: pointer;
-    vertical-align: middle;
-  }
-  .view-btn:hover {
-    background-color: #1976D2;
-  }
-  /* nav.css (or at the bottom of your dashboard.css / accounts.css / profile-management.css, etc.) */
-.navbar .closebtn {
-  background-color: transparent !important;
-  border: none !important;
-  color: #fff;             /* keep the × white */
-  font-size: 36px;         /* same as before */
-  line-height: 1;          /* tighten up the button box */
-  padding: 0;              /* remove any extra padding */
-  cursor: pointer;
-  outline: none;           /* removes focus ring if you want */
+  --bg:          #F5F5DC;
+  --header-bg:   #4CAF50;
+  --card-bg:     #FFFFFF;
+  --primary:     #4CAF50;
+  --text:        #333333;
+  --border:      #CCCCCC;
+  --shadow-md:   rgba(0, 0, 0, 0.1);
+  --inactive:    #AAAAAA;
+  --gap:         1.5rem;
 }
 
-  
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
+
+/* Body */
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* App Header */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--header-bg);
+  display: flex; align-items: center;
+  padding: 0 var(--gap);
+  box-shadow: 0 2px 8px var(--shadow-md);
+  z-index: 1001;
+}
+.app-header .openbtn {
+  background: none; border: none; color: #fff;
+  font-size: 1.1rem; cursor: pointer; margin-right: var(--gap);
+}
+.app-header .app-title {
+  color: #fff; font-size: 1.4rem; flex: 1;
+}
+
+/* Sidebar Nav */
+.navbar {
+  position: fixed; top: 60px; left: 0;
+  width: 0; height: calc(100% - 60px);
+  background: var(--header-bg);
+  overflow-x: hidden; transition: width 0.3s ease;
+  z-index: 1000;
+}
+.navbar .closebtn {
+  position: absolute; top: 8px; right: 8px;
+  background: none; border: none; color: #fff;
+  font-size: 1.5rem; cursor: pointer;
+}
+.navbar .nav-links {
+  list-style: none; padding: 1rem;
+}
+.navbar .nav-links li + li { margin-top: 0.5rem; }
+.navbar .nav-links a {
+  display: block; color: #fff; text-decoration: none;
+  padding: 0.5rem 1rem; border-radius: 4px;
+  transition: background 0.2s;
+}
+.navbar .nav-links a:hover,
+.navbar .nav-links a.active {
+  background: #388E3C;
+}
+
+/* Main Content */
+.main-content {
+  margin-top: 60px; padding: var(--gap);
+  transition: margin-left 0.3s ease;
+}
+
+/* Container & Card */
+.container {
+  max-width: 960px; margin: 40px auto;
+}
+.card.accounts-card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow-md);
+  padding: var(--gap);
+}
+.card.accounts-card h2 {
+  color: var(--primary); margin-bottom: 1rem;
+}
+.card.accounts-card h3 {
+  color: var(--primary);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+/* Table Wrapper */
+.table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+/* Tables */
+table {
+  width: 100%; border-collapse: collapse;
+  background: #FAFAFA;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 12px 8px;
+  text-align: left;
+}
+th {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 500;
+}
+tr:nth-child(even) {
+  background: rgba(0,0,0,0.02);
+}
+
+/* Status badge + View button */
+.status-cell {
+  white-space: nowrap;
+}
+.status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #fff;
+}
+.status.active {
+  background: var(--primary);
+}
+.status.inactive {
+  background: var(--inactive);
+}
+.view-btn {
+  margin-left: 0.5rem;
+  padding: 6px 12px;
+  background: #2196F3;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+.view-btn:hover {
+  background: #1976D2;
+}
+
+/* Modal styles */
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.modal.hidden {
+  display: none;
+}
+.modal-overlay {
+  position: absolute;
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.4);
+}
+.modal-content {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: var(--gap);
+  max-width: 480px;
+  width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 6px 16px var(--shadow-md);
+}
+.modal-close {
+  position: absolute;
+  top: 8px; right: 12px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+}
+
+/* Read‑only inputs */
+.readonly {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fafafa;
+  color: var(--text);
+  margin-bottom: var(--gap);
+}
+
+/* Hide both groups by default; JS will toggle */
+#citizen-fields, #org-fields,
+#mCitizenFields, #mOrgFields {
+  display: none;
+}
+
+/* Utility: closebtn consistency */
+.navbar .closebtn {
+  outline: none;
+}

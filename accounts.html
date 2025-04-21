@@ -4,6 +4,20 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Accounts Management</title>
+
+  <!-- Font Awesome for icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
+
+  <!-- AOS CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/aos@2.3.4/dist/aos.css"
+  />
+
+  <!-- Your custom styles -->
   <link rel="stylesheet" href="css/accounts.css"/>
 
   <!-- Firebase SDKs -->
@@ -11,57 +25,161 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-  <!-- Your config & navigation helper -->
+  <!-- Config & Nav -->
   <script src="js/config.js"></script>
   <script src="js/nav.js" defer></script>
+
+  <!-- AOS JS -->
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+  <!-- Your existing logic -->
+  <script src="js/accounts.js" defer></script>
 </head>
 <body>
+  <!-- fixed header -->
+  <header class="app-header">
+    <button class="openbtn" onclick="openNav()">
+      <i class="fas fa-bars"></i> Menu
+    </button>
+    <h1 class="app-title">Accounts Management</h1>
+  </header>
+
+  <!-- sidebar -->
   <div id="navbar" class="navbar">
     <button class="closebtn" onclick="closeNav()">&times;</button>
     <ul class="nav-links">
-      <li><a href="home.html" class="active">Dashboard</a></li>
+      <li><a href="home.html">Dashboard</a></li>
       <li><a href="profile.html">Profile Management</a></li>
       <li><a href="subscription-management.html">Subscription Management</a></li>
-      <li><a href="accounts.html">Accounts Management</a></li>
+      <li><a href="accounts.html" class="active">Accounts Management</a></li>
       <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
     </ul>
   </div>
-  
-  <div id="main-content" class="main-content">
-    <button class="openbtn" onclick="openNav()">☰ Menu</button>
-    <div class="container card">
-      <h1>Accounts Management</h1>
 
-      <h2>Local Citizens</h2>
-      <table id="citizens-table">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Name</th>
-            <th>Contact</th>
-            <th>Last Login</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+  <!-- main content -->
+  <main id="main-content" class="main-content">
+    <div class="container">
+      <div class="card accounts-card" data-aos="fade-up">
+        <h2>Accounts Management</h2>
 
-      <h2>Animal Organizations</h2>
-      <table id="orgs-table">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Organization</th>
-            <th>Contact</th>
-            <th>Last Login</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+        <h3>Local Citizens</h3>
+        <div class="table-wrap">
+          <table id="citizens-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Last Login</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <h3>Animal Organizations</h3>
+        <div class="table-wrap">
+          <table id="orgs-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Organization</th>
+                <th>Contact</th>
+                <th>Last Login</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- VIEW ACCOUNT MODAL -->
+  <div id="viewModal" class="modal hidden">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content card" data-aos="zoom-in">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h2>View Account</h2>
+
+      <div class="field">
+        <label>Email</label>
+        <input id="mEmail" class="readonly" readonly/>
+      </div>
+      <div class="field">
+        <label>Contact Number</label>
+        <input id="mContact" class="readonly" readonly/>
+      </div>
+
+      <div id="mCitizenFields" class="fields-group">
+        <div class="field">
+          <label>First Name</label>
+          <input id="mFirstName" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <input id="mLastName" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Username</label>
+          <input id="mUsername" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Bio</label>
+          <input id="mBio" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Birthdate</label>
+          <input id="mBirthdate" class="readonly" readonly/>
+        </div>
+      </div>
+
+      <div id="mOrgFields" class="fields-group">
+        <div class="field">
+          <label>Organization Name</label>
+          <input id="mOrgName" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Admin Name</label>
+          <input id="mAdminName" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Admin Email</label>
+          <input id="mAdminEmail" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Founding Year</label>
+          <input id="mFoundingYear" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Address</label>
+          <input id="mAddress" class="readonly" readonly/>
+        </div>
+        <div class="field">
+          <label>Bio</label>
+          <input id="mBioOrg" class="readonly" readonly/>
+        </div>
+      </div>
+
+      <button class="btn cancel" onclick="closeModal()">Close</button>
     </div>
   </div>
 
-  <script src="js/accounts.js" defer></script>
+  <script>
+    // simple modal toggles
+    function closeModal() {
+      document.getElementById('viewModal').classList.add('hidden');
+    }
+    function showModal() {
+      document.getElementById('viewModal').classList.remove('hidden');
+    }
+
+    // initialize AOS
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.AOS) AOS.init({ duration: 400, once: true });
+    });
+  </script>
 </body>
 </html>

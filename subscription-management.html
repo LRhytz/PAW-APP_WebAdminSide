@@ -4,6 +4,20 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Subscription Management</title>
+
+  <!-- Font Awesome for icons -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  />
+
+  <!-- AOS CSS (unpkg) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/aos@2.3.4/dist/aos.css"
+  />
+
+  <!-- Your custom styles -->
   <link rel="stylesheet" href="css/subscription-management.css"/>
 
   <!-- Firebase SDKs -->
@@ -11,54 +25,67 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-  <!-- Your config + nav logic -->
+  <!-- Config & Nav -->
   <script src="js/config.js"></script>
   <script src="js/nav.js" defer></script>
+
+  <!-- AOS JS (unpkg) -->
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+  <!-- Your subscription logic -->
+  <script src="js/subscription-management.js" defer></script>
 </head>
 <body>
+  <!-- fixed header -->
+  <header class="app-header">
+    <button class="openbtn" onclick="openNav()">
+      <i class="fas fa-bars"></i> Menu
+    </button>
+    <h1 class="app-title">Subscription Management</h1>
+  </header>
+
+  <!-- sidebar -->
   <div id="navbar" class="navbar">
     <button class="closebtn" onclick="closeNav()">&times;</button>
     <ul class="nav-links">
-      <li><a href="home.html"        class="active">Dashboard</a></li>
+      <li><a href="home.html">Dashboard</a></li>
       <li><a href="profile.html">Profile Management</a></li>
-      <li><a href="subscription-management.html">Subscription Management</a></li>
+      <li><a href="subscription-management.html" class="active">Subscription Management</a></li>
       <li><a href="accounts.html">Accounts Management</a></li>
       <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
     </ul>
   </div>
-  
-  <div id="main-content" class="main-content">
-    <button class="openbtn" onclick="openNav()">☰ Menu</button>
 
-    <div class="container card">
-      <h1>Subscription Management</h1>
-      <p>View and control all user &amp; organization subscriptions.</p>
+  <!-- main content -->
+  <main id="main-content" class="main-content">
+    <div class="container">
+      <div class="card subs-card" data-aos="fade-up">
+        <h2>Subscription Management</h2>
+        <p>View and control all user &amp; organization subscriptions.</p>
 
-      <table id="subs-table">
-        <thead>
-          <tr>
-            <th>Email</th>
-            <th>Plan</th>
-            <th>Start Date</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+        <div class="table-wrap">
+          <table id="subs-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Plan</th>
+                <th>Start Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
-  </div>
+  </main>
 
   <script>
-    function openNav() {
-      document.getElementById("navbar").style.width = "250px";
-      document.getElementById("main-content").style.marginLeft = "250px";
-    }
-    function closeNav() {
-      document.getElementById("navbar").style.width = "0";
-      document.getElementById("main-content").style.marginLeft = "0";
-    }
+    // Initialize AOS
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.AOS) AOS.init({ duration: 500, once: true });
+    });
   </script>
-  <script src="js/subscription-management.js" defer></script>
 </body>
 </html>

@@ -1,93 +1,156 @@
 :root {
-  --bg:       #F5F5DC;
-  --card-bg:  #FFFFFF;
-  --primary:  #4CAF50;
-  --text:     #333333;
-  --shadow:   rgba(0, 0, 0, 0.1);
-  --border:   #CCC;
+  --bg:         #F5F5DC;
+  --header-bg:  #4CAF50;
+  --card-bg:    #FFFFFF;
+  --primary:    #4CAF50;
+  --text:       #333333;
+  --border:     #CCCCCC;
+  --shadow-md:  rgba(0, 0, 0, 0.1);
+  --gap:        1.5rem;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0; padding: 0;
+}
 
+/* Body */
 body {
   font-family: 'Roboto', sans-serif;
   background-color: var(--bg);
+  color: var(--text);
 }
 
+/* App Header */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--header-bg);
+  display: flex; align-items: center;
+  padding: 0 var(--gap);
+  box-shadow: 0 2px 8px var(--shadow-md);
+  z-index: 1001;
+}
+.app-header .openbtn {
+  background: none; border: none; color: #fff;
+  font-size: 1.2rem; cursor: pointer; margin-right: var(--gap);
+}
+.app-header .app-title {
+  color: #fff; font-size: 1.4rem; flex: 1;
+}
+
+/* Sidebar Nav */
 .navbar {
-  height:100%; width:0; position:fixed;
-  background-color:var(--primary);
-  overflow-x:hidden; transition:0.5s; padding-top:60px;
-}
-.navbar a {
-  padding:12px 32px; color:#fff; text-decoration:none; display:block; transition:0.3s;
-}
-.navbar a.active,
-.navbar a:hover {
-  background-color:#388E3C;
+  position: fixed; top: 60px; left: 0;
+  width: 0; height: calc(100% - 60px);
+  background: var(--header-bg);
+  overflow-x: hidden; transition: width 0.3s ease;
+  z-index: 1000;
 }
 .navbar .closebtn {
-  position:absolute; top:0; right:25px; font-size:36px;
+  position: absolute; top: 8px; right: 8px;
+  background: none; border: none; color: #fff;
+  font-size: 1.5rem; cursor: pointer;
+}
+.navbar .nav-links {
+  list-style: none; padding: 1rem;
+}
+.navbar .nav-links li + li { margin-top: 0.5rem; }
+.navbar .nav-links a {
+  display: block; color: #fff; text-decoration: none;
+  padding: 0.5rem 1rem; border-radius: 4px;
+  transition: background 0.2s;
+}
+.navbar .nav-links a:hover,
+.navbar .nav-links a.active {
+  background: #388E3C;
 }
 
-.openbtn {
-  font-size:20px; cursor:pointer;
-  background-color:var(--primary); color:#fff;
-  padding:10px 15px; border:none; border-radius:5px; margin:20px;
-}
-
+/* Main Content */
 .main-content {
-  transition:margin-left .5s; padding:20px; margin-left:0;
+  margin-top: 60px; padding: var(--gap);
+  transition: margin-left 0.3s ease;
 }
 
-.container { max-width:600px; margin:40px auto; }
-
-.card {
-  background:var(--card-bg); border-radius:12px;
-  box-shadow:0 4px 12px var(--shadow); padding:30px; text-align:center;
+/* Container & Card */
+.container {
+  max-width: 600px; margin: 40px auto;
+}
+.card.profile-card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow-md);
+  padding: var(--gap);
+  text-align: center;
+}
+.card.profile-card h2 {
+  color: var(--primary);
+  margin-bottom: 1.5rem;
 }
 
-.card h1 {
-  color:var(--primary); margin-bottom:24px;
-}
-
+/* Profile Info */
 .profile-info {
-  display:flex; align-items:center; gap:24px; margin-bottom:32px;
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 .profile-avatar {
-  width:96px; height:96px; border-radius:50%; object-fit:cover; background:#eee;
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eee;
+  border: 2px solid var(--primary);
 }
 .profile-details p {
-  font-size:18px; color:var(--text); margin-bottom:8px; text-align:left;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  text-align: left;
 }
 
-.field { margin-bottom:20px; text-align:left; }
-.field label { display:block; margin-bottom:6px; color:var(--text); }
+/* Form Fields */
+.field {
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+.field label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+}
 .field input[type="text"],
 .field input[type="file"] {
-  width:100%; padding:10px 12px; font-size:16px;
-  border:1px solid var(--border); border-radius:6px;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
-.buttons { text-align:center; margin-top:10px; }
+/* Buttons */
+.buttons {
+  text-align: center;
+  margin-top: 1rem;
+}
 .btn.save {
-  background:var(--primary); color:#fff; border:none;
-  padding:12px 24px; border-radius:6px; cursor:pointer;
-}
-.btn.save:hover { background:#388E3C; }
-
-.message {
-  margin-top:12px; color:var(--primary);
-}
-/* nav.css (or at the bottom of your dashboard.css / accounts.css / profile-management.css, etc.) */
-.navbar .closebtn {
-  background-color: transparent !important;
-  border: none !important;
-  color: #fff;             /* keep the × white */
-  font-size: 36px;         /* same as before */
-  line-height: 1;          /* tighten up the button box */
-  padding: 0;              /* remove any extra padding */
+  background: var(--primary);
+  color: #fff;
+  padding: 0.7rem 1.5rem;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  outline: none;           /* removes focus ring if you want */
+  font-size: 1rem;
+}
+.btn.save:hover {
+  background: #388E3C;
 }
 
+/* Feedback Message */
+.message {
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: var(--primary);
+}
