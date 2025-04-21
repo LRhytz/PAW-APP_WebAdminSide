@@ -1,15 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>PAW APP Admin Login</title>
-  <link rel="icon" href="favicon.ico">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>PAW APP</title>
+  <link rel="icon" href="favicon.ico" />
 
-  <!-- Google Font -->
+  <!-- Google Fonts -->
   <link
     href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
     rel="stylesheet"
+  />
+
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
   />
 
   <!-- Custom CSS -->
@@ -19,37 +25,53 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
-  <!-- App scripts -->
+  <!-- Firebase Config -->
   <script src="js/config.js"></script>
-  <script src="js/auth.js" defer></script>
 </head>
+
 <body>
   <div class="login-container">
     <div class="login-card">
-      <h2>Admin Login</h2>
+      <!-- Logo floats above the card -->
+      <img
+        src="images/ic_pawapplogo.png"
+        alt="PAW APP Logo"
+        class="logo"
+      />
+
+      <h1>PAW APP Admin</h1>
+      <p class="tagline">Managing animal welfare, one click at a time.</p>
+
       <form id="login-form">
         <div class="input-group">
-          <label for="email">Email</label>
+          <i class="fas fa-envelope"></i>
           <input
             type="email"
             id="email"
-            placeholder="Enter your email"
+            placeholder="Email address"
             required
+            aria-label="Email address"
           />
         </div>
-        <div class="input-group">
-          <label for="password">Password</label>
+
+        <div class="input-group password">
+          <i class="fas fa-lock"></i>
           <input
             type="password"
             id="password"
-            placeholder="Enter your password"
+            placeholder="Password"
             required
+            aria-label="Password"
           />
         </div>
+
         <button type="submit" class="login-btn">Login</button>
         <div id="error-message" class="error-message"></div>
       </form>
     </div>
   </div>
+
+  <!-- Firebase Authentication Script -->
+  <script src="js/auth.js"></script>
 </body>
 </html>

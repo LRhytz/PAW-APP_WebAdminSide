@@ -1,94 +1,135 @@
 :root {
-    --bg:           #F5F5DC;
-    --card-bg:      #FFFFFF;
-    --primary:      #4CAF50;
-    --text:         #333;
-    --input-border: #CCC;
-    --error-color:  #E53935;
+  --logo-size: 80px;
+  --logo-offset: calc(var(--logo-size) / 2);
+  --logo-margin: 16px;
+
+  --bg-gradient: linear-gradient(135deg, #A8E063 0%, #56AB2F 100%);
+  --card-bg: rgba(255,255,255,0.85);
+  --text-color: #333;
+  --primary-color: #388E3C;
+  --input-border: #CCC;
+  --error-color: #E53935;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background: var(--bg-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 380px;
+  padding: 20px;
+}
+
+.login-card {
+  position: relative;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  padding: 32px;
+  text-align: center;
+
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideIn 0.6s ease-out forwards;
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  body {
-    font-family: 'Roboto', sans-serif;
-    background-color: var(--bg);
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .login-container {
-    width: 100%;
-    max-width: 400px;
-    padding: 20px;
-  }
-  
-  .login-card {
-    background: var(--card-bg);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    padding: 32px;
-    text-align: center;
-    position: relative;
-    z-index: 1;
-  }
-  
-  .login-card h2 {
-    color: var(--primary);
-    margin-bottom: 24px;
-    font-weight: 500;
-  }
-  
-  .input-group {
-    margin-bottom: 20px;
-    text-align: left;
-  }
-  
-  .input-group label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 14px;
-    color: var(--text);
-  }
-  
-  .input-group input {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 16px;
-    border: 1px solid var(--input-border);
-    border-radius: 6px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  
-  .input-group input:focus {
-    border-color: var(--primary);
-  }
-  
-  .login-btn {
-    width: 100%;
-    padding: 12px;
-    background-color: var(--primary);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-  }
-  
-  .login-btn:hover {
-    background-color: #388E3C;
-  }
-  
-  .error-message {
-    margin-top: 12px;
-    font-size: 14px;
-    color: var(--error-color);
-  }
-  
+}
+
+.logo {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--logo-size);
+  height: auto;
+  background: #fff;
+  padding: 10px;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+h1 {
+  font-size: 24px;
+  color: var(--primary-color);
+  margin-top: 30px;
+}
+
+.tagline {
+  font-size: 14px;
+  color: var(--text-color);
+  margin-bottom: 24px;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.input-group i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #777;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 12px 12px 40px;
+  font-size: 16px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: #fff;
+  transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.password input {
+  padding-right: 12px; /* No need for space for the eye icon anymore */
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.login-btn:hover {
+  transform: scale(1.03);
+}
+
+.error-message {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--error-color);
+  min-height: 18px;
+}
