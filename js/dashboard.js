@@ -42,7 +42,7 @@ firebase.auth().onAuthStateChanged(user => {
       if (!ts) return;
       const date = new Date(ts).toISOString().slice(0,10);
       const idx = days.indexOf(date);
-      if (idx>=0) counts.citizen[idx]++;
+      if (idx >= 0) counts.citizen[idx]++;
     });
 
     // Orgs
@@ -53,14 +53,30 @@ firebase.auth().onAuthStateChanged(user => {
       if (!ts) return;
       const date = new Date(ts).toISOString().slice(0,10);
       const idx = days.indexOf(date);
-      if (idx>=0) counts.organization[idx]++;
+      if (idx >= 0) counts.organization[idx]++;
     });
 
-    // Subscriptions
+    // Citizen subscriptions
     const subs = sSnap.val() || {};
-    const totalSubs = Object.keys(subs).length;
-    activeSubs = Object.values(subs).filter(s => s.status === 'active').length;
-    inactiveSubs = totalSubs - activeSubs;
+    let citizenActive = 0, citizenInactive = 0;
+    Object.values(subs).forEach(s => {
+      if (s.status === 'active') citizenActive++;
+      else citizenInactive++;
+    });
+
+    // Organization subscriptions
+    let orgActive = 0, orgInactive = 0;
+    Object.values(orgs).forEach(o => {
+      const s = o.subscription;
+      if (s && s.status) {
+        if (s.status === 'active') orgActive++;
+        else orgInactive++;
+      }
+    });
+
+    // Combine
+    activeSubs   = citizenActive + orgActive;
+    inactiveSubs = citizenInactive + orgInactive;
 
     // Animate numbers
     animateNumber('totalCitizens', totalCitizens);
@@ -101,7 +117,11 @@ firebase.auth().onAuthStateChanged(user => {
         animation: { duration: 800 },
         scales: {
           x: { title: { display: true, text: 'Date' } },
-          y: { beginAtZero: true, title: { display: true, text: 'Registrations' }, ticks: { stepSize: 1 }}
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Registrations' },
+            ticks: { stepSize: 1 }
+          }
         },
         plugins: {
           legend: { position: 'top' },
