@@ -29,7 +29,7 @@
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
     <script src="js/config.js"></script>
     <script src="js/nav.js" defer></script>
-    <script src="js/dashboard.js" defer></script>
+    <script src="js/dashboardOrg.js" defer></script>
   </head>
   <body>
     <header class="app-header">
@@ -43,12 +43,10 @@
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
         <li>
-          <a href="organizationDashboard.html" class="active">Home</a>
+          <a href="organizationDashboard.html" class="active">Dashboard</a>
         </li>
         <li><a href="reports.html">Reports</a></li>
-        <li>
-          <a href="donation.html">Donation</a>
-        </li>
+        <li><a href="donation.html">Donation</a></li>
         <li><a href="profileOrg.html">Profile</a></li>
         <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
       </ul>
@@ -56,38 +54,45 @@
 
     <main id="main-content" class="main-content">
       <section class="card chart-card" data-aos="fade-up">
-        <h2 class="section-title">Registrations</h2>
-        <canvas id="registrationChart"></canvas>
+        <h2 class="section-title">Reports</h2>
+        <canvas id="reportChart"></canvas>
       </section>
 
       <section class="summary-grid">
         <div class="card summary-card" data-aos="fade-up" data-aos-delay="100">
           <div class="card-header">
-            <i class="fas fa-user"></i>
-            <span>Local Citizens</span>
+            <i class="fas fa-file"></i>
+            <span>Total Reports</span>
           </div>
-          <p class="stat-number" id="totalCitizens">0</p>
+          <p class="stat-number" id="totalReports">0</p>
         </div>
         <div class="card summary-card" data-aos="fade-up" data-aos-delay="200">
           <div class="card-header">
-            <i class="fas fa-users"></i>
-            <span>Animal Organizations</span>
+            <i class="fas fa-check-circle"></i>
+            <span>Submitted Reports</span>
           </div>
-          <p class="stat-number" id="totalOrgs">0</p>
+          <p class="stat-number" id="submittedReports">0</p>
+        </div>
+        <div class="card summary-card" data-aos="fade-up" data-aos-delay="500">
+          <div class="card-header">
+            <i class="fas fa-thumbs-up"></i>
+            <span>Accepted Reports</span>
+          </div>
+          <p class="stat-number" id="acceptedReports">0</p>
         </div>
         <div class="card summary-card" data-aos="fade-up" data-aos-delay="300">
           <div class="card-header">
-            <i class="fas fa-check-circle"></i>
-            <span>Active Subscriptions</span>
+            <i class="fas fa-spinner"></i>
+            <span>In Progress Reports</span>
           </div>
-          <p class="stat-number" id="activeSubs">0</p>
+          <p class="stat-number" id="inProgressReports">0</p>
         </div>
         <div class="card summary-card" data-aos="fade-up" data-aos-delay="400">
           <div class="card-header">
-            <i class="fas fa-times-circle"></i>
-            <span>Inactive Subscriptions</span>
+            <i class="fas fa-check-circle"></i>
+            <span>Completed Reports</span>
           </div>
-          <p class="stat-number" id="inactiveSubs">0</p>
+          <p class="stat-number" id="completedReports">0</p>
         </div>
       </section>
     </main>
