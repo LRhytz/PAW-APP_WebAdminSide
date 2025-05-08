@@ -3,9 +3,93 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>Organization Dashboard</title>
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- AOS for scroll‑based fades -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+
+    <!-- Your custom styles -->
+    <link rel="stylesheet" href="css/dashboard.css" />
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- AOS, nav & dashboard logic -->
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+    <script src="js/config.js"></script>
+    <script src="js/nav.js" defer></script>
+    <script src="js/dashboard.js" defer></script>
   </head>
   <body>
-    <h1>Welcome to Organizations</h1>
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">
+        <i class="fas fa-bars"></i> Menu
+      </button>
+      <h1 class="app-title">🐾 Organization Dashboard</h1>
+    </header>
+
+    <div id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">&times;</button>
+      <ul class="nav-links">
+        <li>
+          <a href="organizationDashboard.html" class="active">Home</a>
+        </li>
+        <li><a href="reports.html">Reports</a></li>
+        <li>
+          <a href="donation.html">Donation</a>
+        </li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </div>
+
+    <main id="main-content" class="main-content">
+      <section class="card chart-card" data-aos="fade-up">
+        <h2 class="section-title">Registrations</h2>
+        <canvas id="registrationChart"></canvas>
+      </section>
+
+      <section class="summary-grid">
+        <div class="card summary-card" data-aos="fade-up" data-aos-delay="100">
+          <div class="card-header">
+            <i class="fas fa-user"></i>
+            <span>Local Citizens</span>
+          </div>
+          <p class="stat-number" id="totalCitizens">0</p>
+        </div>
+        <div class="card summary-card" data-aos="fade-up" data-aos-delay="200">
+          <div class="card-header">
+            <i class="fas fa-users"></i>
+            <span>Animal Organizations</span>
+          </div>
+          <p class="stat-number" id="totalOrgs">0</p>
+        </div>
+        <div class="card summary-card" data-aos="fade-up" data-aos-delay="300">
+          <div class="card-header">
+            <i class="fas fa-check-circle"></i>
+            <span>Active Subscriptions</span>
+          </div>
+          <p class="stat-number" id="activeSubs">0</p>
+        </div>
+        <div class="card summary-card" data-aos="fade-up" data-aos-delay="400">
+          <div class="card-header">
+            <i class="fas fa-times-circle"></i>
+            <span>Inactive Subscriptions</span>
+          </div>
+          <p class="stat-number" id="inactiveSubs">0</p>
+        </div>
+      </section>
+    </main>
   </body>
 </html>
