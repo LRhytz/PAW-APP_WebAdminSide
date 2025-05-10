@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reports Dashboard</title>
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- AOS for scroll‑based fades -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+
+    <!-- Your custom styles -->
+    <link rel="stylesheet" href="css/reports.css" />
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- AOS, nav & dashboard logic -->
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+    <script src="js/config.js"></script>
+    <script src="js/nav.js" defer></script>
+    <script src="js/dashboard.js" defer></script>
+    <script src="js/reports.js" defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">
+        <i class="fas fa-bars"></i> Menu
+      </button>
+      <h1 class="app-title">🐾 Reports</h1>
+    </header>
+
+    <div id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">&times;</button>
+      <ul class="nav-links">
+        <li>
+          <a href="organizationDashboard.html">Home</a>
+        </li>
+        <li><a href="reports.html" class="active">Reports</a></li>
+        <li>
+          <a href="donation.html">Donation</a>
+        </li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </div>
+
+    <main id="main-content" class="main-content">
+      <section class="card chart-card" data-aos="fade-up">
+        <h2 class="section-title">Reports Overview</h2>
+
+        <div class="filter-container">
+          <label for="status-filter">Filter by Status:</label>
+          <select id="status-filter" class="status-filter">
+            <option value="ALL">All</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="ACCEPTED">Accepted</option>
+            <option value="IN PROGRESS">In Progress</option>
+            <option value="ON HOLD">On Hold</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+        </div>
+
+        <div class="report-stats">
+          <!-- Optional: Add report statistics here -->
+        </div>
+
+        <div id="reports-container" class="reports-container">
+          <!-- Reports will be dynamically inserted here -->
+          <p class="no-reports">
+            <i class="fas fa-spinner fa-spin"></i> Loading reports...
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <div id="report-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-report-type">Report Details</h3>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="report-description"></p>
+          <div class="report-metadata">
+            <div class="metadata-item">
+              <i class="fas fa-tag"></i>
+              <div class="metadata-content">
+                <div class="metadata-label">Status</div>
+                <div class="metadata-value modal-report-status"></div>
+              </div>
+            </div>
+            <div class="metadata-item">
+              <i class="fas fa-map-marker-alt"></i>
+              <div class="metadata-content">
+                <div class="metadata-label">Location</div>
+                <div class="metadata-value modal-report-location"></div>
+              </div>
+            </div>
+            <div class="metadata-item">
+              <i class="fas fa-user"></i>
+              <div class="metadata-content">
+                <div class="metadata-label">Reported By</div>
+                <div class="metadata-value modal-report-email"></div>
+              </div>
+            </div>
+            <div class="metadata-item">
+              <i class="fas fa-exclamation-circle"></i>
+              <div class="metadata-content">
+                <div class="metadata-label">Severity</div>
+                <div class="metadata-value modal-report-severity"></div>
+              </div>
+            </div>
+          </div>
+          <div class="report-images"></div>
+          <div class="report-video"></div>
+        </div>
+        <div class="modal-footer">
+          <div class="report-date">
+            <i class="far fa-clock"></i>
+            <span class="modal-report-date"></span>
+          </div>
+          <div class="action-buttons">
+            <button id="reject-btn" class="btn-reject">Reject</button>
+            <button id="accept-btn" class="btn-accept">Accept</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
