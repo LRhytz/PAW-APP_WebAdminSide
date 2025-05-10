@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile Management</title>
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- AOS CSS (unpkg) -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+
+    <!-- Your custom styles -->
+    <link rel="stylesheet" href="css/profile-management.css" />
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <!-- Config & Nav -->
+    <script src="js/config.js"></script>
+    <script src="js/nav.js" defer></script>
+
+    <!-- AOS JS (unpkg) -->
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+    <!-- Your profile-management logic -->
+    <script src="js/profile-management-org.js" defer></script>
+  </head>
+  <body>
+    <!-- fixed header -->
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1 class="app-title">Profile Management</h1>
+    </header>
+
+    <!-- sidebar -->
+    <div id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">&times;</button>
+      <ul class="nav-links">
+        <li><a href="organizationDashboard.html">Dashboard</a></li>
+        <li><a href="reports.html" class="active">Reports</a></li>
+        <li>
+          <a href="donation.html">Donation</a>
+        </li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </div>
+
+    <!-- main content -->
+    <main id="main-content" class="main-content">
+      <div class="container">
+        <div class="card profile-card" data-aos="fade-up">
+          <h2>Manage Your Profile</h2>
+
+          <div class="profile-info">
+            <!-- updated placeholder URL -->
+            <img
+              id="avatar"
+              class="profile-avatar"
+              src="https://placehold.co/96x96"
+              alt="Avatar"
+            />
+            <div class="profile-details">
+              <p><strong>Email:</strong> <span id="email">Loading…</span></p>
+              <p>
+                <strong>Organization Name:</strong>
+                <span id="orgNames">Loading…</span>
+              </p>
+            </div>
+          </div>
+
+          <form id="profile-form">
+            <div class="field">
+              <label for="orgName">Organization Name</label>
+              <input type="text" id="orgName" required />
+            </div>
+            <div class="field">
+              <label for="profileImage">Change Avatar</label>
+              <input type="file" id="profileImage" accept="image/*" />
+            </div>
+            <div class="buttons">
+              <button type="submit" class="btn save">Save Changes</button>
+            </div>
+            <div id="msg" class="message"></div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Initialize AOS as soon as it's available
+      document.addEventListener("DOMContentLoaded", () => {
+        if (window.AOS) {
+          AOS.init({ duration: 500, once: true });
+        }
+      });
+    </script>
+  </body>
+</html>

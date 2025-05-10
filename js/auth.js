@@ -1,33 +1,64 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // Check if user is already logged in
-  firebase.auth().onAuthStateChanged(user => {
-    if (user && window.location.pathname.endsWith('index.html')) {
-      console.log("User already logged in. Redirecting to home.");
-      window.location.href = 'home.html';  // Redirect to home page
-    } else {
-      console.log("User not logged in.");
-    }
-  });
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("login-form");
+  const errEl = document.getElementById("error-message");
 
-  const form = document.getElementById('login-form');
-  const errEl = document.getElementById('error-message');
+  if (!form) return;
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
-    const email = document.getElementById('email').value.trim();
-    const pass = document.getElementById('password').value;
-    errEl.textContent = '';
 
-    console.log('Attempting login with email:', email);
+    const email = document.getElementById("email").value.trim();
+    const pass = document.getElementById("password").value;
+    errEl.textContent = "";
 
-    firebase.auth().signInWithEmailAndPassword(email, pass)
-      .then(() => {
-        console.log('Login successful');
-        window.location.href = 'home.html';  // Redirect after successful login
+    if (!email || !pass) {
+      errEl.textContent = "Please enter both email and password.";
+      return;
+    }
+
+    console.log("Attempting login with email:", email);
+
+    firebase
+      .auth()
+      .signInWithEmailAndPassword(email, pass)
+      .then((cred) => {
+        const userId = cred.user.uid;
+        const db = firebase.database();
+
+        return db
+          .ref("admins/" + userId)
+          .once("value")
+          .then((adminSnap) => {
+            const isAdmin = adminSnap.val() === true;
+            console.log("Is Admin:", isAdmin);
+
+            if (isAdmin) {
+              console.log("Login as Admin");
+              window.location.href = "home.html";
+              return;
+            }
+
+            // Check if organization
+            return db
+              .ref("organizations/" + userId)
+              .once("value")
+              .then((orgSnap) => {
+                const isOrg = orgSnap.exists();
+                console.log("Is Organization:", isOrg);
+
+                if (isOrg) {
+                  console.log("Login as Organization");
+                  window.location.href = "organizationDashboard.html";
+                } else {
+                  console.log("Login as General User");
+                  window.location.href = "home.html";
+                }
+              });
+          });
       })
-      .catch(err => {
-        console.log('Login error:', err.message);
-        errEl.textContent = err.message;  // Show error message if login fails
+      .catch((err) => {
+        console.error("Login error:", err.message);
+        errEl.textContent = err.message;
       });
   });
 });

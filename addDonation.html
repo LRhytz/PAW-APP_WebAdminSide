@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Donation</title>
+    <link rel="stylesheet" href="css/donation.css" />
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+  </head>
+  <body>
+    <!-- Header with a button to open navbar -->
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">
+        <i class="fas fa-bars"></i> Menu
+      </button>
+      <h1 class="app-title">🐾 Add Donation</h1>
+    </header>
+
+    <div id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">&times;</button>
+      <ul class="nav-links">
+        <li>
+          <a href="organizationDashboard.html">Dashboard</a>
+        </li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="donation.html" class="active">Donation</a></li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </div>
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+      <div class="form-container">
+        <div class="form-card">
+          <input type="text" id="name" placeholder="Name" required />
+          <input type="text" id="gcashName" placeholder="Gcash Name" required />
+          <input
+            type="text"
+            id="gcashNumber"
+            placeholder="Gcash Number"
+            required
+          />
+          <textarea
+            id="details"
+            placeholder="Donation Details"
+            required
+          ></textarea>
+          <input type="text" id="purpose" placeholder="Purpose" required />
+          <button id="submitDonation">Submit Donation</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <!-- Your custom scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/addDonation.js"></script>
+
+    <script>
+      // Function to open the navbar
+      function openNav() {
+        document.getElementById("navbar").style.width = "250px";
+        document.getElementById("main-content").style.marginLeft = "250px";
+      }
+
+      // Function to close the navbar
+      function closeNav() {
+        document.getElementById("navbar").style.width = "0";
+        document.getElementById("main-content").style.marginLeft = "0";
+      }
+    </script>
+  </body>
+</html>
