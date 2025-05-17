@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Adoptions</title>
+    <link rel="stylesheet" href="css/adoption.css" />
+
+    <!-- Firebase App + Firestore SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+    <script src="js/nav.js" defer></script>
+    <script src="js/config.js"></script>
+  </head>
+  <body>
+    <!-- App Header -->
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">☰ Menu</button>
+      <div class="app-title">PawApp Adoptions</div>
+    </header>
+
+    <!-- Sidebar Nav -->
+    <nav id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">×</button>
+      <ul class="nav-links">
+        <li>
+          <a href="organizationDashboard.html" class="active">Dashboard</a>
+        </li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="adoption.html">Adoption</a></li>
+        <li><a href="donation.html">Donation</a></li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <h2 class="section-title">Available Pets</h2>
+      <div id="adoption-cards" class="summary-grid"></div>
+    </main>
+
+    <!-- Floating Add Button -->
+    <button id="addAdoptionBtn" class="add-btn">+</button>
+
+    <!-- App Logic -->
+    <script src="js/adoption.js"></script>
+  </body>
+</html>

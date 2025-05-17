@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Add Adoption</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/addAdoption.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="js/config.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">
+        <i class="fas fa-bars"></i> Menu
+      </button>
+      <h1 class="app-title">🐾 Add New Pet for Adoption</h1>
+    </header>
+
+    <!-- Sidebar -->
+    <div id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">&times;</button>
+      <ul class="nav-links">
+        <li><a href="organizationDashboard.html">Dashboard</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="adoption.html">Adoption</a></li>
+        <li><a href="donation.html">Donation</a></li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </div>
+
+    <!-- Form Container -->
+    <main id="main-content" class="main-content">
+      <div class="form-container">
+        <form id="adoptionForm" class="form-card">
+          <input type="text" id="name" placeholder="Pet Name" required />
+          <input type="text" id="species" placeholder="Species" required />
+          <input type="text" id="breed" placeholder="Breed" required />
+          <input type="text" id="age" placeholder="Age" required />
+          <input type="text" id="size" placeholder="Size" required />
+          <input type="text" id="gender" placeholder="Gender" required />
+          <input
+            type="text"
+            id="description"
+            placeholder="Short Description"
+            required
+          />
+          <textarea
+            id="fullDescription"
+            placeholder="Full Description"
+            required
+          ></textarea>
+          <input type="text" id="address" placeholder="Location" required />
+          <input
+            type="text"
+            id="contactLocation"
+            placeholder="Contact Location"
+            required
+          />
+          <input
+            type="text"
+            id="contactPhone"
+            placeholder="Contact Phone"
+            required
+          />
+          <input
+            type="email"
+            id="contactEmail"
+            placeholder="Contact Email"
+            required
+          />
+          <input type="file" id="imageFile" accept="image/*" required />
+          <button type="submit">Add Pet</button>
+        </form>
+      </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/addAdoption.js"></script>
+    <script>
+      // Function to open the navbar
+      function openNav() {
+        document.getElementById("navbar").style.width = "250px";
+        document.getElementById("main-content").style.marginLeft = "250px";
+      }
+
+      // Function to close the navbar
+      function closeNav() {
+        document.getElementById("navbar").style.width = "0";
+        document.getElementById("main-content").style.marginLeft = "0";
+      }
+
+      document
+        .getElementById("logout-btn")
+        .addEventListener("click", function () {
+          firebase
+            .auth()
+            .signOut()
+            .then(() => {
+              window.location.href = "login.html";
+            })
+            .catch((error) => {
+              console.error("Logout failed:", error);
+            });
+        });
+    </script>
+  </body>
+</html>

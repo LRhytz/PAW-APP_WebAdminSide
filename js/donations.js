@@ -9,7 +9,7 @@ function checkAuth() {
       } else {
         console.log("No user is signed in");
         // Redirect to login page if not logged in
-        window.location.href = "login.html";
+        window.location.href = "index.html";
         reject(new Error("Not authenticated"));
       }
     });
