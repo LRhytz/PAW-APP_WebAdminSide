@@ -89,13 +89,11 @@ function fetchReports(filterStatus = "ALL") {
   const db = firebase.database();
   const reportsContainer = document.getElementById("reports-container");
 
-  // Fetch reports from the "reports" node
   db.ref("reports").on("value", (snapshot) => {
-    reportsContainer.innerHTML = ""; // Clear the container
+    reportsContainer.innerHTML = "";
     const reports = snapshot.val();
 
     if (reports) {
-      // Get filtered report IDs
       let filteredReportIds = Object.keys(reports).filter((key) => {
         const report = reports[key];
         return filterStatus === "ALL" || report.status === filterStatus;
@@ -124,6 +122,14 @@ function fetchReports(filterStatus = "ALL") {
         const statusClass = getStatusBadgeClass(report.status);
         const severityClass = getSeverityClass(report.severity);
         const reportDate = formatDate(report.timestamp || report.date);
+
+        // --- Count unread messages ---
+        let unreadCount = 0;
+        if (report.messages) {
+          unreadCount = Object.values(report.messages).filter(
+            (msg) => msg.senderRole !== "ORG" && !msg.read
+          ).length;
+        }
 
         // Create a card for each report
         const card = document.createElement("div");
@@ -250,8 +256,13 @@ function fetchReports(filterStatus = "ALL") {
               <button class="btn" title="View Details">
                 <i class="fas fa-eye"></i>
               </button>
-              <button class="btn" title="Edit Report">
-                <i class="fas fa-edit"></i>
+              <button class="btn" title="Message">
+                <i class="fas fa-comment-dots"></i>
+                ${
+                  unreadCount > 0
+                    ? `<span class="unread-badge">${unreadCount}</span>`
+                    : ""
+                }
               </button>
             </div>
           </div>
@@ -631,8 +642,11 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         showReportModal(report);
-      } else if (button.title === "Edit Report") {
-        console.log("Edit report clicked");
+      } else if (button.title === "Message") {
+        const reportCard = button.closest(".report-card");
+        const reportUserEmail = reportCard.getAttribute("data-email");
+        const reportId = reportCard.getAttribute("data-report-id");
+        showMessageModal(reportId, reportUserEmail);
       }
     }
 
@@ -672,3 +686,163 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchReports(selectedStatus);
   });
 });
+
+// --- Message Modal HTML ---
+function createMessageModal() {
+  if (document.getElementById("message-modal")) return;
+  const modalHtml = `
+    <div id="message-modal" class="modal">
+      <div class="modal-content" style="max-width:400px">
+        <div class="modal-header">
+          <h3>Send Message</h3>
+          <button class="modal-close" id="message-modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="message-meta" style="margin-bottom:10px;"></div>
+          <div id="message-history" style="max-height:200px;overflow-y:auto;margin-bottom:10px;"></div>
+          <textarea id="message-input" rows="3" style="width:100%;" placeholder="Type your message..."></textarea>
+        </div>
+        <div class="modal-footer">
+          <button id="send-message-btn" class="btn btn-accept">Send</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+  // Close modal on background click
+  document.getElementById("message-modal").addEventListener("click", (e) => {
+    if (e.target.id === "message-modal") closeMessageModal();
+  });
+
+  // Close modal on close button click
+  document
+    .getElementById("message-modal-close-btn")
+    .addEventListener("click", closeMessageModal);
+}
+
+// Make sure this is globally accessible
+function closeMessageModal() {
+  const modal = document.getElementById("message-modal");
+  if (modal) {
+    modal.classList.remove("show");
+    document.body.style.overflow = "";
+    setTimeout(() => {
+      // Dispatch remove event for cleanup
+      modal.dispatchEvent(new Event("remove"));
+      modal.remove();
+    }, 200); // Remove from DOM after animation (if any)
+  }
+}
+window.closeMessageModal = closeMessageModal;
+
+// --- Show Message Modal and Load Messages ---
+function showMessageModal(reportId, reportUserEmail) {
+  createMessageModal();
+  const modal = document.getElementById("message-modal");
+  modal.classList.add("show");
+  document.body.style.overflow = "hidden";
+  modal.setAttribute("data-report-id", reportId);
+
+  // Load report meta (reporter and severity)
+  const db = firebase.database();
+  db.ref(`reports/${reportId}`).once("value", (snapshot) => {
+    const report = snapshot.val();
+    const metaDiv = modal.querySelector("#message-meta");
+    if (report) {
+      metaDiv.innerHTML = `
+        <div style="font-size:13px;">
+          <strong>Reported By:</strong> ${
+            report.reportUserEmail || "Anonymous"
+          }<br>
+          <strong>Severity:</strong> <span class="${getSeverityClass(
+            report.severity
+          )}">${report.severity || "Unknown"}</span>
+        </div>
+      `;
+    } else {
+      metaDiv.innerHTML = "";
+    }
+  });
+
+  // --- Real-time message history ---
+  const historyDiv = modal.querySelector("#message-history");
+  historyDiv.innerHTML = "<em>Loading...</em>";
+
+  // Remove any previous listener to avoid duplicates
+  if (window._pawMessageListener) {
+    window._pawMessageListener.off();
+    window._pawMessageListener = null;
+  }
+  const messagesRef = db
+    .ref(`reports/${reportId}/messages`)
+    .orderByChild("timestamp");
+  window._pawMessageListener = messagesRef;
+  messagesRef.on("value", (snapshot) => {
+    const messages = snapshot.val();
+    if (!messages) {
+      historyDiv.innerHTML = "<em>No messages yet.</em>";
+      return;
+    }
+    // Mark all unread messages as read (ORG side)
+    Object.entries(messages).forEach(([msgId, msg]) => {
+      if (msg.senderRole !== "ORG" && !msg.read) {
+        db.ref(`reports/${reportId}/messages/${msgId}`).update({ read: true });
+      }
+    });
+
+    historyDiv.innerHTML = Object.values(messages)
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .map(
+        (msg) => `
+    <div style="margin-bottom:8px;">
+      <strong>${msg.senderRole === "ORG" ? "You" : reportUserEmail}:</strong>
+      <span>${msg.text}</span>
+      <div style="font-size:10px;color:#888;">${formatDate(msg.timestamp)}</div>
+    </div>
+  `
+      )
+      .join("");
+    historyDiv.scrollTop = historyDiv.scrollHeight;
+  });
+
+  // Send message handler
+  modal.querySelector("#send-message-btn").onclick = function () {
+    const input = modal.querySelector("#message-input");
+    const text = input.value.trim();
+    if (!text) return;
+    const user = firebase.auth().currentUser;
+    const newMsgRef = db.ref(`reports/${reportId}/messages`).push();
+    newMsgRef
+      .set({
+        messageId: newMsgRef.key,
+        senderId: user ? user.uid : "ORG",
+        senderRole: "ORG",
+        text: text,
+        timestamp: Date.now(),
+      })
+      .then(() => {
+        input.value = "";
+        showToast("Message sent");
+        // No need to reload modal, real-time listener will update messages
+      });
+  };
+
+  // Allow sending message with Enter key (but not Shift+Enter for new line)
+  modal
+    .querySelector("#message-input")
+    .addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        modal.querySelector("#send-message-btn").click();
+      }
+    });
+
+  // Clean up listener when modal is closed
+  modal.addEventListener("remove", () => {
+    if (window._pawMessageListener) {
+      window._pawMessageListener.off();
+      window._pawMessageListener = null;
+    }
+  });
+}
