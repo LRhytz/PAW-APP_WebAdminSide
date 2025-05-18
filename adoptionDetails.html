@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pet Details</title>
+  <link rel="stylesheet" href="css/adoption.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+  />
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="js/config.js"></script>
+</head>
+<body>
+  <!-- App Header -->
+  <header class="app-header">
+    <button class="back-btn" onclick="history.back()"><i class="fas fa-arrow-left"></i></button>
+    <div class="app-title">Pet Details</div>
+    <div class="header-actions">
+      <button class="action-btn" id="share-btn">
+        <i class="fas fa-share-alt"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content pet-details-page">
+    <div class="loading-container" id="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading pet details...</p>
+    </div>
+    
+    <div class="pet-details-container" id="pet-details-container">
+      <!-- Content will be loaded dynamically -->
+    </div>
+    
+    <div class="error-container" id="error-container">
+      <i class="fas fa-exclamation-circle"></i>
+      <h3>Oops!</h3>
+      <p id="error-message">Something went wrong</p>
+      <button class="btn-primary" onclick="location.reload()">Try Again</button>
+    </div>
+  </main>
+  
+  <!-- Adoption Action Bar -->
+  <div class="adoption-action-bar" id="adoption-actions">
+    <button class="action-btn favorite-btn" id="favorite-btn">
+      <i class="far fa-heart"></i>
+      <span>Save</span>
+    </button>
+    <button class="action-btn share-btn" id="mobile-share-btn">
+      <i class="fas fa-share-alt"></i>
+      <span>Share</span>
+    </button>
+    <button class="btn-primary adopt-btn" id="adopt-btn">
+      <i class="fas fa-paw"></i>
+      <span>Adopt Me</span>
+    </button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+  const loadingSpinner = document.getElementById('loading-spinner');
+  const petDetailsContainer = document.getElementById('pet-details-container');
+  const errorContainer = document.getElementById('error-container');
+  const errorMessage = document.getElementById('error-message');
+  const favoriteBtn = document.getElementById('favorite-btn');
+  const shareBtn = document.getElementById('share-btn');
+  const mobileShareBtn = document.getElementById('mobile-share-btn');
+  const adoptBtn = document.getElementById('adopt-btn');
+  
+  // Show loading spinner
+  loadingSpinner.style.display = 'flex';
+  petDetailsContainer.style.display = 'none';
+  errorContainer.style.display = 'none';
+  
+  // Get pet ID from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const petId = urlParams.get("id");
+
+  if (petId) {
+    const petRef = firebase.database().ref("adoptions/" + petId);
+    petRef.once("value")
+      .then(snapshot => {
+        // Hide loading spinner
+        loadingSpinner.style.display = 'none';
+        
+        const pet = snapshot.val();
+        if (!pet) {
+          errorMessage.textContent = "Pet not found. It may have been adopted!";
+          errorContainer.style.display = 'flex';
+          return;
+        }
+
+        // Show pet details
+        petDetailsContainer.style.display = 'block';
+        
+        // Create pet details HTML content
+        petDetailsContainer.innerHTML = `
+          <div class="pet-hero">
+            <div class="pet-images-carousel">
+              <div class="main-image-container">
+                ${pet.imageUrl ? 
+                  `<img src="${pet.imageUrl}" alt="${pet.name}" class="main-image">` : 
+                  `<img src="/api/placeholder/800/500" alt="No image available" class="main-image">`}
+              </div>
+              <div class="image-thumbnails">
+                ${pet.imageUrl ? 
+                  `<div class="thumbnail active"><img src="${pet.imageUrl}" alt="${pet.name}"></div>` : ''}
+                <div class="thumbnail"><img src="/api/placeholder/100/100" alt="placeholder"></div>
+                <div class="thumbnail"><img src="/api/placeholder/100/100" alt="placeholder"></div>
+              </div>
+            </div>
+            <div class="pet-badges">
+              ${pet.specialNeeds ? '<span class="pet-badge special-needs">Special Needs</span>' : ''}
+              ${pet.adoptionStatus === 'urgent' ? '<span class="pet-badge urgent">Urgent</span>' : ''}
+            </div>
+          </div>
+          
+          <div class="pet-info-container">
+            <div class="pet-header">
+              <h1>${pet.name}</h1>
+              <div class="pet-subheader">
+                <div class="breed-age">
+                  <span class="breed">${pet.breed}</span>
+                  <span class="age">${pet.age}</span>
+                </div>
+                <div class="location">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>${pet.address || 'Location not specified'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="pet-stats">
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <i class="fas fa-ruler-vertical"></i>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-label">Size</div>
+                  <div class="stat-value">${pet.size || 'Unknown'}</div>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <i class="fas fa-venus-mars"></i>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-label">Gender</div>
+                  <div class="stat-value">${pet.gender || 'Unknown'}</div>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <i class="fas fa-paw"></i>
+                </div>
+                <div class="stat-info">
+                  <div class="stat-label">Species</div>
+                  <div class="stat-value">${pet.species || pet.type || 'Unknown'}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="pet-section">
+              <h2>About ${pet.name}</h2>
+              <div class="pet-description">
+                ${pet.fullDescription || pet.description || 'No description available for this pet.'}
+              </div>
+            </div>
+            
+            <div class="pet-section">
+              <h2>Good with</h2>
+              <div class="compatibility-grid">
+                <div class="compatibility-item ${pet.goodWithKids ? 'compatible' : 'incompatible'}">
+                  <i class="fas fa-child"></i>
+                  <span>Children</span>
+                </div>
+                <div class="compatibility-item ${pet.goodWithDogs ? 'compatible' : 'incompatible'}">
+                  <i class="fas fa-dog"></i>
+                  <span>Dogs</span>
+                </div>
+                <div class="compatibility-item ${pet.goodWithCats ? 'compatible' : 'incompatible'}">
+                  <i class="fas fa-cat"></i>
+                  <span>Cats</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="pet-section">
+              <h2>Details</h2>
+              <div class="details-grid">
+                <div class="detail-item">
+                  <div class="detail-label">Health</div>
+                  <div class="detail-value">${pet.health || 'General good health'}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Vaccinated</div>
+                  <div class="detail-value">${pet.vaccinated ? 'Yes' : 'Unknown'}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">Neutered/Spayed</div>
+                  <div class="detail-value">${pet.neutered ? 'Yes' : 'Unknown'}</div>
+                </div>
+                <div class="detail-item">
+                  <div class="detail-label">House Trained</div>
+                  <div class="detail-value">${pet.houseTrained ? 'Yes' : 'Unknown'}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="pet-section contact-section">
+              <h2>Contact Information</h2>
+              <div class="contact-card">
+                <div class="organization-info">
+                  <div class="org-logo">
+                    <i class="fas fa-building"></i>
+                  </div>
+                  <div class="org-details">
+                    <h3>${pet.organizationName || 'Adoption Agency'}</h3>
+                    <p>${pet.address || 'Address not provided'}</p>
+                  </div>
+                </div>
+                <div class="contact-details">
+                  <a href="tel:${pet.contactPhone}" class="contact-method phone">
+                    <i class="fas fa-phone-alt"></i>
+                    <span>${pet.contactPhone || 'Not provided'}</span>
+                  </a>
+                  <a href="mailto:${pet.contactEmail}" class="contact-method email">
+                    <i class="fas fa-envelope"></i>
+                    <span>${pet.contactEmail || 'Not provided'}</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Add functionality for image thumbnails
+        const thumbnails = document.querySelectorAll('.thumbnail');
+        const mainImage = document.querySelector('.main-image');
+        
+        thumbnails.forEach(thumb => {
+          thumb.addEventListener('click', () => {
+            // Remove active class from all thumbnails
+            thumbnails.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked thumbnail
+            thumb.classList.add('active');
+            // Update main image
+            mainImage.src = thumb.querySelector('img').src;
+          });
+        });
+        
+        // Show adoption action bar with modified buttons - only Edit button displayed
+        document.getElementById('adoption-actions').style.display = 'flex';
+        document.getElementById('adopt-btn').style.display = 'none'; // Hide the Adopt Me button
+      })
+      .catch(error => {
+        loadingSpinner.style.display = 'none';
+        errorMessage.textContent = "Error loading pet details. Please try again.";
+        errorContainer.style.display = 'flex';
+        console.error("Error fetching pet data:", error);
+      });
+  } else {
+    loadingSpinner.style.display = 'none';
+    errorMessage.textContent = "Missing pet ID in URL.";
+    errorContainer.style.display = 'flex';
+  }
+  
+  // Set up favorite button
+  favoriteBtn.addEventListener('click', function() {
+    const icon = this.querySelector('i');
+    icon.classList.toggle('far');
+    icon.classList.toggle('fas');
+    
+    if (icon.classList.contains('fas')) {
+      // Show toast or some kind of feedback
+      showToast('Added to favorites!');
+    } else {
+      showToast('Removed from favorites');
+    }
+  });
+  
+  // Set up share buttons
+  function shareContent() {
+    const shareUrl = window.location.href;
+    const petName = document.querySelector('.pet-header h1')?.textContent || 'this pet';
+    
+    if (navigator.share) {
+      navigator.share({
+        title: `Adopt ${petName}`,
+        text: `Check out ${petName} available for adoption!`,
+        url: shareUrl
+      })
+      .catch(err => {
+        console.error('Share failed:', err);
+        // Fallback
+        prompt('Copy this link to share:', shareUrl);
+      });
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      prompt('Copy this link to share:', shareUrl);
+    }
+  }
+  
+  shareBtn.addEventListener('click', shareContent);
+  mobileShareBtn.addEventListener('click', shareContent);
+  
+  // The Adopt button is now hidden, but keeping the event listener in case it's needed later
+  
+  // Toast notification
+  function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 300);
+    }, 3000);
+  }
+});
+  </script>
+</body>
+</html>

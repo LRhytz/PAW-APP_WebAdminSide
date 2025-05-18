@@ -420,6 +420,59 @@ body {
   color: var(--primary);
 }
 
+/* Modal Footer Buttons */
+.btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--text-light);
+  padding: 7px 18px;
+  border-radius: 20px;
+  font-weight: 600;
+  margin-left: 8px;
+  margin-right: 0;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px var(--shadow-sm);
+}
+
+.btn-accept,
+.btn-completed {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-accept:hover,
+.btn-completed:hover {
+  background: #388e3c;
+}
+
+.btn-reject {
+  background: #f44336;
+  color: #fff;
+}
+.btn-reject:hover {
+  background: #d32f2f;
+}
+
+.btn-inprogress {
+  background: #2196f3;
+  color: #fff;
+}
+.btn-inprogress:hover {
+  background: #1769aa;
+}
+
+.btn-onhold {
+  background: #ff9800;
+  color: #fff;
+}
+.btn-onhold:hover {
+  background: #f57c00;
+}
+
 /* No Reports Message */
 .reports-container p.no-reports {
   grid-column: 1 / -1;
@@ -555,35 +608,115 @@ body {
 
 .modal-footer .action-buttons {
   display: flex;
-  gap: 10px;
+  gap: 16px;
+  justify-content: flex-end;
+  align-items: center;
+  background: #f5f7fa;
+  border-radius: 16px;
+  padding: 18px 0 0 0;
+  margin-top: 12px;
 }
 
+.modal-footer .btn,
+.modal-footer .btn-accept,
 .modal-footer .btn-reject,
-.modal-footer .btn-accept {
-  padding: 0.5rem 1rem;
+.modal-footer .btn-inprogress,
+.modal-footer .btn-onhold,
+.modal-footer .btn-completed {
   border: none;
-  border-radius: 4px;
+  outline: none;
+  border-radius: 999px;
+  padding: 12px 22px;
   font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: #fff;
+  color: #333;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.12s;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.modal-footer .btn i {
+  font-size: 1.2em;
+  margin-right: 0;
+  transition: color 0.18s;
+}
+
+.modal-footer .btn-inprogress {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+.modal-footer .btn-inprogress:hover {
+  background: #1976d2;
+  color: #fff;
+}
+
+.modal-footer .btn-onhold {
+  background: #fff3e0;
+  color: #f57c00;
+}
+.modal-footer .btn-onhold:hover {
+  background: #f57c00;
+  color: #fff;
+}
+
+.modal-footer .btn-completed {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+.modal-footer .btn-completed:hover {
+  background: #388e3c;
+  color: #fff;
 }
 
 .modal-footer .btn-reject {
-  background: #d9534f; /* Match the card's reject button color */
-  color: #fff;
+  background: #ffebee;
+  color: #d32f2f;
 }
-
 .modal-footer .btn-reject:hover {
-  background: #c9302c; /* Match the card's reject button hover color */
+  background: #d32f2f;
+  color: #fff;
 }
 
 .modal-footer .btn-accept {
-  background: #5cb85c; /* Match the card's accept button color */
+  background: #e8f5e9;
+  color: #388e3c;
+}
+.modal-footer .btn-accept:hover {
+  background: #388e3c;
   color: #fff;
 }
 
-.modal-footer .btn-accept:hover {
-  background: #4cae4c; /* Match the card's accept button hover color */
+@media (min-width: 600px) {
+  .modal-footer .btn span {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 0.18s, width 0.18s;
+    white-space: nowrap;
+  }
+  .modal-footer .btn:hover span {
+    opacity: 1;
+    width: auto;
+    margin-left: 8px;
+  }
+}
+
+@media (max-width: 599px) {
+  .modal-footer .btn span {
+    opacity: 1;
+    width: auto;
+    margin-left: 8px;
+  }
+}
+
+/* Remove clock icon from modal footer */
+.modal-footer .report-date i {
+  display: none;
 }
 
 /* Toast Notifications */

@@ -322,6 +322,26 @@ function rejectReport(reportId) {
     });
 }
 
+// Add this helper function:
+function updateReportStatus(reportId, newStatus) {
+  if (!reportId) return;
+  const db = firebase.database();
+  db.ref(`reports/${reportId}`)
+    .update({
+      status: newStatus,
+      updatedAt: Date.now(),
+      updatedBy: firebase.auth().currentUser?.email || "Unknown",
+    })
+    .then(() => {
+      showToast(`Report status updated to ${newStatus}`);
+      closeModal();
+    })
+    .catch((error) => {
+      console.error("Error updating report status:", error);
+      showToast("Error updating report status", "error");
+    });
+}
+
 // Add event listeners when the DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   // Close button event listener
@@ -409,7 +429,6 @@ function showReportModal(report) {
     imagesContainer.innerHTML = `<p class="no-images"><i class="fas fa-image-slash"></i> No attached images</p>`;
   }
 
-  // Handle video
   const videoContainer = modal.querySelector(".report-video");
   if (report.videoUrl) {
     videoContainer.innerHTML = `
@@ -421,8 +440,60 @@ function showReportModal(report) {
       <p class="no-video"><i class="fas fa-video-slash"></i> No attached video</p>`;
   }
 
-  // Set the report ID in the modal for reference
   modal.setAttribute("data-report-id", report.reportId);
+
+  const footer = modal.querySelector(".modal-footer .action-buttons");
+  footer.innerHTML = "";
+
+  if ((report.status || "").toUpperCase() === "ACCEPTED") {
+    const statuses = [
+      {
+        label: "In Progress",
+        value: "IN PROGRESS",
+        icon: "fa-spinner",
+        class: "btn-inprogress",
+      },
+      {
+        label: "On Hold",
+        value: "ON HOLD",
+        icon: "fa-pause-circle",
+        class: "btn-onhold",
+      },
+      {
+        label: "Completed",
+        value: "COMPLETED",
+        icon: "fa-check-circle",
+        class: "btn-completed",
+      },
+      {
+        label: "Rejected",
+        value: "REJECTED",
+        icon: "fa-times-circle",
+        class: "btn-reject",
+      },
+    ];
+    statuses.forEach((s) => {
+      const btn = document.createElement("button");
+      btn.className = `btn ${s.class}`;
+      btn.innerHTML = `<i class="fas ${s.icon}"></i><span>${s.label}</span>`;
+      btn.onclick = () => updateReportStatus(report.reportId, s.value);
+      footer.appendChild(btn);
+    });
+  } else {
+    // Show Accept and Reject buttons
+    const acceptBtn = document.createElement("button");
+    acceptBtn.className = "btn-accept";
+    acceptBtn.textContent = "Accept";
+    acceptBtn.onclick = () => acceptReport(report.reportId);
+
+    const rejectBtn = document.createElement("button");
+    rejectBtn.className = "btn-reject";
+    rejectBtn.textContent = "Reject";
+    rejectBtn.onclick = () => rejectReport(report.reportId);
+
+    footer.appendChild(rejectBtn);
+    footer.appendChild(acceptBtn);
+  }
 
   // Show modal
   modal.classList.add("show");

@@ -11,12 +11,6 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
   }
-  const logoutBtn = document.getElementById("logout-btn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", function () {
-      window.location.href = "login.html";
-    });
-  }
 
   const submitButton = document.getElementById("submitDonation");
   if (submitButton) {

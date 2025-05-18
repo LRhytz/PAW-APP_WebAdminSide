@@ -14,6 +14,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+    <script src="js/nav.js" defer></script>
 
     <!-- Firebase configuration -->
     <script src="js/config.js"></script>
@@ -31,10 +33,11 @@
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
         <li>
-          <a href="organizationDashboard.html">Dashboard</a>
+          <a href="organizationDashboard.html" class="active">Dashboard</a>
         </li>
         <li><a href="reports.html">Reports</a></li>
-        <li><a href="donation.html" class="active">Donation</a></li>
+        <li><a href="adoption.html">Adoption</a></li>
+        <li><a href="donation.html">Donation</a></li>
         <li><a href="profileOrg.html">Profile</a></li>
         <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
       </ul>
@@ -52,34 +55,5 @@
 
     <!-- JavaScript -->
     <script src="js/donations.js"></script>
-    <script>
-      // Function to open the navbar
-      function openNav() {
-        document.getElementById("navbar").style.width = "250px";
-        document.getElementById("main-content").style.marginLeft = "250px";
-      }
-
-      // Function to close the navbar
-      function closeNav() {
-        document.getElementById("navbar").style.width = "0";
-        document.getElementById("main-content").style.marginLeft = "0";
-      }
-
-      // Handle logout button
-      document
-        .getElementById("logout-btn")
-        .addEventListener("click", function () {
-          firebase
-            .auth()
-            .signOut()
-            .then(() => {
-              console.log("User signed out");
-              window.location.href = "login.html";
-            })
-            .catch((error) => {
-              console.error("Sign out error:", error);
-            });
-        });
-    </script>
   </body>
 </html>

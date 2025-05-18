@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Adoptions</title>
+    <link rel="stylesheet" href="css/adoption.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <!-- AOS & Navigation helper -->
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+    <script src="js/nav.js" defer></script>
+
+    <!-- Your single config.js (initApp) -->
+    <script src="js/config.js"></script>
+  </head>
+  <body>
+    <!-- App Header -->
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">☰ Menu</button>
+      <div class="app-title">PawApp Adoptions</div>
+    </header>
+
+    <!-- Sidebar Nav -->
+    <nav id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">×</button>
+      <ul class="nav-links">
+        <li><a href="organizationDashboard.html">Dashboard</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="adoption.html" class="active">Adoption</a></li>
+        <li><a href="donation.html">Donation</a></li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h2 class="section-title">Available Pets</h2>
+        <div class="filter-controls">
+          <div class="search-box">
+            <input
+              type="text"
+              id="pet-search"
+              placeholder="Search pets..."
+            />
+            <i class="fas fa-search"></i>
+          </div>
+          <div class="filter-dropdown">
+            <select id="species-filter">
+              <option value="">All Species</option>
+              <option value="dog">Dogs</option>
+              <option value="cat">Cats</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pet Cards Container -->
+      <div id="adoption-cards" class="pet-grid"></div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state">
+        <i class="fas fa-paw"></i>
+        <p>No pets available right now</p>
+        <span>Add your first pet for adoption</span>
+      </div>
+    </main>
+
+    <!-- Floating Add Button -->
+    <button id="addAdoptionBtn" class="add-btn">
+      <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Pet Details Modal -->
+    <div id="pet-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <div class="modal-body" id="pet-details-content">
+          <!-- Pet details will be loaded here by JS -->
+        </div>
+        <div class="modal-footer">
+          <!-- your existing Edit button -->
+          <button class="modal-btn edit-btn">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <!-- NEW: a Requests button + badge -->
+          <button id="viewRequestsBtn" class="modal-btn request-btn">
+            <i class="fas fa-clipboard-list"></i> Requests
+            <span id="request-badge" class="modal-badge">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Logic -->
+    <script src="js/adoption.js"></script>
+  </body>
+</html>
