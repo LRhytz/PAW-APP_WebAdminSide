@@ -4,24 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Donation Requests</title>
+    <!-- External CSS -->
     <link rel="stylesheet" href="css/donation.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
 
-    <!-- Firebase v8 SDK with Auth -->
+    <!-- Firebase v8 SDK with Auth & Database -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
-    <script src="js/nav.js" defer></script>
-
-    <!-- Firebase configuration -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="js/config.js"></script>
   </head>
   <body>
-    <!-- Header with a button to open navbar -->
+    <!-- Header -->
     <header class="app-header">
       <button class="openbtn" onclick="openNav()">
         <i class="fas fa-bars"></i> Menu
@@ -29,31 +30,39 @@
       <h1 class="app-title">🐾 Donation Requests</h1>
     </header>
 
+    <!-- Navigation Sidebar -->
     <div id="navbar" class="navbar">
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
-        <li>
-          <a href="organizationDashboard.html" class="active">Dashboard</a>
-        </li>
+        <li><a href="organizationDashboard.html">Dashboard</a></li>
         <li><a href="reports.html">Reports</a></li>
         <li><a href="adoption.html">Adoption</a></li>
-        <li><a href="donation.html">Donation</a></li>
+        <li><a href="donation.html" class="active">Donation</a></li>
         <li><a href="profileOrg.html">Profile</a></li>
         <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
       </ul>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content Area -->
     <main id="main-content" class="main-content">
+      <h2 class="section-title">Current Donation Requests</h2>
+      
+      <!-- Donation Cards Container -->
       <div id="donation-cards-container">
-        <!-- Donation cards will be populated here -->
-        <p>Loading donation requests...</p>
+        <div class="loading-indicator">
+          <i class="fas fa-spinner fa-pulse"></i>
+          <p>Loading donation requests...</p>
+        </div>
       </div>
-      <!-- Floating Button to navigate to Add Donation page -->
-      <a href="addDonation.html" class="floating-button">+</a>
+      
+      <!-- Add Donation Floating Button -->
+      <a href="addDonation.html" class="floating-button" aria-label="Add new donation request">
+        <i class="fas fa-plus"></i>
+      </a>
     </main>
 
-    <!-- JavaScript -->
-    <script src="js/donations.js"></script>
+    <!-- Navigation helper + Donation logic -->
+    <script src="js/nav.js" defer></script>
+    <script src="js/donations.js" defer></script>
   </body>
 </html>
