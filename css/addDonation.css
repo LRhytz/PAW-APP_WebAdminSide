@@ -1,0 +1,229 @@
+/* addDonation.css — Improved styles for Add Donation page form */
+
+/* CSS Variables reused from donation.css */
+:root {
+  --bg: #f5f5dc;
+  --header-bg: #4caf50;
+  --card-bg: #ffffff;
+  --primary-color: #4caf50;
+  --secondary-color: #f2f2f2;
+  --text-color: #333333;
+  --error-color: #e53935;
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --border-radius: 10px;
+  --gap: 1.5rem;
+  --transition: all 0.3s ease;
+}
+
+/* Base styles */
+.donation-form-section {
+  padding: 20px 0;
+}
+
+/* Centered form container */
+.form-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px auto 40px;
+  padding: 0 var(--gap);
+  max-width: 600px;
+}
+
+/* Card around the form */
+.form-card {
+  background: var(--card-bg);
+  padding: 30px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: var(--transition);
+}
+
+.form-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Form title */
+.form-title {
+  color: var(--primary-color);
+  margin: 0 0 10px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--secondary-color);
+  font-size: 24px;
+  text-align: center;
+}
+
+/* Form groups */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Labels */
+.form-group label {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 16px;
+}
+
+/* Helper text */
+.helper-text {
+  color: #777;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* Character counter */
+.char-counter {
+  text-align: right;
+  font-size: 12px;
+  color: #777;
+  margin-top: 4px;
+}
+
+/* Inputs with icons */
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.prefix-icon {
+  position: absolute;
+  left: 12px;
+  color: #777;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.input-with-icon input {
+  padding-left: 40px !important;
+}
+
+/* Inputs & textarea */
+.form-card input,
+.form-card textarea {
+  padding: 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  width: 100%;
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.form-card input:focus,
+.form-card textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.form-card textarea {
+  resize: vertical;
+  min-height: 100px;
+  max-height: 300px;
+}
+
+/* Form actions */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* Buttons */
+.primary-btn, 
+.secondary-btn {
+  padding: 12px 24px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  font-weight: 600;
+  border: none;
+}
+
+.primary-btn {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.primary-btn:hover {
+  background-color: #388e3c;
+  transform: translateY(-2px);
+}
+
+.primary-btn:active {
+  transform: translateY(0);
+}
+
+.secondary-btn {
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+}
+
+.secondary-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  display: none;
+}
+
+.loading-overlay.active {
+  display: flex;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--secondary-color);
+  border-top: 5px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .form-card {
+    padding: 20px;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions button {
+    width: 100%;
+  }
+  
+  .primary-btn, 
+  .secondary-btn {
+    padding: 12px;
+  }
+}
