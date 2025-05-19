@@ -11,6 +11,19 @@ function animateNumber(id, end, duration = 800) {
   }, stepTime);
 }
 
+async function getAddressFromCoords(lat, lng) {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+    );
+    const data = await response.json();
+    return data.display_name || "Unknown address";
+  } catch (error) {
+    console.error("Error fetching address:", error);
+    return "Address not available";
+  }
+}
+
 // Get appropriate status badge class
 function getStatusBadgeClass(status) {
   if (!status) return "status-pending";
@@ -211,13 +224,7 @@ function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
                 <div class="metadata-content">
                   <div class="metadata-label">Location</div>
                   <div class="metadata-value">
-                    ${
-                      report.latitude && report.longitude
-                        ? `Lat: ${parseFloat(report.latitude).toFixed(
-                            4
-                          )}, Long: ${parseFloat(report.longitude).toFixed(4)}`
-                        : "Not specified"
-                    }
+                    ${report.address || "unknown"}
                   </div>
                 </div>
               </div>
@@ -473,14 +480,16 @@ function showReportModal(report) {
       ${report.status || "Pending"}
     </span>`;
 
-  // Set location
   const locationValue = modal.querySelector(".modal-report-location");
-  locationValue.textContent =
-    report.latitude && report.longitude
-      ? `Lat: ${parseFloat(report.latitude).toFixed(4)}, Long: ${parseFloat(
-          report.longitude
-        ).toFixed(4)}`
-      : "Not specified";
+
+  if (report.latitude && report.longitude) {
+    locationValue.textContent = "Fetching address...";
+    getAddressFromCoords(report.latitude, report.longitude).then((address) => {
+      locationValue.textContent = address;
+    });
+  } else {
+    locationValue.textContent = "Not specified";
+  }
 
   // Set reporter email
   modal.querySelector(".modal-report-email").textContent =
