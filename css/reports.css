@@ -887,6 +887,16 @@ body {
   cursor: pointer;
 }
 
+.severity-filter {
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
 .filter-container .status-filter:focus {
   outline: none;
   border-color: var(--primary);
@@ -991,8 +1001,9 @@ body {
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
+  max-height: 80vh; /* ⬅️ Prevents it from becoming too tall */
+  overflow-y: auto;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  overflow: hidden;
 }
 
 .modal-header {
@@ -1039,6 +1050,8 @@ body {
 
 .modal-body {
   padding: 20px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .report-description {
@@ -1277,8 +1290,9 @@ body {
   background: var(--card-bg);
   border-radius: var(--radius);
   box-shadow: 0 8px 30px var(--shadow-lg);
-  width: 95vw;
-  max-width: 400px;
+  width: 95vw !important;
+  max-width: 900px !important; /* Adjust as needed */
+  min-width: 500px;
   padding: 0;
   overflow: hidden;
   display: flex;
@@ -1406,6 +1420,47 @@ body {
   transition: background 0.2s;
   box-shadow: 0 2px 8px var(--shadow-sm);
 }
+
+.report-search {
+  margin-left: auto;
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--card-bg);
+  color: var(--text);
+  width: 250px;
+}
+
+.report-search:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.map-location-btn {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-bottom: 1rem;
+  margin-top: -10px;
+}
+
+.map-location-btn:hover {
+  background-color: #1769aa;
+}
+#leaflet-map {
+  height: 400px;
+  width: 100%;
+  border-radius: 10px;
+  margin-top: 10px;
+}
+
 #message-modal #send-message-btn:hover {
   background: #388e3c;
 }

@@ -85,7 +85,7 @@ function formatDate(timestamp) {
 
 // Fetch and display reports with optional status filtering
 // Modified fetchReports function to properly sort by severity
-function fetchReports(filterStatus = "ALL") {
+function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
   const db = firebase.database();
   const reportsContainer = document.getElementById("reports-container");
 
@@ -94,9 +94,37 @@ function fetchReports(filterStatus = "ALL") {
     const reports = snapshot.val();
 
     if (reports) {
+      const searchQuery = document
+        .getElementById("report-search")
+        ?.value.toLowerCase()
+        .trim();
+
       let filteredReportIds = Object.keys(reports).filter((key) => {
         const report = reports[key];
-        return filterStatus === "ALL" || report.status === filterStatus;
+        const statusMatch =
+          filterStatus === "ALL" || report.status === filterStatus;
+        const severityMatch =
+          filterSeverity === "ALL" ||
+          (report.severity &&
+            report.severity.toLowerCase() === filterSeverity.toLowerCase());
+        const keywords = searchQuery ? searchQuery.split(/\s+/) : [];
+
+        const searchableText = [
+          report.reportType,
+          report.reportDescription,
+          report.reportUserEmail,
+          report.status,
+          report.severity,
+          report.latitude && report.longitude
+            ? `<button class="map-location-btn" data-lat="${report.latitude}" data-lng="${report.longitude}">Map Location</button>`
+            : "",
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        const searchMatch = keywords.every((kw) => searchableText.includes(kw));
+
+        return statusMatch && severityMatch && searchMatch;
       });
 
       if (filteredReportIds.length === 0) {
@@ -136,6 +164,7 @@ function fetchReports(filterStatus = "ALL") {
         card.className = "card report-card";
         card.setAttribute("data-aos", "fade-up");
         card.setAttribute("data-report-id", key); // Store the report ID in the card
+        card.setAttribute("data-report-type", report.reportType || "Unknown");
         card.setAttribute("data-latitude", report.latitude || "");
         card.setAttribute("data-longitude", report.longitude || "");
         card.setAttribute("data-email", report.reportUserEmail || "");
@@ -155,13 +184,15 @@ function fetchReports(filterStatus = "ALL") {
                 <i class="fas fa-file-alt"></i>
               </div>
             </div>
-            <span>${report.reportType || "Unknown Report Type"}</span>
+           <span>${key}</span>
           </div>
           <div class="card-body">
             <p class="report-description">${
               report.reportDescription || "No description provided."
             }</p>
-            
+            <div class="report-type"><strong>Report Type:</strong> ${
+              report.reportType || "Unknown"
+            }</div>
             <div class="report-metadata">
               <div class="metadata-item">
                 <i class="fas fa-tag"></i>
@@ -355,6 +386,41 @@ function updateReportStatus(reportId, newStatus) {
 
 // Add event listeners when the DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
+  if (
+    e.target.classList.contains("map-location-btn") ||
+    e.target.closest(".map-location-btn")
+  ) {
+    const modal = document.getElementById("report-modal");
+
+    const lat = parseFloat(modal.getAttribute("data-latitude"));
+    const lng = parseFloat(modal.getAttribute("data-longitude"));
+
+    if (isNaN(lat) || isNaN(lng)) {
+      alert("Location data is missing or invalid.");
+      return;
+    }
+
+    document.getElementById("map-modal").classList.add("show");
+    document.body.style.overflow = "hidden";
+
+    setTimeout(() => {
+      if (window.leafletMap) {
+        window.leafletMap.remove();
+      }
+      window.leafletMap = L.map("leaflet-map").setView([lat, lng], 14);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(window.leafletMap);
+
+      L.marker([lat, lng])
+        .addTo(window.leafletMap)
+        .bindPopup("Report Location")
+        .openPopup();
+    }, 250);
+  }
+
   // Close button event listener
   document.querySelector(".modal-close").addEventListener("click", closeModal);
 
@@ -382,13 +448,21 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+document.getElementById("report-search").addEventListener("input", () => {
+  const status = document.getElementById("status-filter").value;
+  const severity = document.getElementById("severity-filter").value;
+  fetchReports(status, severity);
+});
+
 // Function to show modal with report details
 function showReportModal(report) {
   const modal = document.getElementById("report-modal");
+  modal.querySelector(".modal-report-type-value").textContent =
+    report.reportType || "Unknown";
+  modal.setAttribute("data-latitude", report.latitude || "");
+  modal.setAttribute("data-longitude", report.longitude || "");
 
   // Populate modal content
-  modal.querySelector(".modal-report-type").textContent =
-    report.reportType || "Unknown Report Type";
   modal.querySelector(".report-description").textContent =
     report.reportDescription || "No description provided.";
 
@@ -544,6 +618,35 @@ function showToast(message, type = "success") {
 document.addEventListener("DOMContentLoaded", () => {
   fetchReports();
 
+  document.getElementById("open-map-btn").addEventListener("click", () => {
+    const modal = document.getElementById("report-modal");
+    const lat = parseFloat(modal.getAttribute("data-latitude"));
+    const lng = parseFloat(modal.getAttribute("data-longitude"));
+
+    if (isNaN(lat) || isNaN(lng)) {
+      alert("Invalid coordinates for this report.");
+      return;
+    }
+
+    document.getElementById("map-modal").classList.add("show");
+    document.body.style.overflow = "hidden";
+
+    setTimeout(() => {
+      // Remove old map if exists
+      if (window.leafletMap) {
+        window.leafletMap.remove();
+      }
+
+      // Create map
+      window.leafletMap = L.map("leaflet-map").setView([lat, lng], 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(window.leafletMap);
+      L.marker([lat, lng]).addTo(window.leafletMap);
+    }, 300);
+  });
+
   // Create modal if it doesn't exist
   if (!document.getElementById("report-modal")) {
     const modalHtml = `
@@ -620,8 +723,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Get the report card and report ID
         const reportCard = button.closest(".report-card");
         const reportId = reportCard.getAttribute("data-report-id");
-        const reportType =
-          reportCard.querySelector(".card-header span").textContent;
+        const reportType = reportCard.getAttribute("data-report-type");
 
         const report = {
           reportType: reportType,
@@ -683,7 +785,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add event listener for the status filter dropdown
   document.getElementById("status-filter").addEventListener("change", (e) => {
     const selectedStatus = e.target.value;
-    fetchReports(selectedStatus);
+    const selectedSeverity = document.getElementById("severity-filter").value;
+    fetchReports(selectedStatus, selectedSeverity);
+  });
+
+  document.getElementById("severity-filter").addEventListener("change", (e) => {
+    const selectedSeverity = e.target.value;
+    const selectedStatus = document.getElementById("status-filter").value;
+    fetchReports(selectedStatus, selectedSeverity);
   });
 });
 
