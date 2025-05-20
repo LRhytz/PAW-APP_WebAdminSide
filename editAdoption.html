@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Edit Adoption</title>
+    <link rel="stylesheet" href="css/adoption.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <!-- Nav & init -->
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+    <script src="js/nav.js" defer></script>
+    <script src="js/config.js"></script>
+  </head>
+
+  <body>
+    <!-- Header & Sidebar (unchanged) -->
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">☰ Menu</button>
+      <div class="app-title">🐾 Edit Pet</div>
+    </header>
+    <nav id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">×</button>
+      <ul class="nav-links">
+        <li><a href="organizationDashboard.html">Dashboard</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="adoption.html">Adoption</a></li>
+        <li><a href="donation.html">Donation</a></li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </nav>
+
+    <!-- Form - Modernized -->
+    <main class="main-content">
+      <div class="form-container">
+        <form id="editForm" class="form-card">
+          <div class="form-header">
+            <h2>Edit Pet for Adoption</h2>
+            <p>Update your pet's details below</p>
+          </div>
+          
+          <div class="pet-img-container">
+            <img id="currentImage" class="pet-img-preview" alt="Pet preview image" />
+          </div>
+
+          <div class="form-section">
+            <div class="form-group">
+              <label for="name">
+                <i class="fas fa-paw"></i> Pet Name
+              </label>
+              <input type="text" id="name" required placeholder="Enter pet name" />
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="species">
+                  <i class="fas fa-dog"></i> Species
+                </label>
+                <input type="text" id="species" required placeholder="e.g. Dog, Cat" />
+              </div>
+
+              <div class="form-group">
+                <label for="breed">
+                  <i class="fas fa-certificate"></i> Breed
+                </label>
+                <input type="text" id="breed" required placeholder="e.g. Labrador, Persian" />
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="age">
+                  <i class="fas fa-birthday-cake"></i> Age
+                </label>
+                <input type="text" id="age" required placeholder="e.g. 2 years" />
+              </div>
+
+              <div class="form-group">
+                <label for="size">
+                  <i class="fas fa-ruler"></i> Size
+                </label>
+                <input type="text" id="size" required placeholder="e.g. Medium" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="gender">
+                <i class="fas fa-venus-mars"></i> Gender
+              </label>
+              <input type="text" id="gender" required placeholder="e.g. Male, Female" />
+            </div>
+
+            <div class="form-group">
+              <label for="description">
+                <i class="fas fa-align-left"></i> Short Description
+              </label>
+              <input type="text" id="description" required placeholder="Brief summary about the pet" />
+            </div>
+
+            <div class="form-group">
+              <label for="fullDescription">
+                <i class="fas fa-file-alt"></i> Full Description
+              </label>
+              <textarea id="fullDescription" required placeholder="Detailed information about the pet, behavior, likes, dislikes, etc."></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3><i class="fas fa-map-marker-alt"></i> Location & Contact Information</h3>
+
+            <div class="form-group">
+              <label for="address">Location</label>
+              <input type="text" id="address" required placeholder="Pet's current location" />
+            </div>
+
+            <div class="form-group">
+              <label for="contactLocation">Contact Location</label>
+              <input type="text" id="contactLocation" required placeholder="Where you can be reached" />
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="contactPhone">
+                  <i class="fas fa-phone"></i> Contact Phone
+                </label>
+                <input type="text" id="contactPhone" required placeholder="Your phone number" />
+              </div>
+
+              <div class="form-group">
+                <label for="contactEmail">
+                  <i class="fas fa-envelope"></i> Contact Email
+                </label>
+                <input type="email" id="contactEmail" required placeholder="Your email address" />
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <!-- Script -->
+    <script src="js/editAdoption.js"></script>
+  </body>
+</html>

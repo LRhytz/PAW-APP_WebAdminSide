@@ -34,16 +34,16 @@ firebase.auth().onAuthStateChanged(async (user) => {
   }
 
   let totalReports = 0,
-    submittedReports = 0,
     inProgressReports = 0,
     completedReports = 0,
-    acceptedReports = 0;
+    acceptedReports = 0,
+    onHoldReports = 0;
 
   const counts = {
-    submitted: 0,
     inProgress: 0,
     completed: 0,
     accepted: 0,
+    onHold: 0,
   };
 
   try {
@@ -82,13 +82,21 @@ firebase.auth().onAuthStateChanged(async (user) => {
       if (!orgIdInReport || isOwnedByOrg) {
         totalReports++;
       }
+
+      if (
+        status === "on hold" &&
+        report.organizationId === userOrganizationId
+      ) {
+        onHoldReports++;
+        counts.onHold++;
+      }
     });
 
     animateNumber("totalReports", totalReports);
-    animateNumber("submittedReports", submittedReports);
     animateNumber("inProgressReports", inProgressReports);
     animateNumber("completedReports", completedReports);
     animateNumber("acceptedReports", acceptedReports);
+    animateNumber("onHoldReports", onHoldReports);
 
     const ctx = document.getElementById("reportChart").getContext("2d");
     new Chart(ctx, {
@@ -97,9 +105,15 @@ firebase.auth().onAuthStateChanged(async (user) => {
         labels: ["Reports"],
         datasets: [
           {
-            label: "Submitted Reports",
-            data: [counts.submitted],
-            backgroundColor: "rgba(76,175,80,0.7)",
+            label: "Total Reports",
+            data: [totalReports],
+            backgroundColor: "rgba(46, 204, 113, 0.5)",
+            borderRadius: 4,
+          },
+          {
+            label: "Accepted Reports",
+            data: [counts.accepted],
+            backgroundColor: "rgba(100,149,237,0.7)",
             borderRadius: 4,
           },
           {
@@ -109,15 +123,15 @@ firebase.auth().onAuthStateChanged(async (user) => {
             borderRadius: 4,
           },
           {
-            label: "Completed Reports",
-            data: [counts.completed],
-            backgroundColor: "rgba(255,192,203,0.7)",
+            label: "On Hold Reports",
+            data: [counts.onHold],
+            backgroundColor: "rgba(255,140,0,0.7)",
             borderRadius: 4,
           },
           {
-            label: "Accepted Reports",
-            data: [counts.accepted],
-            backgroundColor: "rgba(100,149,237,0.7)",
+            label: "Completed Reports",
+            data: [counts.completed],
+            backgroundColor: "rgba(76,175,80,0.7)",
             borderRadius: 4,
           },
         ],

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="description" content="Edit donation campaign details, view transactions, and track impact" />
+  <title>Edit Donation Request</title>
+  <!-- styles -->
+  <link rel="stylesheet" href="css/donation.css" />
+  <link rel="stylesheet" href="css/edit-donation.css" />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+  />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <!-- your Firebase config -->
+  <script src="js/config.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <button class="openbtn" onclick="openNav()" aria-label="Open navigation menu">
+      <i class="fas fa-bars"></i> Menu
+    </button>
+    <h1 class="app-title">✏️ Edit Donation</h1>
+  </header>
+
+  <!-- Sidebar nav -->
+  <nav id="navbar" class="navbar" aria-label="Main navigation">
+    <button class="closebtn" onclick="closeNav()" aria-label="Close navigation menu">&times;</button>
+    <ul class="nav-links">
+      <li><a href="organizationDashboard.html">Dashboard</a></li>
+      <li><a href="reports.html">Reports</a></li>
+      <li><a href="adoption.html">Adoption</a></li>
+      <li><a href="donation.html" class="active">Donation</a></li>
+      <li><a href="profileOrg.html">Profile</a></li>
+      <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+    </ul>
+  </nav>
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Loading data...</p>
+  </div>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <div class="page-header">
+      <h2 class="section-title">Update Donation Details</h2>
+      <p class="subtitle">Edit your donation request information below</p>
+    </div>
+    
+    <div class="form-container">
+      <form class="form-card" id="donationForm">
+        <div class="form-group">
+          <label for="name">Organization Name</label>
+          <input type="text" id="name" placeholder="Enter organization name" autocomplete="organization" required />
+          <span class="form-hint">Your registered organization name</span>
+        </div>
+        
+        <div class="form-group">
+          <label for="gcashName">GCash Account Name</label>
+          <input type="text" id="gcashName" placeholder="Enter GCash account name" required />
+          <span class="form-hint">Name as it appears on your GCash account</span>
+        </div>
+        
+        <div class="form-group">
+          <label for="gcashNumber">GCash Number</label>
+          <input 
+            type="tel" 
+            id="gcashNumber" 
+            placeholder="e.g. 09XXXXXXXXX" 
+            pattern="^09\d{9}$" 
+            title="Please enter a valid Philippine mobile number (e.g. 09XXXXXXXXX)" 
+            required 
+          />
+          <span class="form-hint">Must be a valid 11-digit Philippine mobile number</span>
+        </div>
+        
+        <div class="form-group">
+          <label for="purpose">Purpose</label>
+          <input type="text" id="purpose" placeholder="Short, clear purpose statement" maxlength="100" required />
+          <span class="form-hint">A short description visible to potential donors</span>
+        </div>
+        
+        <div class="form-group">
+          <label for="details">Donation Details</label>
+          <textarea 
+            id="details" 
+            placeholder="Explain what the donation is for" 
+            rows="4" 
+            maxlength="500"
+            required
+          ></textarea>
+          <span class="form-hint">Provide detailed information about your donation campaign</span>
+          <div class="character-count"><span id="detailsCharCount">0</span>/500</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="goal">Goal Amount (₱)</label>
+          <div class="input-with-icon">
+            <i class="currency-icon">₱</i>
+            <input 
+              type="number" 
+              id="goal" 
+              placeholder="Enter target amount" 
+              min="1" 
+              step="0.01" 
+              required 
+            />
+          </div>
+          <span class="form-hint">The total amount you aim to raise</span>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="saveBtn" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="preview-container">
+      <h3 class="preview-heading">Campaign Summary</h3>
+      
+      <section id="campaign-stats" class="stats-section">
+        <div class="stat-card">
+          <i class="fas fa-hand-holding-usd stat-icon"></i>
+          <div class="stat-content">
+            <h4>Raised</h4>
+            <p id="raisedAmount" class="stat-value">₱0.00</p>
+            <div class="progress-bar">
+              <div id="progressBar" class="progress" style="width: 0%"></div>
+            </div>
+            <p id="progressText" class="stat-subtext">0% of goal</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <i class="fas fa-users stat-icon"></i>
+          <div class="stat-content">
+            <h4>Donors</h4>
+            <p id="donorCount" class="stat-value">0</p>
+          </div>
+        </div>
+      </section>
+      
+      <section id="transactions-preview" class="preview-section">
+        <div class="section-header">
+          <h3>Recent Transactions</h3>
+          <span id="transactionCount" class="count-badge">0</span>
+        </div>
+        <ul id="transactions-list" class="preview-list"><li class="loading">Loading transactions...</li></ul>
+        <button id="viewAllTransactions" class="view-all-btn">
+          <i class="fas fa-list-ul"></i> View All Transactions
+        </button>
+      </section>
+
+      <section id="impact-preview" class="preview-section">
+        <div class="section-header">
+          <h3>Impact Reports</h3>
+          <span id="impactCount" class="count-badge">0</span>
+        </div>
+        <ul id="impact-list" class="preview-list"><li class="loading">Loading impact reports...</li></ul>
+        <button id="viewAllImpact" class="view-all-btn">
+          <i class="fas fa-chart-line"></i> View All Impact Reports
+        </button>
+        <button id="addImpactBtn" class="add-btn">
+          <i class="fas fa-plus"></i> Add New Impact Report
+        </button>
+      </section>
+
+      <section id="updates-preview" class="preview-section">
+        <div class="section-header">
+          <h3>Fund Usage Updates</h3>
+          <span id="updateCount" class="count-badge">0</span>
+        </div>
+        <ul id="updates-list" class="preview-list"><li class="loading">Loading updates...</li></ul>
+        <button id="viewAllUpdates" class="view-all-btn">
+          <i class="fas fa-bullhorn"></i> View All Updates
+        </button>
+        <button id="addUpdateBtn" class="add-btn">
+          <i class="fas fa-plus"></i> Add New Update
+        </button>
+      </section>
+    </div>
+  </main>
+
+  <!-- Modal Overlay -->
+  <div id="modalOverlay" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="modalTitle">
+      <button id="modalClose" class="modal-close" aria-label="Close modal"><i class="fas fa-times"></i></button>
+      <h3 id="modalTitle"></h3>
+      <div class="modal-body">
+        <div id="modalContentLoader" class="modal-loader">
+          <div class="loading-spinner"></div>
+          <p>Loading content...</p>
+        </div>
+        <ul id="modalContent"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add update modal -->
+  <div id="addUpdateModal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="addUpdateTitle">
+      <button class="modal-close add-modal-close" aria-label="Close modal"><i class="fas fa-times"></i></button>
+      <h3 id="addUpdateTitle">Add Fund Usage Update</h3>
+      <form id="addUpdateForm" class="modal-form">
+        <div class="form-group">
+          <label for="updateMessage">Update Message</label>
+          <textarea id="updateMessage" rows="4" placeholder="Describe how funds are being used" required></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add impact modal -->
+  <div id="addImpactModal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal" role="dialog" aria-labelledby="addImpactTitle">
+      <button class="modal-close add-modal-close" aria-label="Close modal"><i class="fas fa-times"></i></button>
+      <h3 id="addImpactTitle">Add Impact Report</h3>
+      <form id="addImpactForm" class="modal-form">
+        <div class="form-group">
+          <label for="impactTitle">Report Title</label>
+          <input type="text" id="impactTitle" placeholder="Enter a title for this impact report" required>
+        </div>
+        <div class="form-group">
+          <label for="impactDescription">Impact Description</label>
+          <textarea id="impactDescription" rows="4" placeholder="Describe the impact of this donation" required></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save Report</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification system -->
+  <div id="notification" class="notification hidden"></div>
+
+  <!-- scripts -->
+  <script src="js/nav.js" defer></script>
+  <script src="js/editDonation.js" defer></script>
+</body>
+</html>
