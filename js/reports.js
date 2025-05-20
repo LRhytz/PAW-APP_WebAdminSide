@@ -256,14 +256,18 @@ function fetchReports(filterStatus = "ALL") {
               <button class="btn" title="View Details">
                 <i class="fas fa-eye"></i>
               </button>
-              <button class="btn" title="Message">
-                <i class="fas fa-comment-dots"></i>
-                ${
-                  unreadCount > 0
-                    ? `<span class="unread-badge">${unreadCount}</span>`
-                    : ""
-                }
-              </button>
+              ${
+                (report.status || "").toUpperCase() !== "SUBMITTED"
+                  ? `<button class="btn" title="Message">
+                      <i class="fas fa-comment-dots"></i>
+                      ${
+                        unreadCount > 0
+                          ? `<span class="unread-badge">${unreadCount}</span>`
+                          : ""
+                      }
+                    </button>`
+                  : ""
+              }
             </div>
           </div>
         `;
