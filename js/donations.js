@@ -1,4 +1,5 @@
-// donations.js - Handles donation request data and UI
+// js/donations.js
+// Handles donation request data and UI
 
 /**
  * Wait for Firebase auth state and redirect if not authenticated
@@ -31,10 +32,7 @@ function fetchDonations() {
   `;
 
   checkAuth()
-    .then(user => {
-      // Optionally filter by org: const orgId = user.uid;
-      return firebase.database().ref("donation_requests").once("value");
-    })
+    .then(() => firebase.database().ref("donation_requests").once("value"))
     .then(snapshot => {
       if (!snapshot.exists()) {
         donationContainer.innerHTML = `
@@ -74,8 +72,8 @@ function displayDonations(donations) {
   // Sort by % complete ascending
   const sorted = Object.entries(donations).sort((a, b) => {
     const [, A] = a, [, B] = b;
-    const pctA = A.goalAmount > 0 ? (A.currentAmount||0)/A.goalAmount : 0;
-    const pctB = B.goalAmount > 0 ? (B.currentAmount||0)/B.goalAmount : 0;
+    const pctA = A.goalAmount > 0 ? (A.currentAmount || 0) / A.goalAmount : 0;
+    const pctB = B.goalAmount > 0 ? (B.currentAmount || 0) / B.goalAmount : 0;
     return pctA - pctB;
   });
 
@@ -83,13 +81,13 @@ function displayDonations(donations) {
     count++;
     const goal    = d.goalAmount || 0;
     const current = d.currentAmount || 0;
-    const rawPct  = goal>0 ? (current/goal)*100 : 0;
+    const rawPct  = goal > 0 ? (current / goal) * 100 : 0;
     const pct     = Math.min(rawPct, 100);
     const funded  = pct >= 100;
     const details = d.details || "";
-    const shortD  = details.length>100 ? details.slice(0,100)+"…" : details;
+    const shortD  = details.length > 100 ? details.slice(0, 100) + "…" : details;
 
-    // build card
+    // Build card
     const card = document.createElement("div");
     card.className = "donation-card";
     card.setAttribute("data-id", id);
@@ -109,30 +107,31 @@ function displayDonations(donations) {
           ${pct.toFixed(0)}% ${funded ? "Funded" : "Complete"}
         </div>
       </div>
+
       <button
-        class="donate-btn"
+        class="view-more-btn"
         data-id="${id}"
         ${funded ? "disabled" : ""}
       >
-        <i class="fas ${funded ? "fa-check-circle" : "fa-hand-holding-heart"}"></i>
-        ${funded ? "Fully Funded" : "Donate Now"}
+        <i class="fas ${funded ? "fa-check-circle" : "fa-eye"}"></i>
+        ${funded ? "Fully Funded" : "View More"}
       </button>
     `;
     container.appendChild(card);
   });
 
-  // Donate button wiring
-  container.querySelectorAll(".donate-btn").forEach(btn => {
+  // Wire up only the active "View More" buttons
+  container.querySelectorAll(".view-more-btn").forEach(btn => {
     if (!btn.disabled) {
       btn.addEventListener("click", ev => {
         ev.stopPropagation();
         const id = btn.getAttribute("data-id");
-        window.location.href = `donate.html?donationId=${encodeURIComponent(id)}`;
+        window.location.href = `editDonation.html?donationId=${encodeURIComponent(id)}`;
       });
     }
   });
 
-  // Card click → edit page
+  // Optional: clicking anywhere on the card also opens edit
   container.querySelectorAll(".donation-card").forEach(card => {
     card.addEventListener("click", () => {
       const id = card.getAttribute("data-id");

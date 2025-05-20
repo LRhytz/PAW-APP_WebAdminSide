@@ -64,9 +64,7 @@ body {
   background: none; border: none;
   color: #fff; font-size: 1.5rem; cursor: pointer;
 }
-.navbar .nav-links {
-  list-style: none; padding: 1rem; margin-top: 1rem;
-}
+.navbar .nav-links { list-style: none; padding: 1rem; margin-top: 1rem; }
 .navbar .nav-links li + li { margin-top: 0.5rem; }
 .navbar .nav-links a {
   display: block; color: #fff; text-decoration: none;
@@ -154,7 +152,7 @@ body {
   background: #eee; border-radius: 20px;
   overflow: hidden; height: 12px;
 }
-.progress-fill {
+.progress-bar .progress-fill {
   background: var(--primary-color);
   height: 100%; transition: width 0.3s ease;
 }
@@ -163,18 +161,33 @@ body {
   margin-top: 5px; font-weight: 500; text-align: right;
 }
 
-/* Donate Button */
-.donate-btn {
-  margin-top: 10px; padding: 10px 15px;
+/* “View More” / “Fully Funded” Button */
+.view-more-btn {
+  margin-top: 10px;
+  padding: 10px 15px;
   background: var(--primary-color);
-  color: white; border: none; border-radius: 4px;
-  cursor: pointer; font-weight: 500;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: background 0.2s, transform 0.1s;
 }
-.donate-btn:hover { background: #388e3c; transform: scale(1.02); }
-.donate-btn:active { transform: scale(0.98); }
-.donate-btn[disabled] {
-  background: #aaa; cursor: default; transform: none;
+.view-more-btn:hover {
+  background: #388e3c;
+  transform: scale(1.02);
+}
+.view-more-btn:active {
+  transform: scale(0.98);
+}
+.view-more-btn[disabled] {
+  background: #aaa;
+  cursor: default;
+  transform: none;
 }
 
 /* Floating + Button */
