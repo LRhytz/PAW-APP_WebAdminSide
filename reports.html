@@ -17,6 +17,17 @@
       rel="stylesheet"
     />
 
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <!-- Leaflet JS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      defer
+    ></script>
+
     <!-- AOS for scroll‑based fades -->
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
 
@@ -63,7 +74,6 @@
     <main id="main-content" class="main-content">
       <section class="card chart-card" data-aos="fade-up">
         <h2 class="section-title">Reports Overview</h2>
-
         <div class="filter-container">
           <label for="status-filter">Filter by Status:</label>
           <select id="status-filter" class="status-filter">
@@ -75,6 +85,23 @@
             <option value="COMPLETED">Completed</option>
             <option value="REJECTED">Rejected</option>
           </select>
+
+          <label for="severity-filter">Filter by Severity:</label>
+          <select id="severity-filter" class="severity-filter">
+            <option value="ALL">All</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+
+          <input
+            type="text"
+            id="report-search"
+            class="report-search"
+            placeholder="Search reports..."
+            title="Search by description, email, or location"
+          />
         </div>
 
         <div class="report-stats">
@@ -99,6 +126,13 @@
         <div class="modal-body">
           <p class="report-description"></p>
           <div class="report-metadata">
+            <div class="metadata-item">
+              <i class="fas fa-file-alt"></i>
+              <div class="metadata-content">
+                <div class="metadata-label">Report Type</div>
+                <div class="metadata-value modal-report-type-value"></div>
+              </div>
+            </div>
             <div class="metadata-item">
               <i class="fas fa-tag"></i>
               <div class="metadata-content">
@@ -129,6 +163,13 @@
             </div>
           </div>
           <div class="report-images"></div>
+          <button
+            class="map-location-btn"
+            id="open-map-btn"
+            style="margin-top: -8px"
+          >
+            <i class="fas fa-map-marker-alt"></i> Map Location
+          </button>
           <div class="report-video"></div>
         </div>
         <div class="modal-footer">
@@ -139,6 +180,28 @@
             <button id="reject-btn" class="btn-reject">Reject</button>
             <button id="accept-btn" class="btn-accept">Accept</button>
           </div>
+        </div>
+      </div>
+    </div>
+    <!-- MAP MODAL -->
+    <div id="map-modal" class="modal">
+      <div class="modal-content" style="max-width: 700px; padding: 20px">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            <i class="fas fa-map-marked-alt"></i> Report Location
+          </h3>
+          <button
+            class="modal-close"
+            onclick="document.getElementById('map-modal').classList.remove('show'); document.body.style.overflow = '';"
+          >
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div
+            id="leaflet-map"
+            style="height: 400px; width: 100%; border-radius: 10px"
+          ></div>
         </div>
       </div>
     </div>
