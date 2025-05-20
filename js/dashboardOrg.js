@@ -51,32 +51,36 @@ firebase.auth().onAuthStateChanged(async (user) => {
     const reports = snapshot.val() || {};
 
     Object.values(reports).forEach((report) => {
-      totalReports++;
-
       const status = report.status?.trim().toLowerCase();
+      const orgIdInReport = report.organizationId;
 
-      if (
-        status === "in progress" &&
-        report.organizationId === userOrganizationId
-      ) {
+      // Only count reports that belong to the logged-in organization
+      const isOwnedByOrg = orgIdInReport === userOrganizationId;
+
+      // Count submitted reports that aren't yet assigned to an org
+      if (status === "submitted" && !orgIdInReport) {
+        submittedReports++;
+        counts.submitted++;
+      }
+
+      if (status === "accepted" && isOwnedByOrg) {
+        acceptedReports++;
+        counts.accepted++;
+      }
+
+      if (status === "in progress" && isOwnedByOrg) {
         inProgressReports++;
         counts.inProgress++;
       }
 
-      if (
-        status === "completed" &&
-        report.organizationId === userOrganizationId
-      ) {
+      if (status === "completed" && isOwnedByOrg) {
         completedReports++;
         counts.completed++;
       }
 
-      if (
-        status === "accepted" &&
-        report.organizationId === userOrganizationId
-      ) {
-        acceptedReports++;
-        counts.accepted++;
+      // Total reports = only those owned by this org or unassigned
+      if (!orgIdInReport || isOwnedByOrg) {
+        totalReports++;
       }
 
       if (
