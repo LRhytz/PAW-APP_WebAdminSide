@@ -595,7 +595,7 @@ function showReportModal(report) {
     });
   } else {
     const status = (report.status || "").toUpperCase();
-    if (status !== "REJECTED") {
+    if (status !== "REJECTED" && status !== "COMPLETED") {
       // Show Accept and Reject buttons only if not rejected
       const acceptBtn = document.createElement("button");
       acceptBtn.className = "btn-accept";
