@@ -108,7 +108,10 @@ function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
     const reports = snapshot.val();
 
     const visibleReports = Object.entries(reports).filter(([id, report]) => {
-      return !report.organizationId || report.organizationId === orgId;
+      return (
+        report.status?.toUpperCase() === "SUBMITTED" ||
+        report.organizationId === orgId
+      );
     });
 
     if (reports) {
@@ -361,16 +364,15 @@ function rejectReport(reportId) {
   if (!reportId) return;
 
   const db = firebase.database();
-  const orgId = firebase.auth().currentUser?.uid || "Unknown";
   db.ref(`reports/${reportId}`)
     .update({
-      status: "REJECTED",
+      status: "REJECTED", // 👈 Reset to 'submitted'
+      organizationId: null, // 👈 Clear ownership
       rejectedAt: Date.now(),
       rejectedBy: firebase.auth().currentUser?.email || "Unknown",
-      organizationId: orgId,
     })
     .then(() => {
-      showToast("Report rejected");
+      showToast("Report rejected and returned to submitted status");
       closeModal();
     })
     .catch((error) => {
@@ -902,8 +904,9 @@ function showMessageModal(reportId, reportUserEmail) {
     window._pawMessageListener.off();
     window._pawMessageListener = null;
   }
+  const orgId = firebase.auth().currentUser?.uid;
   const messagesRef = db
-    .ref(`reports/${reportId}/messages`)
+    .ref(`reports/${reportId}/messages/${orgId}`)
     .orderByChild("timestamp");
   window._pawMessageListener = messagesRef;
   messagesRef.on("value", (snapshot) => {
@@ -940,7 +943,8 @@ function showMessageModal(reportId, reportUserEmail) {
     const text = input.value.trim();
     if (!text) return;
     const user = firebase.auth().currentUser;
-    const newMsgRef = db.ref(`reports/${reportId}/messages`).push();
+    const newMsgRef = db.ref(`reports/${reportId}/messages/${orgId}`).push();
+
     newMsgRef
       .set({
         messageId: newMsgRef.key,
