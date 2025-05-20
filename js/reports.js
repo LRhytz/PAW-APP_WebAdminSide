@@ -555,7 +555,11 @@ function showReportModal(report) {
   const footer = modal.querySelector(".modal-footer .action-buttons");
   footer.innerHTML = "";
 
-  if ((report.status || "").toUpperCase() === "ACCEPTED") {
+  if (
+    ["ACCEPTED", "IN PROGRESS", "ON HOLD"].includes(
+      (report.status || "").toUpperCase()
+    )
+  ) {
     const statuses = [
       {
         label: "In Progress",
@@ -590,19 +594,22 @@ function showReportModal(report) {
       footer.appendChild(btn);
     });
   } else {
-    // Show Accept and Reject buttons
-    const acceptBtn = document.createElement("button");
-    acceptBtn.className = "btn-accept";
-    acceptBtn.textContent = "Accept";
-    acceptBtn.onclick = () => acceptReport(report.reportId);
+    const status = (report.status || "").toUpperCase();
+    if (status !== "REJECTED") {
+      // Show Accept and Reject buttons only if not rejected
+      const acceptBtn = document.createElement("button");
+      acceptBtn.className = "btn-accept";
+      acceptBtn.textContent = "Accept";
+      acceptBtn.onclick = () => acceptReport(report.reportId);
 
-    const rejectBtn = document.createElement("button");
-    rejectBtn.className = "btn-reject";
-    rejectBtn.textContent = "Reject";
-    rejectBtn.onclick = () => rejectReport(report.reportId);
+      const rejectBtn = document.createElement("button");
+      rejectBtn.className = "btn-reject";
+      rejectBtn.textContent = "Reject";
+      rejectBtn.onclick = () => rejectReport(report.reportId);
 
-    footer.appendChild(rejectBtn);
-    footer.appendChild(acceptBtn);
+      footer.appendChild(rejectBtn);
+      footer.appendChild(acceptBtn);
+    }
   }
 
   // Show modal
