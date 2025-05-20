@@ -101,10 +101,15 @@ function formatDate(timestamp) {
 function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
   const db = firebase.database();
   const reportsContainer = document.getElementById("reports-container");
+  const orgId = firebase.auth().currentUser?.uid;
 
   db.ref("reports").on("value", (snapshot) => {
     reportsContainer.innerHTML = "";
     const reports = snapshot.val();
+
+    const visibleReports = Object.entries(reports).filter(([id, report]) => {
+      return !report.organizationId || report.organizationId === orgId;
+    });
 
     if (reports) {
       const searchQuery = document
@@ -112,33 +117,32 @@ function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
         ?.value.toLowerCase()
         .trim();
 
-      let filteredReportIds = Object.keys(reports).filter((key) => {
-        const report = reports[key];
-        const statusMatch =
-          filterStatus === "ALL" || report.status === filterStatus;
-        const severityMatch =
-          filterSeverity === "ALL" ||
-          (report.severity &&
-            report.severity.toLowerCase() === filterSeverity.toLowerCase());
-        const keywords = searchQuery ? searchQuery.split(/\s+/) : [];
+      let filteredReportIds = visibleReports
+        .filter(([key, report]) => {
+          const statusMatch =
+            filterStatus === "ALL" || report.status === filterStatus;
+          const severityMatch =
+            filterSeverity === "ALL" ||
+            (report.severity &&
+              report.severity.toLowerCase() === filterSeverity.toLowerCase());
 
-        const searchableText = [
-          report.reportType,
-          report.reportDescription,
-          report.reportUserEmail,
-          report.status,
-          report.severity,
-          report.latitude && report.longitude
-            ? `<button class="map-location-btn" data-lat="${report.latitude}" data-lng="${report.longitude}">Map Location</button>`
-            : "",
-        ]
-          .join(" ")
-          .toLowerCase();
+          const keywords = searchQuery ? searchQuery.split(/\s+/) : [];
+          const searchableText = [
+            report.reportType,
+            report.reportDescription,
+            report.reportUserEmail,
+            report.status,
+            report.severity,
+          ]
+            .join(" ")
+            .toLowerCase();
 
-        const searchMatch = keywords.every((kw) => searchableText.includes(kw));
-
-        return statusMatch && severityMatch && searchMatch;
-      });
+          const searchMatch = keywords.every((kw) =>
+            searchableText.includes(kw)
+          );
+          return statusMatch && severityMatch && searchMatch;
+        })
+        .map(([key]) => key);
 
       if (filteredReportIds.length === 0) {
         reportsContainer.innerHTML =
@@ -334,11 +338,13 @@ function acceptReport(reportId) {
   if (!reportId) return;
 
   const db = firebase.database();
+  const orgId = firebase.auth().currentUser?.uid || "Unknown";
   db.ref(`reports/${reportId}`)
     .update({
       status: "ACCEPTED",
       resolvedAt: Date.now(),
       resolvedBy: firebase.auth().currentUser?.email || "Unknown",
+      organizationId: orgId,
     })
     .then(() => {
       showToast("Report accepted successfully");
@@ -355,11 +361,13 @@ function rejectReport(reportId) {
   if (!reportId) return;
 
   const db = firebase.database();
+  const orgId = firebase.auth().currentUser?.uid || "Unknown";
   db.ref(`reports/${reportId}`)
     .update({
       status: "REJECTED",
       rejectedAt: Date.now(),
       rejectedBy: firebase.auth().currentUser?.email || "Unknown",
+      organizationId: orgId,
     })
     .then(() => {
       showToast("Report rejected");
@@ -375,11 +383,13 @@ function rejectReport(reportId) {
 function updateReportStatus(reportId, newStatus) {
   if (!reportId) return;
   const db = firebase.database();
+  const orgId = firebase.auth().currentUser?.uid || "Unknown";
   db.ref(`reports/${reportId}`)
     .update({
       status: newStatus,
       updatedAt: Date.now(),
       updatedBy: firebase.auth().currentUser?.email || "Unknown",
+      organizationId: orgId,
     })
     .then(() => {
       showToast(`Report status updated to ${newStatus}`);
