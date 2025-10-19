@@ -5,19 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Accounts Management</title>
 
-  <!-- Font Awesome for icons -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-  />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 
   <!-- AOS CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/aos@2.3.4/dist/aos.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
 
-  <!-- Your custom styles -->
+  <!-- Your styles -->
   <link rel="stylesheet" href="css/accounts.css"/>
 
   <!-- Firebase SDKs -->
@@ -25,14 +19,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-  <!-- Config & Nav -->
+  <!-- Init BEFORE dbAccess -->
   <script src="js/config.js"></script>
+  <script src="/js/dbAccess.js"></script>
+
+  <!-- AOS + nav + page logic -->
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
   <script src="js/nav.js" defer></script>
-
-  <!-- AOS JS -->
-  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
-
-  <!-- Your existing logic -->
   <script src="js/accounts.js" defer></script>
 </head>
 <body>
@@ -70,8 +63,8 @@
                 <th>Email</th>
                 <th>Name</th>
                 <th>Contact</th>
-                <th>Last Login</th>
-                <th>Status</th>
+                <th>Address</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -84,10 +77,10 @@
             <thead>
               <tr>
                 <th>Email</th>
-                <th>Organization</th>
+                <th>Name</th>
                 <th>Contact</th>
-                <th>Last Login</th>
-                <th>Status</th>
+                <th>Address</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -112,23 +105,15 @@
         <label>Contact Number</label>
         <input id="mContact" class="readonly" readonly/>
       </div>
+      <div class="field">
+        <label>Address</label>
+        <input id="mAddress" class="readonly" readonly/>
+      </div>
 
       <div id="mCitizenFields" class="fields-group">
         <div class="field">
-          <label>First Name</label>
-          <input id="mFirstName" class="readonly" readonly/>
-        </div>
-        <div class="field">
-          <label>Last Name</label>
-          <input id="mLastName" class="readonly" readonly/>
-        </div>
-        <div class="field">
-          <label>Username</label>
-          <input id="mUsername" class="readonly" readonly/>
-        </div>
-        <div class="field">
-          <label>Bio</label>
-          <input id="mBio" class="readonly" readonly/>
+          <label>Full Name</label>
+          <input id="mFullName" class="readonly" readonly/>
         </div>
         <div class="field">
           <label>Birthdate</label>
@@ -142,24 +127,16 @@
           <input id="mOrgName" class="readonly" readonly/>
         </div>
         <div class="field">
-          <label>Admin Name</label>
-          <input id="mAdminName" class="readonly" readonly/>
+          <label>Representative Name</label>
+          <input id="mRepName" class="readonly" readonly/>
         </div>
         <div class="field">
-          <label>Admin Email</label>
-          <input id="mAdminEmail" class="readonly" readonly/>
+          <label>License Number</label>
+          <input id="mLicense" class="readonly" readonly/>
         </div>
         <div class="field">
-          <label>Founding Year</label>
-          <input id="mFoundingYear" class="readonly" readonly/>
-        </div>
-        <div class="field">
-          <label>Address</label>
-          <input id="mAddress" class="readonly" readonly/>
-        </div>
-        <div class="field">
-          <label>Bio</label>
-          <input id="mBioOrg" class="readonly" readonly/>
+          <label>Organization Type</label>
+          <input id="mOrgType" class="readonly" readonly/>
         </div>
       </div>
 
@@ -175,7 +152,6 @@
     function showModal() {
       document.getElementById('viewModal').classList.remove('hidden');
     }
-
     // initialize AOS
     document.addEventListener('DOMContentLoaded', () => {
       if (window.AOS) AOS.init({ duration: 400, once: true });

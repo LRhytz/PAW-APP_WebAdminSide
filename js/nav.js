@@ -1,34 +1,50 @@
 // js/nav.js
-document.addEventListener('DOMContentLoaded', () => {
-  // 1) Sidebar open/close helpers (for your ☰ Menu and × buttons)
-  window.openNav = () => {
-    document.getElementById('navbar').style.width        = '250px';
-    document.getElementById('main-content').style.marginLeft = '250px';
-  };
-  window.closeNav = () => {
-    document.getElementById('navbar').style.width        = '0';
-    document.getElementById('main-content').style.marginLeft = '0';
-  };
-
-  // 2) Logout button (assumes <a id="logout-btn"> in your markup)
+(function () {
+  // Elements used across pages (ignore if not present on a given page)
   const logoutBtn = document.getElementById('logout-btn');
+
+  function openNav() {
+    const el = document.getElementById("navbar");
+    if (el) el.style.width = "250px";
+  }
+  function closeNav() {
+    const el = document.getElementById("navbar");
+    if (el) el.style.width = "0";
+  }
+  window.openNav = openNav;
+  window.closeNav = closeNav;
+
+  // Wire up logout if button exists
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      firebase.auth().signOut()
-        .then(() => { window.location.href = 'index.html'; })
-        .catch(err => console.error('Logout error:', err));
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        await firebase.auth().signOut();
+      } finally {
+        window.location.href = 'index.html';
+      }
     });
   }
 
-  // 3) Highlight the “active” link based on current URL
-  const currentPage = window.location.pathname.split('/').pop(); 
-  document
-    .querySelectorAll('#navbar a[href$=".html"]')
-    .forEach(link => {
-      if (link.getAttribute('href') === currentPage) {
-        link.classList.add('active');
-      } else {
-        link.classList.remove('active');
-      }
-    });
-});
+  // Show/hide links based on admin; DOES NOT read /users
+  async function applyRoleVisibility() {
+    try {
+      const user = firebase.auth().currentUser;
+      const links = document.querySelectorAll('.nav-links a');
+      if (!user || links.length === 0) return;
+
+      const v = (await firebase.database().ref(`admins/${user.uid}`).once('value')).val();
+      const isAdmin = v === true || (v && v.isAdmin === true);
+
+      // Example (disabled by default). If you add data-role="admin" on links, uncomment:
+      // links.forEach(a => {
+      //   if (a.dataset.role === 'admin') a.style.display = isAdmin ? '' : 'none';
+      // });
+    } catch (e) {
+      console.warn('applyRoleVisibility error:', e);
+    }
+  }
+
+  firebase.auth().onAuthStateChanged(() => {
+    applyRoleVisibility().catch(console.error);
+  });
+})();

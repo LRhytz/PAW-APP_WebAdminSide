@@ -5,19 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Subscription Management</title>
 
-  <!-- Font Awesome for icons -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-  />
+  <!-- Icons & AOS CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
 
-  <!-- AOS CSS (unpkg) -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/aos@2.3.4/dist/aos.css"
-  />
-
-  <!-- Your custom styles -->
+  <!-- Your styles -->
   <link rel="stylesheet" href="css/subscription-management.css"/>
 
   <!-- Firebase SDKs -->
@@ -25,14 +17,15 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-  <!-- Config & Nav -->
+  <!-- Init BEFORE dbAccess -->
   <script src="js/config.js"></script>
-  <script src="js/nav.js" defer></script>
+  <script src="/js/dbAccess.js"></script>
 
-  <!-- AOS JS (unpkg) -->
+  <!-- AOS -->
   <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 
-  <!-- Your subscription logic -->
+  <!-- Page scripts -->
+  <script src="js/nav.js" defer></script>
   <script src="js/subscription-management.js" defer></script>
 </head>
 <body>
@@ -69,7 +62,7 @@
               <tr>
                 <th>Email</th>
                 <th>Plan</th>
-                <th>Start Date</th>
+                <th>Start&nbsp;Date</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>

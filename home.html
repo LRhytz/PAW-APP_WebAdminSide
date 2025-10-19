@@ -5,20 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Dashboard</title>
 
-  <!-- Font Awesome for icons -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-  />
+  <!-- Icons & AOS CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
 
-  <!-- AOS for scroll‑based fades -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/aos@2.3.4/dist/aos.css"
-  />
-
-  <!-- Your custom styles -->
+  <!-- Your styles -->
   <link rel="stylesheet" href="css/dashboard.css"/>
+
+  <!-- Fallback: if AOS doesn't initialize, don't keep elements hidden -->
+  <style>
+    [data-aos] { opacity: 1 !important; transform: none !important; }
+  </style>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -28,9 +25,14 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- AOS, nav & dashboard logic -->
-  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+  <!-- Initialize Firebase BEFORE dbAccess -->
   <script src="js/config.js"></script>
+  <script src="/js/dbAccess.js"></script>
+
+  <!-- AOS (script only; we init it below) -->
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+  <!-- Nav & dashboard logic -->
   <script src="js/nav.js" defer></script>
   <script src="js/dashboard.js" defer></script>
 </head>
@@ -90,5 +92,12 @@
       </div>
     </section>
   </main>
+
+  <!-- Initialize AOS once DOM is ready -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.AOS) AOS.init({ duration: 500, once: true });
+    });
+  </script>
 </body>
 </html>

@@ -1,4 +1,5 @@
-// parse uid & type
+// js/view-account.js
+// parse uid & type from URL
 const ps   = new URLSearchParams(window.location.search);
 const uid  = ps.get('uid');
 const type = ps.get('type'); // 'citizen' or 'organization'
@@ -8,9 +9,17 @@ const node = type === 'organization' ? 'organizations' : 'users';
 document.getElementById('citizen-fields').style.display = (type==='citizen') ? 'block' : 'none';
 document.getElementById('org-fields').style.display     = (type==='organization') ? 'block' : 'none';
 
-firebase.auth().onAuthStateChanged(admin => {
-  if (!admin) {
+firebase.auth().onAuthStateChanged(async (me) => {
+  if (!me) {
     window.location = 'index.html';
+    return;
+  }
+
+  // Only admins or the owner themselves can view this page
+  const admin = await DB.isAdmin(me.uid);
+  const isOwner = (uid === me.uid);
+  if (!admin && !isOwner) {
+    window.location = 'home.html';
     return;
   }
 
