@@ -56,16 +56,16 @@ firebase.auth().onAuthStateChanged(async (user) => {
   }
 
   let totalReports = 0,
-    submittedReports = 0,
     inProgressReports = 0,
     completedReports = 0,
-    acceptedReports = 0;
+    acceptedReports = 0,
+    onHoldReports = 0;
 
   const counts = {
-    submitted: 0,
     inProgress: 0,
     completed: 0,
     accepted: 0,
+    onHold: 0,
   };
 
   try {
@@ -77,7 +77,8 @@ firebase.auth().onAuthStateChanged(async (user) => {
 
       const status = (report.status || "").trim().toLowerCase();
 
-      if (status === "submitted") {
+      // Count submitted reports that aren't yet assigned to an org
+      if (status === "submitted" && !orgIdInReport) {
         submittedReports++;
         counts.submitted++;
       }
@@ -96,19 +97,19 @@ firebase.auth().onAuthStateChanged(async (user) => {
         counts.completed++;
       }
       if (
-        status === "accepted" &&
+        status === "on hold" &&
         report.organizationId === userOrganizationId
       ) {
-        acceptedReports++;
-        counts.accepted++;
+        onHoldReports++;
+        counts.onHold++;
       }
     });
 
     animateNumber("totalReports", totalReports);
-    animateNumber("submittedReports", submittedReports);
     animateNumber("inProgressReports", inProgressReports);
     animateNumber("completedReports", completedReports);
     animateNumber("acceptedReports", acceptedReports);
+    animateNumber("onHoldReports", onHoldReports);
 
     const chartEl = document.getElementById("reportChart");
     if (chartEl && window.Chart) {

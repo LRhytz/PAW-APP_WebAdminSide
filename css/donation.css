@@ -1,229 +1,221 @@
+/* donation.css — Main stylesheet for Donation Requests page */
+/* CSS Variables */
 :root {
   --bg: #f5f5dc;
   --header-bg: #4caf50;
   --card-bg: #ffffff;
-  --primary: #4caf50;
+  --primary-color: #4caf50;
   --accent: #ff9800;
   --text: #333333;
-  --shadow-md: rgba(0, 0, 0, 0.1);
-  --shadow-lg: rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
   --gap: 1.5rem;
+  --transition-speed: 0.3s;
+  --border-radius: 10px;
 }
 
+/* Reset & Base */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
-
 body {
   font-family: "Roboto", sans-serif;
   background-color: var(--bg);
   color: var(--text);
+  line-height: 1.6;
 }
 
+/* Header */
 .app-header {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   height: 60px;
   background: var(--header-bg);
-  display: flex;
-  align-items: center;
+  display: flex; align-items: center;
   padding: 0 var(--gap);
-  box-shadow: 0 2px 8px var(--shadow-md);
+  box-shadow: var(--shadow-md);
   z-index: 1001;
 }
 .app-header .openbtn {
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.1rem;
-  cursor: pointer;
-  margin-right: var(--gap);
+  background: none; border: none;
+  color: #fff; font-size: 1.1rem;
+  cursor: pointer; margin-right: var(--gap);
 }
 .app-header .app-title {
-  color: #fff;
-  font-size: 1.4rem;
-  flex: 1;
+  color: #fff; font-size: 1.4rem; flex: 1;
 }
 
+/* Sidebar */
 .navbar {
   position: fixed;
-  top: 60px;
-  left: 0;
-  width: 0;
-  height: calc(100% - 60px);
+  top: 60px; left: 0;
+  width: 0; height: calc(100% - 60px);
   background: var(--header-bg);
   overflow-x: hidden;
-  transition: width 0.3s ease;
+  transition: width var(--transition-speed) ease;
   z-index: 1000;
+  box-shadow: var(--shadow-md);
 }
+.navbar.open { width: 250px; }
 .navbar .closebtn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.5rem;
-  cursor: pointer;
+  position: absolute; top: 8px; right: 8px;
+  background: none; border: none;
+  color: #fff; font-size: 1.5rem; cursor: pointer;
 }
 .navbar .nav-links {
-  list-style: none;
-  padding: 1rem;
+  list-style: none; padding: 1rem; margin-top: 1rem;
 }
-.navbar .nav-links li + li {
-  margin-top: 0.5rem;
-}
+.navbar .nav-links li + li { margin-top: 0.5rem; }
 .navbar .nav-links a {
-  display: block;
-  color: #fff;
-  text-decoration: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  transition: background 0.2s;
+  display: block; color: #fff; text-decoration: none;
+  padding: 0.5rem 1rem; border-radius: 4px;
+  transition: background 0.2s; font-weight: 500;
 }
 .navbar .nav-links a:hover,
 .navbar .nav-links a.active {
   background: #388e3c;
 }
 
+/* Main Content */
 .main-content {
-  margin-top: 60px;
+  margin-top: 80px;
   padding: var(--gap);
+  max-width: 1200px;
+  margin-left: 0;
+  transition: margin-left var(--transition-speed) ease;
+}
+.main-content.shifted {
+  margin-left: 250px;
 }
 
+/* Section Title */
+.section-title {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  font-size: 1.8rem;
+}
+
+/* Loading / Empty / Error States */
+.loading-indicator,
+.empty-state,
+.error-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--primary-color);
+}
+.loading-indicator i,
+.empty-state i,
+.error-state i {
+  font-size: 2rem; margin-bottom: 1rem;
+}
+
+/* Donation Cards */
 #donation-cards-container {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  justify-content: flex-start;
-  overflow-x: auto;
-  padding-bottom: 15px;
+  margin-bottom: 2rem;
 }
-
 .donation-card {
   background: var(--card-bg);
   padding: 20px;
-  border-radius: 10px;
+  border-radius: var(--border-radius);
   box-shadow: var(--shadow-md);
-  width: 300px;
-  min-width: 300px;
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: transform var(--transition-speed) ease,
+              box-shadow var(--transition-speed) ease;
+  height: 100%;
+  cursor: pointer;
 }
-
 .donation-card:hover {
   transform: translateY(-5px);
   box-shadow: var(--shadow-lg);
 }
-
 .donation-card h3 {
-  margin-top: 0;
   color: var(--primary-color);
+  font-size: 1.3rem;
+  margin-bottom: 0.5rem;
 }
-
 .donation-card p {
-  margin: 5px 0;
+  margin: 5px 0; line-height: 1.5;
 }
 
+/* Progress Bar */
+.progress-wrapper {
+  margin: 1rem 0; margin-top: auto;
+}
+.progress-text {
+  font-size: 0.9rem; margin-bottom: 4px;
+  display: flex; justify-content: space-between;
+}
+.progress-bar {
+  background: #eee; border-radius: 20px;
+  overflow: hidden; height: 12px;
+}
+.progress-fill {
+  background: var(--primary-color);
+  height: 100%; transition: width 0.3s ease;
+}
+.progress-percent {
+  font-size: 0.8rem; color: var(--primary-color);
+  margin-top: 5px; font-weight: 500; text-align: right;
+}
+
+/* Donate Button */
+.donate-btn {
+  margin-top: 10px; padding: 10px 15px;
+  background: var(--primary-color);
+  color: white; border: none; border-radius: 4px;
+  cursor: pointer; font-weight: 500;
+  transition: background 0.2s, transform 0.1s;
+}
+.donate-btn:hover { background: #388e3c; transform: scale(1.02); }
+.donate-btn:active { transform: scale(0.98); }
+.donate-btn[disabled] {
+  background: #aaa; cursor: default; transform: none;
+}
+
+/* Floating + Button */
 .floating-button {
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  background-color: #007bff;
-  color: white;
-  border-radius: 50%;
-  padding: 15px;
-  font-size: 30px;
-  text-align: center;
-  width: 60px;
-  height: 60px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  text-decoration: none;
-  z-index: 1000;
+  position: fixed; bottom: 30px; right: 30px;
+  background: var(--primary-color); color: white;
+  border-radius: 50%; width: 60px; height: 60px;
+  display: flex; align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  text-decoration: none; z-index: 1000;
+  transition: transform 0.2s, background-color 0.2s;
 }
-
+.floating-button i { font-size: 24px; }
 .floating-button:hover {
-  transform: scale(1.1);
+  transform: scale(1.1); background-color: #388e3c;
 }
+.floating-button:active { transform: scale(0.95); }
 
+/* Responsive */
 @media (max-width: 768px) {
-  #donation-cards-container {
-    justify-content: center;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 15px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-  }
-
-  .donation-card {
-    min-width: 250px;
-    width: 250px;
-  }
-
+  #donation-cards-container { grid-template-columns: 1fr; }
   .floating-button {
-    bottom: 20px;
-    right: 20px;
+    bottom: 20px; right: 20px;
+    width: 50px; height: 50px;
   }
+  .main-content { padding: 1rem; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+  #donation-cards-container { grid-template-columns: repeat(2, 1fr); }
 }
 
-#donation-cards-container::-webkit-scrollbar {
-  height: 8px;
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px; height: 8px;
 }
-
-#donation-cards-container::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background-color: var(--primary-color);
   border-radius: 4px;
 }
-
-#donation-cards-container::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background-color: #f1f1f1;
   border-radius: 4px;
-}
-
-.form-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 40px;
-}
-
-.form-card {
-  background: #fff;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 300px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-input,
-textarea {
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
-  margin-bottom: 10px;
-}
-
-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 12px;
-  font-size: 16px;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #0056b3;
 }

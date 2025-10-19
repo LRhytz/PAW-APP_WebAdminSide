@@ -101,10 +101,18 @@ function formatDate(timestamp) {
 function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
   const db = firebase.database();
   const reportsContainer = document.getElementById("reports-container");
+  const orgId = firebase.auth().currentUser?.uid;
 
   db.ref("reports").on("value", (snapshot) => {
     reportsContainer.innerHTML = "";
     const reports = snapshot.val();
+
+    const visibleReports = Object.entries(reports).filter(([id, report]) => {
+      return (
+        report.status?.toUpperCase() === "SUBMITTED" ||
+        report.organizationId === orgId
+      );
+    });
 
     if (reports) {
       const searchQuery = document
@@ -112,33 +120,32 @@ function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
         ?.value.toLowerCase()
         .trim();
 
-      let filteredReportIds = Object.keys(reports).filter((key) => {
-        const report = reports[key];
-        const statusMatch =
-          filterStatus === "ALL" || report.status === filterStatus;
-        const severityMatch =
-          filterSeverity === "ALL" ||
-          (report.severity &&
-            report.severity.toLowerCase() === filterSeverity.toLowerCase());
-        const keywords = searchQuery ? searchQuery.split(/\s+/) : [];
+      let filteredReportIds = visibleReports
+        .filter(([key, report]) => {
+          const statusMatch =
+            filterStatus === "ALL" || report.status === filterStatus;
+          const severityMatch =
+            filterSeverity === "ALL" ||
+            (report.severity &&
+              report.severity.toLowerCase() === filterSeverity.toLowerCase());
 
-        const searchableText = [
-          report.reportType,
-          report.reportDescription,
-          report.reportUserEmail,
-          report.status,
-          report.severity,
-          report.latitude && report.longitude
-            ? `<button class="map-location-btn" data-lat="${report.latitude}" data-lng="${report.longitude}">Map Location</button>`
-            : "",
-        ]
-          .join(" ")
-          .toLowerCase();
+          const keywords = searchQuery ? searchQuery.split(/\s+/) : [];
+          const searchableText = [
+            report.reportType,
+            report.reportDescription,
+            report.reportUserEmail,
+            report.status,
+            report.severity,
+          ]
+            .join(" ")
+            .toLowerCase();
 
-        const searchMatch = keywords.every((kw) => searchableText.includes(kw));
-
-        return statusMatch && severityMatch && searchMatch;
-      });
+          const searchMatch = keywords.every((kw) =>
+            searchableText.includes(kw)
+          );
+          return statusMatch && severityMatch && searchMatch;
+        })
+        .map(([key]) => key);
 
       if (filteredReportIds.length === 0) {
         reportsContainer.innerHTML =
@@ -294,14 +301,18 @@ function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
               <button class="btn" title="View Details">
                 <i class="fas fa-eye"></i>
               </button>
-              <button class="btn" title="Message">
-                <i class="fas fa-comment-dots"></i>
-                ${
-                  unreadCount > 0
-                    ? `<span class="unread-badge">${unreadCount}</span>`
-                    : ""
-                }
-              </button>
+              ${
+                (report.status || "").toUpperCase() !== "SUBMITTED"
+                  ? `<button class="btn" title="Message">
+                      <i class="fas fa-comment-dots"></i>
+                      ${
+                        unreadCount > 0
+                          ? `<span class="unread-badge">${unreadCount}</span>`
+                          : ""
+                      }
+                    </button>`
+                  : ""
+              }
             </div>
           </div>
         `;
@@ -334,11 +345,13 @@ function acceptReport(reportId) {
   if (!reportId) return;
 
   const db = firebase.database();
+  const orgId = firebase.auth().currentUser?.uid || "Unknown";
   db.ref(`reports/${reportId}`)
     .update({
       status: "ACCEPTED",
       resolvedAt: Date.now(),
       resolvedBy: firebase.auth().currentUser?.email || "Unknown",
+      organizationId: orgId,
     })
     .then(() => {
       showToast("Report accepted successfully");
@@ -357,12 +370,13 @@ function rejectReport(reportId) {
   const db = firebase.database();
   db.ref(`reports/${reportId}`)
     .update({
-      status: "REJECTED",
+      status: "REJECTED", // 👈 Reset to 'submitted'
+      organizationId: null, // 👈 Clear ownership
       rejectedAt: Date.now(),
       rejectedBy: firebase.auth().currentUser?.email || "Unknown",
     })
     .then(() => {
-      showToast("Report rejected");
+      showToast("Report rejected and returned to submitted status");
       closeModal();
     })
     .catch((error) => {
@@ -375,11 +389,13 @@ function rejectReport(reportId) {
 function updateReportStatus(reportId, newStatus) {
   if (!reportId) return;
   const db = firebase.database();
+  const orgId = firebase.auth().currentUser?.uid || "Unknown";
   db.ref(`reports/${reportId}`)
     .update({
       status: newStatus,
       updatedAt: Date.now(),
       updatedBy: firebase.auth().currentUser?.email || "Unknown",
+      organizationId: orgId,
     })
     .then(() => {
       showToast(`Report status updated to ${newStatus}`);
@@ -539,7 +555,11 @@ function showReportModal(report) {
   const footer = modal.querySelector(".modal-footer .action-buttons");
   footer.innerHTML = "";
 
-  if ((report.status || "").toUpperCase() === "ACCEPTED") {
+  if (
+    ["ACCEPTED", "IN PROGRESS", "ON HOLD"].includes(
+      (report.status || "").toUpperCase()
+    )
+  ) {
     const statuses = [
       {
         label: "In Progress",
@@ -574,19 +594,22 @@ function showReportModal(report) {
       footer.appendChild(btn);
     });
   } else {
-    // Show Accept and Reject buttons
-    const acceptBtn = document.createElement("button");
-    acceptBtn.className = "btn-accept";
-    acceptBtn.textContent = "Accept";
-    acceptBtn.onclick = () => acceptReport(report.reportId);
+    const status = (report.status || "").toUpperCase();
+    if (status !== "REJECTED" && status !== "COMPLETED") {
+      // Show Accept and Reject buttons only if not rejected
+      const acceptBtn = document.createElement("button");
+      acceptBtn.className = "btn-accept";
+      acceptBtn.textContent = "Accept";
+      acceptBtn.onclick = () => acceptReport(report.reportId);
 
-    const rejectBtn = document.createElement("button");
-    rejectBtn.className = "btn-reject";
-    rejectBtn.textContent = "Reject";
-    rejectBtn.onclick = () => rejectReport(report.reportId);
+      const rejectBtn = document.createElement("button");
+      rejectBtn.className = "btn-reject";
+      rejectBtn.textContent = "Reject";
+      rejectBtn.onclick = () => rejectReport(report.reportId);
 
-    footer.appendChild(rejectBtn);
-    footer.appendChild(acceptBtn);
+      footer.appendChild(rejectBtn);
+      footer.appendChild(acceptBtn);
+    }
   }
 
   // Show modal
@@ -892,8 +915,9 @@ function showMessageModal(reportId, reportUserEmail) {
     window._pawMessageListener.off();
     window._pawMessageListener = null;
   }
+  const orgId = firebase.auth().currentUser?.uid;
   const messagesRef = db
-    .ref(`reports/${reportId}/messages`)
+    .ref(`reports/${reportId}/messages/${orgId}`)
     .orderByChild("timestamp");
   window._pawMessageListener = messagesRef;
   messagesRef.on("value", (snapshot) => {
@@ -930,7 +954,8 @@ function showMessageModal(reportId, reportUserEmail) {
     const text = input.value.trim();
     if (!text) return;
     const user = firebase.auth().currentUser;
-    const newMsgRef = db.ref(`reports/${reportId}/messages`).push();
+    const newMsgRef = db.ref(`reports/${reportId}/messages/${orgId}`).push();
+
     newMsgRef
       .set({
         messageId: newMsgRef.key,
