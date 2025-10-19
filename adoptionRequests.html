@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,6 +32,9 @@
         <h2 id="pet-name">Loading pet details...</h2>
         <div class="request-stats">
           <span id="total-requests">0</span> requests received
+          <span id="pending-badge" class="pill-badge" style="display:none;">
+            Pending: <b id="pending-count">0</b>
+          </span>
         </div>
       </div>
     </div>
@@ -84,11 +86,10 @@
       </div>
       
       <div class="modal-footer">
-  <button type="button" class="btn btn-secondary" id="close-modal-btn">Close</button>
-  <button type="button" class="btn btn-success"   id="approve-btn">Approve</button>
-  <button type="button" class="btn btn-danger"    id="reject-btn">Reject</button>
-</div>
-
+        <button type="button" class="btn btn-secondary" id="close-modal-btn">Close</button>
+        <button type="button" class="btn btn-success"   id="approve-btn">Approve</button>
+        <button type="button" class="btn btn-danger"    id="reject-btn">Reject</button>
+      </div>
     </div>
   </div>
   

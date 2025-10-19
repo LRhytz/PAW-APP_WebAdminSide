@@ -1,170 +1,133 @@
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+// js/dashboardOrg.js
 
-function animateNumber(id, end, duration = 800) {
-  const el = document.getElementById(id);
-  let start = 0;
-  if (!el) return;
-  if (end === 0) {
-    el.innerText = "0";
-    return;
-  }
-  const stepTime = Math.max(Math.floor(duration / end), 20);
-  const timer = setInterval(() => {
-    start++;
-    el.innerText = start;
-    if (start >= end) clearInterval(timer);
-  }, stepTime);
-}
+(function () {
+  const db = () => firebase.database();
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000; // not used now, kept if you want activity badges later
 
-firebase.auth().onAuthStateChanged(async (user) => {
-  if (!user) {
-    window.location = "index.html";
-    return;
-  }
+  // Utilities
+  const $ = (id) => document.getElementById(id);
+  function setText(id, val) { const el = $(id); if (el) el.textContent = String(val ?? '0'); }
 
-  const db = firebase.database();
-
-  let role = (localStorage.getItem("sessionRole") || "").toLowerCase();
-  try {
-    const userSnap = await db.ref("users/" + user.uid).once("value");
-    const dbRole = ((userSnap.val() || {}).role || "").toString().toLowerCase();
-    if (dbRole) role = dbRole;
-    localStorage.setItem("sessionRole", role);
-    localStorage.setItem("sessionUid", user.uid);
-  } catch (e) {
-    console.warn("Could not re-check role from DB; using localStorage:", e);
+  function animateNumber(id, end, duration = 800) {
+    const el = $(id);
+    if (!el) return;
+    const target = Number(end) || 0;
+    if (target <= 0) { el.textContent = '0'; return; }
+    let curr = 0;
+    const step = Math.max(Math.floor(duration / target), 20);
+    const t = setInterval(() => {
+      curr += 1;
+      el.textContent = String(curr);
+      if (curr >= target) clearInterval(t);
+    }, step);
   }
 
-  if (role !== "organization") {
-    window.location = "home.html";
-    return;
+  async function waitForUser() {
+    return new Promise((resolve) => {
+      const off = firebase.auth().onAuthStateChanged((u) => { off(); resolve(u || null); });
+    });
   }
-  let userOrganizationId = user.uid;
-  try {
-    const orgExists = (
-      await db.ref("organizations/" + userOrganizationId).once("value")
-    ).exists();
-    if (!orgExists) {
-      console.warn(
-        "No organizations/" +
-          userOrganizationId +
-          " node. Proceeding with zero counts."
-      );
+
+  async function getRole(uid) {
+    const snap = await db().ref('users/' + uid).once('value');
+    const role = ((snap.val() || {}).role || '').toString().toLowerCase();
+    return role;
+  }
+
+  function normStatus(s) {
+    const v = (s || '').toString().trim().toLowerCase();
+    if (v === 'in_progress' || v === 'in progress') return 'in_progress';
+    if (v === 'on_hold' || v === 'on hold') return 'on_hold';
+    if (v === 'accepted' || v === 'approved') return 'accepted';
+    if (v === 'completed' || v === 'resolved' || v === 'closed') return 'completed';
+    return v; // fallback
+  }
+
+  async function init() {
+    const me = await waitForUser();
+    if (!me) {
+      window.location.href = 'index.html';
+      return;
     }
-  } catch (error) {
-    console.error("Error checking organization node:", error);
-  }
 
-  let totalReports = 0,
-    inProgressReports = 0,
-    completedReports = 0,
-    acceptedReports = 0,
-    onHoldReports = 0;
+    // Ensure this user is an organization
+    let role = await getRole(me.uid);
+    if (role !== 'organization') {
+      window.location.href = 'home.html';
+      return;
+    }
 
-  const counts = {
-    inProgress: 0,
-    completed: 0,
-    accepted: 0,
-    onHold: 0,
-  };
+    const orgUid = me.uid;
 
-  try {
-    const snapshot = await db.ref("reports").once("value");
-    const reports = snapshot.val() || {};
+    // ── Load only this org's reports ───────────────────────────────────────
+    // Security rules allow this query shape.
+    const snap = await db().ref('reports')
+      .orderByChild('organizationId').equalTo(orgUid)
+      .once('value');
 
-    Object.values(reports).forEach((report) => {
-      totalReports++;
+    const reports = snap.val() || {};
+    const ids = Object.keys(reports);
 
-      const status = (report.status || "").trim().toLowerCase();
+    let accepted = 0;
+    let inProgress = 0;
+    let onHold = 0;
+    let completed = 0;
 
-      // Count submitted reports that aren't yet assigned to an org
-      if (status === "submitted" && !orgIdInReport) {
-        submittedReports++;
-        counts.submitted++;
-      }
-      if (
-        (status === "in progress" || status === "in_progress") &&
-        report.organizationId === userOrganizationId
-      ) {
-        inProgressReports++;
-        counts.inProgress++;
-      }
-      if (
-        status === "completed" &&
-        report.organizationId === userOrganizationId
-      ) {
-        completedReports++;
-        counts.completed++;
-      }
-      if (
-        status === "on hold" &&
-        report.organizationId === userOrganizationId
-      ) {
-        onHoldReports++;
-        counts.onHold++;
-      }
+    ids.forEach(id => {
+      const st = normStatus(reports[id].status);
+      if (st === 'accepted') accepted++;
+      else if (st === 'in_progress') inProgress++;
+      else if (st === 'on_hold') onHold++;
+      else if (st === 'completed') completed++;
+      // ignore other statuses for this dashboard
     });
 
-    animateNumber("totalReports", totalReports);
-    animateNumber("inProgressReports", inProgressReports);
-    animateNumber("completedReports", completedReports);
-    animateNumber("acceptedReports", acceptedReports);
-    animateNumber("onHoldReports", onHoldReports);
+    const total = ids.length;
 
-    const chartEl = document.getElementById("reportChart");
+    // Update cards
+    animateNumber('totalReports', total);
+    animateNumber('acceptedReports', accepted);
+    animateNumber('inProgressReports', inProgress);
+    animateNumber('onHoldReports', onHold);
+    animateNumber('completedReports', completed);
+
+    // Chart
+    const chartEl = $('reportChart');
     if (chartEl && window.Chart) {
-      const ctx = chartEl.getContext("2d");
+      const ctx = chartEl.getContext('2d');
       new Chart(ctx, {
-        type: "bar",
+        type: 'bar',
         data: {
-          labels: ["Reports"],
-          datasets: [
-            {
-              label: "Submitted Reports",
-              data: [counts.submitted],
-              backgroundColor: "rgba(76,175,80,0.7)",
-              borderRadius: 4,
-            },
-            {
-              label: "In Progress Reports",
-              data: [counts.inProgress],
-              backgroundColor: "rgba(255,223,51,0.7)",
-              borderRadius: 4,
-            },
-            {
-              label: "Completed Reports",
-              data: [counts.completed],
-              backgroundColor: "rgba(255,192,203,0.7)",
-              borderRadius: 4,
-            },
-            {
-              label: "Accepted Reports",
-              data: [counts.accepted],
-              backgroundColor: "rgba(100,149,237,0.7)",
-              borderRadius: 4,
-            },
-          ],
+          labels: ['Accepted', 'In Progress', 'On Hold', 'Completed'],
+          datasets: [{
+            label: 'Reports',
+            data: [accepted, inProgress, onHold, completed],
+            backgroundColor: [
+              'rgba(100,149,237,0.7)',   // accepted
+              'rgba(255,223,51,0.7)',    // in progress
+              'rgba(255,165,0,0.7)',     // on hold
+              'rgba(76,175,80,0.7)'      // completed
+            ],
+            borderRadius: 4
+          }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           scales: {
-            x: { title: { display: true, text: "Reports" } },
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: "Count" },
-              ticks: { stepSize: 1 },
-            },
+            x: { title: { display: true, text: 'Status' } },
+            y: { beginAtZero: true, title: { display: true, text: 'Count' }, ticks: { stepSize: 1 } }
           },
           plugins: {
-            legend: { position: "top" },
-            tooltip: { mode: "index", intersect: false },
-          },
-        },
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false }
+          }
+        }
       });
     }
 
     if (window.AOS) AOS.init({ duration: 600, once: true });
-  } catch (error) {
-    console.error("Error fetching reports data:", error);
   }
-});
+
+  init().catch(err => console.error('Org dashboard init failed:', err));
+})();

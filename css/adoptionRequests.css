@@ -143,6 +143,21 @@ body {
   color: var(--primary);
 }
 
+/* NEW: small pill badge for counts */
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .2rem .55rem;
+  margin-left: .5rem;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: #fff;
+  font-size: .8rem;
+  line-height: 1;
+  box-shadow: var(--shadow-sm);
+}
+
 /* Updated Search and Filter Controls - Fixed layout issues */
 .controls-container {
   display: flex;
@@ -468,6 +483,14 @@ body {
   grid-column: 1 / -1;
 }
 
+/* NEW: better formatting for long note text */
+.message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+}
+.message-text b { color: var(--text); }
+
 .modal-footer {
   padding: 1rem 1.5rem;
   display: flex;
@@ -535,39 +558,15 @@ body {
   opacity: 1;
 }
 
-.notification.success {
-  background: var(--green);
-}
-
-.notification.error {
-  background: var(--red);
-}
+.notification.success { background: var(--green); }
+.notification.error   { background: var(--red); }
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
-  .controls-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .pet-avatar {
-    margin-bottom: 1rem;
-  }
-  
-  .filter-container {
-    width: 100%;
-  }
-  
-  .detail-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .search-box {
-    max-width: 100%;
-  }
-  
-  .pet-info-banner {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  .controls-container { flex-direction: column; align-items: stretch; }
+  .pet-avatar { margin-bottom: 1rem; }
+  .filter-container { width: 100%; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .search-box { max-width: 100%; }
+  .pet-info-banner { flex-direction: column; align-items: flex-start; }
 }

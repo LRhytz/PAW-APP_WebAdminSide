@@ -1,15 +1,23 @@
-// js/editAdoption.js - modernized version
+// js/editAdoption.js — rules-aligned edit flow for RTDB "adoptions"
 
-// Grab services
 const auth = firebase.auth();
-const database = firebase.database();
+const db   = firebase.database();
 
 document.addEventListener("DOMContentLoaded", () => {
-  const editForm = document.getElementById("editForm");
+  const editForm     = document.getElementById("editForm");
   const currentImage = document.getElementById("currentImage");
-  const logoutBtn = document.getElementById("logout-btn");
-  
-  // Add loading state
+  const logoutBtn    = document.getElementById("logout-btn");
+
+  // Safe placeholder (prevents 404)
+  const PLACEHOLDER = "https://placehold.co/400x300?text=Loading+image";
+
+  // Simple toast
+  const showNotification = (msg, type = "success") => {
+    // Replace with your own toast if you like
+    alert(msg);
+  };
+
+  // Loading state on the submit button
   const submitButton = editForm.querySelector(".btn-submit");
   const setLoading = (isLoading) => {
     if (isLoading) {
@@ -21,156 +29,174 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Get petId from URL
+  // Get pet id
   const urlParams = new URLSearchParams(window.location.search);
   const petId = urlParams.get("id");
-  
+
   if (!petId) {
-    showNotification("No pet ID provided", "error");
-    return window.location.href = "adoption.html";
+    showNotification("No pet ID provided.", "error");
+    window.location.href = "adoption.html";
+    return;
   }
 
-  // Custom notification function
-  const showNotification = (message, type = "success") => {
-    // You could implement a proper toast notification system here
-    alert(message);
+  // Small helpers
+  const clampEnum = (val, allowed, fallback = "") =>
+    allowed.includes((val || "").toLowerCase()) ? (val || "").toLowerCase() : fallback;
+
+  const toNumber = (v, d = null) => {
+    if (v === undefined || v === null || v === "") return d;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : d;
   };
 
-  // Ensure user is signed in
-  auth.onAuthStateChanged(user => {
+  // Auth gate
+  auth.onAuthStateChanged(async (user) => {
     if (!user) {
       showNotification("Please sign in to continue", "error");
-      return window.location.href = "index.html";
+      window.location.href = "index.html";
+      return;
     }
 
-    // Load pet data with loading indicator
-    currentImage.src = "/api/placeholder/400/300"; // Placeholder while loading
-    
-    database.ref("adoptions/" + petId).once("value")
-      .then(snapshot => {
-        const pet = snapshot.val();
-        if (!pet) throw new Error("Pet not found");
+    try {
+      currentImage.src = PLACEHOLDER;
 
-        // Pre-fill fields
-        document.getElementById("name").value = pet.name || "";
-        document.getElementById("species").value = pet.species || "";
-        document.getElementById("breed").value = pet.breed || "";
-        document.getElementById("age").value = pet.age || "";
-        document.getElementById("size").value = pet.size || "";
-        document.getElementById("gender").value = pet.gender || "";
-        document.getElementById("description").value = pet.description || "";
-        document.getElementById("fullDescription").value = pet.fullDescription || "";
-        document.getElementById("address").value = pet.address || "";
-        document.getElementById("contactLocation").value = pet.contactLocation || "";
-        document.getElementById("contactPhone").value = pet.contactPhone || "";
-        document.getElementById("contactEmail").value = pet.contactEmail || "";
-        
-        // Set image with fade-in effect
-        if (pet.imageUrl) {
-          const img = new Image();
-          img.onload = () => {
-            currentImage.style.opacity = 0;
-            currentImage.src = pet.imageUrl;
-            setTimeout(() => {
-              currentImage.style.opacity = 1;
-            }, 50);
-          };
-          img.src = pet.imageUrl;
-        }
+      const snap = await db.ref("adoptions/" + petId).once("value");
+      const pet = snap.val();
+      if (!pet) throw new Error("Pet not found or access denied.");
 
-        // Form validation - basic example
-        const validateForm = () => {
-          let isValid = true;
-          const requiredFields = editForm.querySelectorAll('[required]');
-          
-          requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-              field.classList.add('error');
-              isValid = false;
-            } else {
-              field.classList.remove('error');
-            }
-          });
-          
-          return isValid;
+      // Pre-fill inputs
+      document.getElementById("name").value              = pet.name || "";
+      document.getElementById("species").value           = pet.species || "";              // dog | cat
+      document.getElementById("breed").value             = pet.breed || "";
+      document.getElementById("age").value               = pet.ageMonths != null ? String(pet.ageMonths) : ""; // months
+      document.getElementById("size").value              = pet.size || "";                 // small | medium | large
+      document.getElementById("gender").value            = pet.gender || "";               // male | female
+      document.getElementById("description").value       = pet.description || "";
+      document.getElementById("fullDescription").value   = pet.description || "";          // we’ll persist into description
+      document.getElementById("address").value           = pet.location || "";
+      document.getElementById("contactLocation").value   = pet.location || "";
+      document.getElementById("contactPhone").value      = pet.contactInfo || "";          // we’ll parse/build contactInfo
+      document.getElementById("contactEmail").value      = "";                             // optional; combined in contactInfo
+
+      // Show photo (schema uses photoUrl)
+      if (pet.photoUrl) {
+        const img = new Image();
+        img.onload = () => {
+          currentImage.style.opacity = 0;
+          currentImage.src = pet.photoUrl;
+          requestAnimationFrame(() => (currentImage.style.opacity = 1));
         };
+        img.src = pet.photoUrl;
+      }
 
-        // On submit, just update fields (imageUrl stays the same)
-        editForm.addEventListener("submit", async e => {
-          e.preventDefault();
-          
-          if (!validateForm()) {
-            showNotification("Please fill in all required fields", "error");
-            return;
-          }
-          
-          setLoading(true);
+      // Basic rules-aligned validation
+      const validateForm = () => {
+        let ok = true;
 
-          const updates = {
-            name: document.getElementById("name").value,
-            species: document.getElementById("species").value,
-            breed: document.getElementById("breed").value,
-            age: document.getElementById("age").value,
-            size: document.getElementById("size").value,
-            gender: document.getElementById("gender").value,
-            description: document.getElementById("description").value,
-            fullDescription: document.getElementById("fullDescription").value,
-            address: document.getElementById("address").value,
-            contactLocation: document.getElementById("contactLocation").value,
-            contactPhone: document.getElementById("contactPhone").value,
-            contactEmail: document.getElementById("contactEmail").value,
-            // keep the existing image URL
-            imageUrl: pet.imageUrl,
-            // Add updated timestamp
-            updatedAt: firebase.database.ServerValue.TIMESTAMP
-          };
+        // Required text fields
+        const required = [
+          "name", "species", "breed", "age",
+          "size", "gender", "description", "fullDescription",
+          "address", "contactLocation", "contactPhone"
+        ];
 
-          try {
-            await database.ref("adoptions/" + petId).update(updates);
-            showNotification("Successfully updated pet details!");
-            setTimeout(() => {
-              window.location.href = "adoption.html";
-            }, 1000);
-          } catch (error) {
-            console.error(error);
-            setLoading(false);
-            showNotification("Failed to update pet details. Please try again.", "error");
+        required.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el.value.trim()) {
+            el.classList.add("error");
+            ok = false;
+          } else {
+            el.classList.remove("error");
           }
         });
-      })
-      .catch(err => {
-        console.error(err);
-        showNotification("Could not load pet data.", "error");
-        setTimeout(() => {
-          window.location.href = "adoption.html";
-        }, 1500);
+
+        // Enums & numbers (RTDB rules)
+        const species = clampEnum(document.getElementById("species").value, ["dog", "cat"]);
+        const size    = clampEnum(document.getElementById("size").value, ["small", "medium", "large"]);
+        const gender  = clampEnum(document.getElementById("gender").value, ["male", "female"], "");
+
+        const ageMonths = toNumber(document.getElementById("age").value, null);
+
+        if (!species) ok = false;
+        if (!size) ok = false;
+        if (!gender) ok = false;
+        if (ageMonths === null || ageMonths < 0 || ageMonths > 240) ok = false;
+
+        return ok;
+      };
+
+      // Submit
+      editForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!validateForm()) {
+          showNotification("Please fix highlighted fields (check species/size/gender and age in months).", "error");
+          return;
+        }
+
+        setLoading(true);
+
+        // Build contactInfo string from phone/email (RTDB uses a single string)
+        const phone = (document.getElementById("contactPhone").value || "").trim();
+        const email = (document.getElementById("contactEmail").value || "").trim();
+        let contactInfo = phone;
+        if (email) {
+          contactInfo = contactInfo ? `${phone} • ${email}` : email;
+        }
+
+        // Compose updates strictly with fields allowed by your rules
+        const updates = {
+          // required by rules (and unchanged by us): id/orgId exist in the node already
+          name: (document.getElementById("name").value || "").trim().slice(0, 120),
+          species: clampEnum(document.getElementById("species").value, ["dog", "cat"]),
+          size: clampEnum(document.getElementById("size").value, ["small", "medium", "large"]),
+          breed: (document.getElementById("breed").value || "").trim(),
+          gender: clampEnum(document.getElementById("gender").value, ["male", "female"], undefined),
+          ageMonths: toNumber(document.getElementById("age").value, 0),
+          description: (document.getElementById("fullDescription").value || document.getElementById("description").value || "").trim().slice(0, 2000),
+          location: (document.getElementById("address").value || "").trim().slice(0, 300),
+          contactInfo: contactInfo.slice(0, 500),
+
+          // keep existing photo url name (schema: photoUrl)
+          photoUrl: pet.photoUrl || null,
+
+          updatedAt: Date.now()
+        };
+
+        try {
+          await db.ref("adoptions/" + petId).update(updates);
+          showNotification("Pet details updated!");
+          setTimeout(() => (window.location.href = "adoption.html"), 800);
+        } catch (err) {
+          console.error(err);
+          showNotification("Failed to update pet details. Please try again.", "error");
+          setLoading(false);
+        }
       });
+    } catch (err) {
+      console.error(err);
+      showNotification("Could not load pet data.", "error");
+      setTimeout(() => (window.location.href = "adoption.html"), 1500);
+    }
   });
 
-  // Logout with confirmation
+  // Logout
   logoutBtn.addEventListener("click", () => {
     if (confirm("Are you sure you want to log out?")) {
-      auth.signOut().then(() => window.location.href = "index.html");
+      auth.signOut().then(() => (window.location.href = "index.html"));
     }
   });
-  
-  // Add some basic CSS for form validation
-  const style = document.createElement('style');
+
+  // Inline styles for validation emphasis
+  const style = document.createElement("style");
   style.textContent = `
-    .form-group input.error,
-    .form-group textarea.error {
+    .form-group input.error, .form-group textarea.error {
       border-color: #f44336;
-      background-color: rgba(244, 67, 54, 0.05);
+      background-color: rgba(244,67,54,.05);
     }
-    
-    .form-group input.error:focus,
-    .form-group textarea.error:focus {
-      box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.15);
+    .form-group input.error:focus, .form-group textarea.error:focus {
+      box-shadow: 0 0 0 3px rgba(244,67,54,.15);
     }
-    
-    #currentImage {
-      transition: opacity 0.3s ease;
-    }
+    #currentImage { transition: opacity .25s ease; }
   `;
   document.head.appendChild(style);
 });

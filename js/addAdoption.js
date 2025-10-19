@@ -1,79 +1,122 @@
-const adoptionForm = document.getElementById("adoptionForm");
+// js/addAdoption.js
+(function () {
+  const auth = firebase.auth();
+  const db = firebase.database();
+  const storage = firebase.storage();
 
-firebase.auth().onAuthStateChanged((user) => {
-  if (!user) {
-    alert("Please log in first.");
-    window.location.href = "login.html";
-    return;
+  const form = document.getElementById("adoptionForm");
+  const imageFileEl = document.getElementById("imageFile");
+  const previewImg = document.getElementById("previewImg");
+  const submitBtn = document.getElementById("submitBtn");
+
+  // Preview image immediately
+  imageFileEl.addEventListener("change", () => {
+    const f = imageFileEl.files && imageFileEl.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = e => (previewImg.src = e.target.result);
+    reader.readAsDataURL(f);
+  });
+
+  // Require auth and role=organization
+  auth.onAuthStateChanged(async (u) => {
+    if (!u) return (window.location = "index.html");
+
+    try {
+      const snap = await db.ref("users/" + u.uid).once("value");
+      const role = ((snap.val() || {}).role || "").toString().toLowerCase();
+      if (role !== "organization") {
+        // not an org user
+        return (window.location = "home.html");
+      }
+    } catch (e) {
+      console.warn("Could not validate role; allowing but this user may not be org.", e);
+    }
+  });
+
+  function val(id) { return document.getElementById(id).value.trim(); }
+  function bool(id) { return document.getElementById(id).checked === true; }
+  function num(id) {
+    const n = Number(document.getElementById(id).value);
+    return isNaN(n) ? 0 : n;
   }
 
-  const orgUID = user.uid;
+  async function uploadImage(userId, pushId, file) {
+    const ref = storage.ref(`adoption_photos/${userId}/${pushId}.jpg`);
+    await ref.put(file);
+    return await ref.getDownloadURL();
+  }
 
-  firebase
-    .database()
-    .ref("organizations/" + orgUID)
-    .once("value")
-    .then((snapshot) => {
-      const orgData = snapshot.val();
-      if (!orgData) {
-        alert("Organization info not found.");
-        return;
-      }
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const user = auth.currentUser;
+    if (!user) return;
 
-      const organizationName = orgData.orgName;
+    const file = imageFileEl.files && imageFileEl.files[0];
+    if (!file) {
+      alert("Please select a photo.");
+      return;
+    }
 
-      adoptionForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
+    // Disable button while saving
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Posting...`;
 
-        const imageFile = document.getElementById("imageFile").files[0];
-        if (!imageFile) {
-          alert("Please select an image.");
-          return;
-        }
+    try {
+      // Generate id first
+      const newRef = db.ref("adoptions").push();
+      const id = newRef.key;
 
-        // 1️⃣ Upload the image to Firebase Storage
-        const storageRef = firebase.storage().ref();
-        const imageRef = storageRef.child(
-          `pet_images/${Date.now()}_${imageFile.name}`
-        );
+      // Upload photo
+      const photoUrl = await uploadImage(user.uid, id, file);
 
-        try {
-          const snapshot = await imageRef.put(imageFile);
-          const downloadURL = await snapshot.ref.getDownloadURL();
+      // Build exactly your RTDB schema
+      const payload = {
+        id,                                     // "-OZ3Tgj4jqpApd0263N8"
+        orgId: user.uid,                        // "iPtRXxir5cZbpstp36y2dRaGckQ2"
+        species: val("species").toLowerCase(),  // "cat" | "dog"
+        name: val("name"),                      // "Kahel"
+        breed: val("breed"),                    // "orange spotted cat"
+        ageMonths: num("ageMonths"),            // 24
+        gender: val("gender").toLowerCase(),    // "male" | "female"
+        size: val("size").toLowerCase(),        // "small" | "medium" | "large"
+        weightLbs: num("weightLbs"),           // 25
+        spayedNeutered: bool("spayedNeutered"),
+        vaccinated: bool("vaccinated"),
+        microchipped: bool("microchipped"),
+        goodWithKids: bool("goodWithKids"),
+        goodWithDogs: bool("goodWithDogs"),
+        goodWithCats: bool("goodWithCats"),
+        houseTrained: bool("houseTrained"),
+        description: val("description"),
+        contactInfo: val("contactInfo"),        // "092980023632 / paws@example.com"
+        location: val("location"),              // "Lahug Cebu city"
+        photoUrl,
+        createdAt: Date.now()
+      };
 
-          // 2️⃣ Form data including image URL
-          const formData = {
-            name: document.getElementById("name").value,
-            species: document.getElementById("species").value,
-            breed: document.getElementById("breed").value,
-            age: document.getElementById("age").value,
-            size: document.getElementById("size").value,
-            gender: document.getElementById("gender").value,
-            description: document.getElementById("description").value,
-            fullDescription: document.getElementById("fullDescription").value,
-            embedding: {},
-            address: document.getElementById("address").value,
-            contactLocation: document.getElementById("contactLocation").value,
-            contactPhone: document.getElementById("contactPhone").value,
-            contactEmail: document.getElementById("contactEmail").value,
-            imageUrl: downloadURL,
-            createdAt: Date.now(),
-            organization: orgUID,
-            organizationName: organizationName,
-          };
+      // Write to /adoptions/{id}
+      await newRef.set(payload);
 
-          // 3️⃣ Push to Realtime Database
-          const newRef = firebase.database().ref("adoptions").push();
-          formData.id = newRef.key;
+      // Secondary index to support filters (matches your “adoptionsBySpecies”)
+      await db.ref(`adoptionsBySpecies/${payload.species}/${id}`).set(true);
 
-          await newRef.set(formData);
+      alert("Pet posted successfully!");
+      window.location = "adoption.html";
+    } catch (err) {
+      console.error(err);
+      alert("Failed to post. " + err.message);
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `<i class="fas fa-paw"></i> Post Pet for Adoption`;
+    }
+  });
 
-          alert("Adoption entry added successfully!");
-          adoptionForm.reset();
-        } catch (error) {
-          console.error("Upload or save failed:", error);
-          alert("Failed to add pet.");
-        }
-      });
+  // Logout on sidebar button (if clicked)
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      await auth.signOut();
+      window.location = "index.html";
     });
-});
+  }
+})();

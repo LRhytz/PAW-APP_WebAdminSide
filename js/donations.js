@@ -1,12 +1,12 @@
-// donations.js - Handles donation request data and UI
+// donations.js - Handles donation campaigns list & UI
 
-/**
- * Wait for Firebase auth state and redirect if not authenticated
- * @returns {Promise<firebase.User>}
- */
-function checkAuth() {
+const db = firebase.database();
+const auth = firebase.auth();
+
+/** Wait until signed in (redirects to login if not) */
+function requireAuth() {
   return new Promise((resolve, reject) => {
-    firebase.auth().onAuthStateChanged(user => {
+    auth.onAuthStateChanged(user => {
       if (user) resolve(user);
       else {
         window.location.href = "index.html";
@@ -16,140 +16,178 @@ function checkAuth() {
   });
 }
 
-/**
- * Fetches all donation requests from Firebase
- */
-function fetchDonations() {
-  const donationContainer = document.getElementById("donation-cards-container");
+/** Currency helper (₱) */
+function peso(n = 0) {
+  try { return `₱${Number(n).toLocaleString()}`; }
+  catch { return `₱${n}`; }
+}
 
-  // Show loading indicator
-  donationContainer.innerHTML = `
+/** Main loader */
+async function fetchDonations() {
+  const container = document.getElementById("donation-cards-container");
+  container.innerHTML = `
     <div class="loading-indicator">
       <i class="fas fa-spinner fa-pulse"></i>
-      <p>Loading donation requests...</p>
+      <p>Loading donation campaigns...</p>
     </div>
   `;
 
-  checkAuth()
-    .then(user => {
-      // Optionally filter by org: const orgId = user.uid;
-      return firebase.database().ref("donation_requests").once("value");
-    })
-    .then(snapshot => {
-      if (!snapshot.exists()) {
-        donationContainer.innerHTML = `
-          <div class="empty-state">
-            <i class="fas fa-donate fa-3x"></i>
-            <p>No donation requests found.</p>
-            <p>Click the + button to create your first donation request.</p>
-          </div>
-        `;
-        return;
+  try {
+    const user = await requireAuth();
+
+    // Check role
+    const roleSnap = await db.ref(`users/${user.uid}/role`).once("value");
+    const role = roleSnap.val();
+
+    let idsToLoad = null;
+
+    // If organization, prefer loading ONLY their campaigns via index
+    if (role === "organization") {
+      const idxSnap = await db.ref(`campaignsByOrg/${user.uid}`).once("value");
+      if (idxSnap.exists()) {
+        idsToLoad = Object.keys(idxSnap.val());
       }
-      displayDonations(snapshot.val());
-    })
-    .catch(err => {
-      console.error("Error fetching donations:", err);
-      donationContainer.innerHTML = `
-        <div class="error-state">
-          <i class="fas fa-exclamation-triangle fa-3x"></i>
-          <p>Error loading donations: ${err.message}</p>
-          <button onclick="fetchDonations()" class="retry-btn">
-            <i class="fas fa-redo"></i> Try Again
-          </button>
-        </div>
-      `;
-    });
+    }
+
+    let campaigns = {};
+
+    if (Array.isArray(idsToLoad) && idsToLoad.length) {
+      // Batch fetch only needed campaign nodes
+      await Promise.all(
+        idsToLoad.map(async (id) => {
+          const snap = await db.ref(`donationCampaigns/${id}`).once("value");
+          if (snap.exists()) campaigns[id] = snap.val();
+        })
+      );
+    } else {
+      // Non-org users (or no index found): read all (rules allow .read: auth != null)
+      const allSnap = await db.ref("donationCampaigns").once("value");
+      campaigns = allSnap.val() || {};
+      // If org but no index, still filter by orgId client-side
+      if (role === "organization") {
+        campaigns = Object.fromEntries(
+          Object.entries(campaigns).filter(([, c]) => c?.orgId === user.uid)
+        );
+      }
+    }
+
+    renderCampaignCards(campaigns);
+  } catch (err) {
+    console.error("Error fetching donations:", err);
+    container.innerHTML = `
+      <div class="error-state">
+        <i class="fas fa-exclamation-triangle fa-3x"></i>
+        <p>Error loading campaigns: ${err.message}</p>
+        <button onclick="fetchDonations()" class="retry-btn">
+          <i class="fas fa-redo"></i> Try Again
+        </button>
+      </div>
+    `;
+  }
 }
 
-/**
- * Displays donation cards in the UI
- * @param {Object} donations - Object containing donation request data
- */
-function displayDonations(donations) {
+/** Render campaign cards */
+function renderCampaignCards(campaigns) {
   const container = document.getElementById("donation-cards-container");
   container.innerHTML = "";
-  let count = 0;
 
-  // Sort by % complete ascending
-  const sorted = Object.entries(donations).sort((a, b) => {
-    const [, A] = a, [, B] = b;
-    const pctA = A.goalAmount > 0 ? (A.currentAmount||0)/A.goalAmount : 0;
-    const pctB = B.goalAmount > 0 ? (B.currentAmount||0)/B.goalAmount : 0;
-    return pctA - pctB;
+  if (!campaigns || Object.keys(campaigns).length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-donate fa-3x"></i>
+        <p>No donation campaigns found.</p>
+        <p>Click the + button to create your first campaign.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Sort by most recent update (or createdAt)
+  const items = Object.entries(campaigns).sort(([, a], [, b]) => {
+    const ta = a.updatedAt || a.createdAt || 0;
+    const tb = b.updatedAt || b.createdAt || 0;
+    return tb - ta;
   });
 
-  sorted.forEach(([id, d]) => {
-    count++;
-    const goal    = d.goalAmount || 0;
-    const current = d.currentAmount || 0;
-    const rawPct  = goal>0 ? (current/goal)*100 : 0;
-    const pct     = Math.min(rawPct, 100);
-    const funded  = pct >= 100;
-    const details = d.details || "";
-    const shortD  = details.length>100 ? details.slice(0,100)+"…" : details;
+  items.forEach(([id, c]) => {
+    const title   = c.title || "Untitled Campaign";
+    const cat     = c.category || "General";
+    const goal    = Number(c.goalAmount || 0);
+    const raised  = Number(c.stats?.amountRaised ?? 0);
+    const percent = c.stats?.percent != null
+      ? Math.max(0, Math.min(100, Number(c.stats.percent)))
+      : (goal > 0 ? Math.max(0, Math.min(100, (raised / goal) * 100)) : 0);
 
-    // build card
+    const status  = c.status || c.stats?.status || "Active";
+    const cover   = c.coverUrl || "";
+    const desc    = c.description || c.shortDescription || "";
+    const shortD  = desc.length > 120 ? `${desc.slice(0, 120)}…` : desc;
+    const funded  = percent >= 100;
+
     const card = document.createElement("div");
     card.className = "donation-card";
     card.setAttribute("data-id", id);
     card.innerHTML = `
-      <h3>${d.name || "Unnamed Donation"}</h3>
-      <p><strong>Purpose:</strong> ${d.purpose || "General"}</p>
-      <p>${shortD}</p>
-      <div class="progress-wrapper">
-        <div class="progress-text">
-          <span>₱${current.toLocaleString()}</span>
-          <span>₱${goal.toLocaleString()}</span>
+      <div class="donation-card__media">
+        ${cover ? `<img src="${cover}" alt="${title} cover">` : `
+          <div class="donation-card__placeholder"><i class="fas fa-image"></i></div>`}
+        <span class="donation-card__badge">${cat}</span>
+      </div>
+
+      <div class="donation-card__body">
+        <h3 class="donation-card__title">${title}</h3>
+        <div class="donation-card__status ${status.toLowerCase()}">${status}</div>
+        <p class="donation-card__desc">${shortD || "No description provided."}</p>
+
+        <div class="progress-wrapper">
+          <div class="progress-text">
+            <span>${peso(raised)}</span>
+            <span>${peso(goal)}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${percent.toFixed(0)}%;"></div>
+          </div>
+          <div class="progress-percent">${percent.toFixed(0)}% ${funded ? "Funded" : "Complete"}</div>
         </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width:${pct}%;"></div>
-        </div>
-        <div class="progress-percent">
-          ${pct.toFixed(0)}% ${funded ? "Funded" : "Complete"}
+
+        <div class="donation-card__actions">
+          <button class="donate-btn" data-id="${id}" ${funded ? "disabled" : ""}>
+            <i class="fas ${funded ? "fa-check-circle" : "fa-hand-holding-heart"}"></i>
+            ${funded ? "Fully Funded" : "Donate Now"}
+          </button>
+          <button class="edit-btn" data-id="${id}">
+            <i class="fas fa-edit"></i> Edit
+          </button>
         </div>
       </div>
-      <button
-        class="donate-btn"
-        data-id="${id}"
-        ${funded ? "disabled" : ""}
-      >
-        <i class="fas ${funded ? "fa-check-circle" : "fa-hand-holding-heart"}"></i>
-        ${funded ? "Fully Funded" : "Donate Now"}
-      </button>
     `;
     container.appendChild(card);
   });
 
-  // Donate button wiring
+  // Wire buttons
   container.querySelectorAll(".donate-btn").forEach(btn => {
     if (!btn.disabled) {
-      btn.addEventListener("click", ev => {
-        ev.stopPropagation();
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
         const id = btn.getAttribute("data-id");
-        window.location.href = `donate.html?donationId=${encodeURIComponent(id)}`;
+        window.location.href = `donate.html?campaignId=${encodeURIComponent(id)}`;
       });
     }
   });
-
-  // Card click → edit page
+  container.querySelectorAll(".edit-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const id = btn.getAttribute("data-id");
+      ;window.location.href = `editDonation.html?donationId=${encodeURIComponent(id)}`;
+    });
+  });
   container.querySelectorAll(".donation-card").forEach(card => {
     card.addEventListener("click", () => {
       const id = card.getAttribute("data-id");
       window.location.href = `editDonation.html?donationId=${encodeURIComponent(id)}`;
     });
   });
-
-  if (count === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <i class="fas fa-donate fa-3x"></i>
-        <p>No donation requests found.</p>
-        <p>Click the + button to create your first donation request.</p>
-      </div>
-    `;
-  }
 }
 
-// Initialize on DOM ready
+// Init
 document.addEventListener("DOMContentLoaded", fetchDonations);

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <meta name="description" content="Edit donation campaign details, view transactions, and track impact" />
-  <title>Edit Donation Request</title>
+  <title>Edit Donation Campaign</title>
   <!-- styles -->
   <link rel="stylesheet" href="css/donation.css" />
   <link rel="stylesheet" href="css/edit-donation.css" />
@@ -16,7 +16,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <!-- your Firebase config -->
   <script src="js/config.js"></script>
 </head>
 <body>
@@ -51,55 +50,43 @@
   <main class="main-content">
     <div class="page-header">
       <h2 class="section-title">Update Donation Details</h2>
-      <p class="subtitle">Edit your donation request information below</p>
+      <p class="subtitle">Edit your donation campaign information below</p>
     </div>
     
     <div class="form-container">
       <form class="form-card" id="donationForm">
         <div class="form-group">
-          <label for="name">Organization Name</label>
-          <input type="text" id="name" placeholder="Enter organization name" autocomplete="organization" required />
-          <span class="form-hint">Your registered organization name</span>
+          <label for="title">Campaign Title</label>
+          <input type="text" id="title" placeholder="Enter campaign title" required />
         </div>
-        
+
         <div class="form-group">
-          <label for="gcashName">GCash Account Name</label>
-          <input type="text" id="gcashName" placeholder="Enter GCash account name" required />
-          <span class="form-hint">Name as it appears on your GCash account</span>
+          <label for="category">Category</label>
+          <input type="text" id="category" placeholder="e.g., Medical, Food, Shelter" required />
         </div>
-        
+
         <div class="form-group">
-          <label for="gcashNumber">GCash Number</label>
-          <input 
-            type="tel" 
-            id="gcashNumber" 
-            placeholder="e.g. 09XXXXXXXXX" 
-            pattern="^09\d{9}$" 
-            title="Please enter a valid Philippine mobile number (e.g. 09XXXXXXXXX)" 
-            required 
-          />
-          <span class="form-hint">Must be a valid 11-digit Philippine mobile number</span>
+          <label for="coverUrl">Cover Image URL</label>
+          <input type="url" id="coverUrl" placeholder="https://..." />
         </div>
-        
+
         <div class="form-group">
-          <label for="purpose">Purpose</label>
-          <input type="text" id="purpose" placeholder="Short, clear purpose statement" maxlength="100" required />
-          <span class="form-hint">A short description visible to potential donors</span>
+          <label for="shortDescription">Short Description</label>
+          <input type="text" id="shortDescription" placeholder="One-line summary" maxlength="100" required />
         </div>
-        
+
         <div class="form-group">
-          <label for="details">Donation Details</label>
+          <label for="details">Full Description</label>
           <textarea 
             id="details" 
-            placeholder="Explain what the donation is for" 
+            placeholder="Explain the campaign in detail" 
             rows="4" 
             maxlength="500"
             required
           ></textarea>
-          <span class="form-hint">Provide detailed information about your donation campaign</span>
           <div class="character-count"><span id="detailsCharCount">0</span>/500</div>
         </div>
-        
+
         <div class="form-group">
           <label for="goal">Goal Amount (₱)</label>
           <div class="input-with-icon">
@@ -113,7 +100,15 @@
               required 
             />
           </div>
-          <span class="form-hint">The total amount you aim to raise</span>
+        </div>
+
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select id="status">
+            <option value="Active">Active</option>
+            <option value="Paused">Paused</option>
+            <option value="Closed">Closed</option>
+          </select>
         </div>
         
         <div class="form-actions">

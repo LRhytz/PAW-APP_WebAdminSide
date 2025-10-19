@@ -11,10 +11,10 @@
 }
 
 /* Reset */
-* {
-  box-sizing: border-box;
-  margin: 0; padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Ensure page can scroll */
+html, body { height: auto; overflow-y: auto; }
 
 /* Body */
 body {
@@ -53,9 +53,7 @@ body {
   background: none; border: none; color: #fff;
   font-size: 1.5rem; cursor: pointer;
 }
-.navbar .nav-links {
-  list-style: none; padding: 1rem;
-}
+.navbar .nav-links { list-style: none; padding: 1rem; }
 .navbar .nav-links li + li { margin-top: 0.5rem; }
 .navbar .nav-links a {
   display: block; color: #fff; text-decoration: none;
@@ -63,14 +61,16 @@ body {
   transition: background 0.2s;
 }
 .navbar .nav-links a:hover,
-.navbar .nav-links a.active {
-  background: #388E3C;
-}
+.navbar .nav-links a.active { background: #388E3C; }
 
 /* Main Content */
 .main-content {
-  margin-top: 60px; padding: var(--gap);
+  margin-top: 60px;            /* room for fixed header */
+  padding: var(--gap);
   transition: margin-left 0.3s ease;
+  max-width: 1100px;           /* nicer width on wide screens */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Section Title */
@@ -93,6 +93,7 @@ body {
   padding: var(--gap);
   margin-bottom: var(--gap);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: visible; /* don't clip charts/tooltips */
 }
 .card:hover {
   transform: translateY(-4px);
@@ -101,7 +102,9 @@ body {
 
 /* Chart container */
 .chart-card {
-  max-width: 900px; margin: 0 auto var(--gap);
+  max-width: 900px;
+  margin: 0 auto var(--gap);
+  overflow: visible; /* ensure canvas & tooltip aren't clipped */
 }
 
 /* Summary grid */
@@ -112,24 +115,30 @@ body {
 }
 
 /* Summary cards */
-.summary-card {
-  text-align: center;
-}
+.summary-card { text-align: center; }
 .summary-card .card-header {
   display: flex; align-items: center;
   justify-content: center; gap: 0.5rem;
   font-weight: 500; margin-bottom: 0.5rem;
 }
-.summary-card .card-header i {
-  color: var(--primary); font-size: 1.2rem;
-}
+.summary-card .card-header i { color: var(--primary); font-size: 1.2rem; }
 .stat-number {
   font-size: 2.4rem; font-weight: 600;
   color: var(--primary); margin-top: 0.5rem;
 }
 
-/* Chart.js canvas sizing */
+/* Chart.js canvases */
+/* Admin dashboard chart */
 #registrationChart {
+  display: block;
   width: 100% !important;
   height: 300px !important;
+}
+
+/* Organization dashboard chart */
+#reportChart {
+  display: block;
+  width: 100% !important;
+  height: 360px !important;    /* adjust 300–420px to taste */
+  max-height: 420px !important;
 }

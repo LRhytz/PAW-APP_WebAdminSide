@@ -1,15 +1,10 @@
-// editDonation.js
-// Handles loading & saving donation data, related transactions,
-// impact reports, and usage updates
+// editDonation.js — details page totals now match the list page
 
-/**
- * Check if user is authenticated
- * @returns {Promise} Promise that resolves with the user object
- */
-function checkAuth() {
+/* ---------- Auth helpers ---------- */
+function requireAuth() {
   return new Promise((resolve, reject) => {
-    firebase.auth().onAuthStateChanged(user => {
-      if (user) resolve(user);
+    firebase.auth().onAuthStateChanged((u) => {
+      if (u) resolve(u);
       else {
         window.location.href = "index.html";
         reject(new Error("Not authenticated"));
@@ -17,633 +12,283 @@ function checkAuth() {
     });
   });
 }
+function getQP(k) { return new URLSearchParams(location.search).get(k); }
+function peso(n) {
+  const num = Number(n) || 0;
+  return "₱" + num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function show(el, on = true) { if (el) el.classList.toggle("hidden", !on); }
 
-/**
- * Get query parameter from URL
- * @param {string} name - Parameter name to get
- * @returns {string|null} Parameter value or null if not found
- */
-function getQueryParam(name) {
-  return new URLSearchParams(window.location.search).get(name);
+/* ---------- DOM ---------- */
+const raisedEl = document.getElementById("raisedAmount");
+const donorsEl = document.getElementById("donorCount");
+const pbarEl   = document.getElementById("progressBar");
+const ptxtEl   = document.getElementById("progressText");
+
+const txListEl = document.getElementById("transactions-list");
+const txCountEl= document.getElementById("transactionCount");
+
+const impactListEl = document.getElementById("impact-list");
+const impactCountEl= document.getElementById("impactCount");
+const updatesListEl= document.getElementById("updates-list");
+const updateCountEl= document.getElementById("updateCount");
+
+const overlay = document.getElementById("loadingOverlay");
+const notify  = document.getElementById("notification");
+
+/* ---------- small UI helpers ---------- */
+function toast(msg, type = "success") {
+  if (!notify) return;
+  notify.textContent = msg;
+  notify.className = `notification ${type}`;
+  notify.classList.remove("hidden");
+  setTimeout(() => notify.classList.add("hidden"), 2200);
 }
 
-/**
- * Format currency amount
- * @param {number} amount - Amount to format
- * @returns {string} Formatted amount with PHP symbol
- */
-function formatCurrency(amount) {
-  return '₱' + parseFloat(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+/* ---------- totals refreshers ---------- */
+async function loadFromStats(campaignRef, goalAmount) {
+  const snap = await campaignRef.child("stats").once("value");
+  const v = snap.val();
+  if (!v) return null;
+
+  const amountRaised = Number(v.amountRaised || 0);
+  const supporters   = Number(v.supporters || 0);
+  const pct = goalAmount > 0 ? Math.min(100, (amountRaised / goalAmount) * 100) : 0;
+
+  raisedEl && (raisedEl.textContent = peso(amountRaised));
+  donorsEl && (donorsEl.textContent = supporters);
+  pbarEl   && (pbarEl.style.width = `${pct}%`);
+  ptxtEl   && (ptxtEl.textContent = `${Math.round(pct)}% of goal`);
+
+  return { amountRaised, supporters };
 }
 
-/**
- * Show notification
- * @param {string} message - Notification message
- * @param {string} type - Notification type (success or error)
- */
-function showNotification(message, type = 'success') {
-  const notification = document.getElementById('notification');
-  notification.textContent = message;
-  notification.className = `notification ${type}`;
-  
-  // Remove hidden class
-  notification.classList.remove('hidden');
-  
-  // Hide notification after 3 seconds
-  setTimeout(() => {
-    notification.classList.add('hidden');
-  }, 3000);
-}
+async function loadFromDonations(db, campaignId, goalAmount) {
+  const ref = db.ref(`donations/${campaignId}`);
+  const snap = await ref.orderByChild("createdAt").once("value"); // works even if createdAt missing; returns all
+  if (!snap.exists()) return null;
 
-/**
- * Show loading overlay
- * @param {boolean} show - Whether to show or hide the overlay
- */
-function showLoading(show = true) {
-  const overlay = document.getElementById('loadingOverlay');
-  if (show) {
-    overlay.classList.remove('hidden');
-  } else {
-    overlay.classList.add('hidden');
-  }
-}
+  let total = 0;
+  const donors = new Set();
+  const items = [];
+  snap.forEach(ch => {
+    const d = ch.val() || {};
+    const amt = Number(d.amount) || 0;
+    total += amt;
+    if (!d.anonymous) {
+      if (d.userId) donors.add(d.userId);
+      else if (d.donorName) donors.add("name:" + d.donorName);
+    }
+    items.push({ id: ch.key, ...d, createdAt: Number(d.createdAt) || 0, amount: amt });
+  });
 
-/**
- * Initialize character counter for text areas
- * @param {HTMLElement} textarea - Textarea element
- * @param {HTMLElement} counter - Counter element
- * @param {number} maxLength - Maximum character length
- */
-function initCharCounter(textarea, counter, maxLength) {
-  function updateCounter() {
-    const count = textarea.value.length;
-    counter.textContent = count;
-    
-    if (count > maxLength * 0.9) {
-      counter.style.color = count >= maxLength ? 'red' : 'orange';
-    } else {
-      counter.style.color = '';
+  const pct = goalAmount > 0 ? Math.min(100, (total / goalAmount) * 100) : 0;
+  raisedEl && (raisedEl.textContent = peso(total));
+  donorsEl && (donorsEl.textContent = donors.size);
+  pbarEl   && (pbarEl.style.width = `${pct}%`);
+  ptxtEl   && (ptxtEl.textContent = `${Math.round(pct)}% of goal`);
+
+  // recent 3 in the preview
+  items.sort((a,b)=>b.createdAt-a.createdAt);
+  txCountEl && (txCountEl.textContent = items.length);
+  if (txListEl) {
+    if (items.length === 0) txListEl.innerHTML = `<li class="loading">No donations yet</li>`;
+    else {
+      const recent = items.slice(0,3);
+      txListEl.innerHTML = recent.map(d=>{
+        const when = d.createdAt ? new Date(d.createdAt).toLocaleDateString() : "";
+        const who  = d.anonymous ? "Anonymous" : (d.donorName || "Donor");
+        return `<li><span class="item-main">${who}</span><span class="item-secondary">${peso(d.amount)} • ${when}</span></li>`;
+      }).join("");
     }
   }
-  
-  textarea.addEventListener('input', updateCounter);
-  updateCounter(); // Initial count
+  return { amountRaised: total, supporters: donors.size };
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Get donation ID from URL
-  const donationId = getQueryParam("donationId");
-  if (!donationId) {
-    showNotification("No donation ID provided", "error");
-    return window.location.href = "donation.html";
+async function loadFromTransactions(campaignRef, goalAmount) {
+  const snap = await campaignRef.child("transactions").orderByChild("timestamp").once("value");
+  if (!snap.exists()) return null;
+
+  let total = 0;
+  const items = [];
+  snap.forEach(ch => {
+    const t = ch.val() || {};
+    const amt = Number(t.amount) || 0;
+    total += amt;
+    items.push({ id: ch.key, ...t, timestamp: Number(t.timestamp) || 0, amount: amt });
+  });
+
+  const pct = goalAmount > 0 ? Math.min(100, (total / goalAmount) * 100) : 0;
+  raisedEl && (raisedEl.textContent = peso(total));
+  pbarEl   && (pbarEl.style.width = `${pct}%`);
+  ptxtEl   && (ptxtEl.textContent = `${Math.round(pct)}% of goal`);
+
+  // donors unknown here, leave as is unless you also store donorId on transactions
+  txCountEl && (txCountEl.textContent = items.length);
+  if (txListEl) {
+    if (items.length === 0) txListEl.innerHTML = `<li class="loading">No donations yet</li>`;
+    else {
+      items.sort((a,b)=>b.timestamp-a.timestamp);
+      const recent = items.slice(0,3);
+      txListEl.innerHTML = recent.map(t=>{
+        const when = t.timestamp ? new Date(t.timestamp).toLocaleDateString() : "";
+        return `<li><span class="item-main">Donation</span><span class="item-secondary">${peso(t.amount)} • ${when}</span></li>`;
+      }).join("");
+    }
+  }
+  return { amountRaised: total, supporters: null };
+}
+
+/* ---------- page init ---------- */
+document.addEventListener("DOMContentLoaded", async () => {
+  const campaignId = getQP("donationId");
+  if (!campaignId) {
+    toast("Missing donationId in URL", "error");
+    return (location.href = "donation.html");
   }
 
-  // Form elements
-  const donationForm = document.getElementById("donationForm");
-  const nameInput = document.getElementById("name");
-  const gcashNameInput = document.getElementById("gcashName");
-  const gcashNumInput = document.getElementById("gcashNumber");
-  const detailsInput = document.getElementById("details");
-  const purposeInput = document.getElementById("purpose");
-  const goalInput = document.getElementById("goal");
-  const cancelBtn = document.getElementById("cancelBtn");
-  const saveBtn = document.getElementById("saveBtn");
-  
-  // Preview and stats elements
-  const txList = document.getElementById("transactions-list");
-  const impList = document.getElementById("impact-list");
-  const updList = document.getElementById("updates-list");
-  const raisedAmount = document.getElementById("raisedAmount");
-  const progressBar = document.getElementById("progressBar");
-  const progressText = document.getElementById("progressText");
-  const donorCount = document.getElementById("donorCount");
-  
-  // Transaction counts
-  const transactionCount = document.getElementById("transactionCount");
-  const impactCount = document.getElementById("impactCount");
-  const updateCount = document.getElementById("updateCount");
-  
-  // View all buttons
-  const btnAllTx = document.getElementById("viewAllTransactions");
-  const btnAllImp = document.getElementById("viewAllImpact");
-  const btnAllUpd = document.getElementById("viewAllUpdates");
-  
-  // Add new buttons
-  const addImpactBtn = document.getElementById("addImpactBtn");
-  const addUpdateBtn = document.getElementById("addUpdateBtn");
-  
-  // Modal elements
-  const modalOverlay = document.getElementById("modalOverlay");
-  const modalTitle = document.getElementById("modalTitle");
-  const modalContent = document.getElementById("modalContent");
-  const modalContentLoader = document.getElementById("modalContentLoader");
-  const modalClose = document.getElementById("modalClose");
-  
-  // Add update modal
-  const addUpdateModal = document.getElementById("addUpdateModal");
-  const addUpdateForm = document.getElementById("addUpdateForm");
-  
-  // Add impact modal
-  const addImpactModal = document.getElementById("addImpactModal");
-  const addImpactForm = document.getElementById("addImpactForm");
-  
-  // Set up character counter for details input
-  const detailsCharCount = document.getElementById("detailsCharCount");
-  initCharCounter(detailsInput, detailsCharCount, 500);
-  
-  // Show loading overlay
-  showLoading(true);
-  
-  // Check user authentication
-  checkAuth()
-    .then(user => {
-      const donationRef = firebase.database().ref("donation_requests/" + donationId);
-      
-      // Load form data
-      donationRef.once("value")
-        .then(snapshot => {
-          showLoading(false);
-          
-          const donationData = snapshot.val();
-          if (!donationData) {
-            showNotification("Donation request not found", "error");
-            setTimeout(() => {
-              window.location.href = "donation.html";
-            }, 2000);
-            return;
+  show(overlay, true);
+
+  try {
+    await requireAuth();
+    const db = firebase.database();
+    const campaignRef = db.ref(`donationCampaigns/${campaignId}`);
+
+    // load campaign basics into the form/preview
+    const cSnap = await campaignRef.once("value");
+    const c = cSnap.val();
+    if (!c) {
+      show(overlay, false);
+      toast("Campaign not found", "error");
+      return setTimeout(()=>location.href="donation.html", 1000);
+    }
+
+    // Fill form fields that exist in your HTML
+    const nameInput    = document.getElementById("name");
+    const detailsInput = document.getElementById("details");
+    const purposeInput = document.getElementById("purpose");
+    const goalInput    = document.getElementById("goal");
+    if (nameInput)    nameInput.value    = c.title || "";
+    if (detailsInput) detailsInput.value = c.description || "";
+    if (purposeInput) purposeInput.value = c.category || "";
+    if (goalInput)    goalInput.value    = Number(c.goalAmount || 0);
+
+    const goal = Number(c.goalAmount || (goalInput ? goalInput.value : 0)) || 0;
+
+    /* 1) Try to match the list page: read stats first */
+    let got = await loadFromStats(campaignRef, goal);
+
+    /* 2) Fallback: aggregate from /donations/{campaignId} */
+    if (!got) got = await loadFromDonations(db, campaignId, goal);
+
+    /* 3) Final fallback: aggregate from /donationCampaigns/{id}/transactions */
+    if (!got) got = await loadFromTransactions(campaignRef, goal);
+
+    // Impact & Updates previews (unchanged)
+    const loadPreview = async (child, listEl, countEl, dateKey="date") => {
+      try {
+        const s = await campaignRef.child(child).orderByChild(dateKey).limitToLast(3).once("value");
+        const arr = [];
+        s.forEach(ch => arr.push({ id: ch.key, ...ch.val() }));
+        arr.sort((a,b)=> (b[dateKey]||0) - (a[dateKey]||0));
+        countEl && (countEl.textContent = arr.length);
+        if (!listEl) return;
+        if (arr.length === 0) listEl.innerHTML = `<li class="loading">No items yet</li>`;
+        else listEl.innerHTML = arr.map(it=>{
+          const when = it[dateKey] ? new Date(it[dateKey]).toLocaleDateString() : "";
+          const main = child === "impactReports" ? (it.title || "Impact") : (it.text || it.message || "Update");
+          return `<li><span class="item-main">${main}</span><span class="item-secondary">${when}</span></li>`;
+        }).join("");
+      } catch (e) {
+        console.error("Preview load error", e);
+        listEl && (listEl.innerHTML = `<li class="loading">Error loading</li>`);
+      }
+    };
+    await Promise.all([
+      loadPreview("impactReports", impactListEl, impactCountEl),
+      loadPreview("updates", updatesListEl, updateCountEl)
+    ]);
+
+    // Save handler (kept simple)
+    const form = document.getElementById("donationForm");
+    if (form) {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        show(overlay, true);
+        try {
+          const payload = {
+            ...(nameInput    ? { title: nameInput.value.trim() } : {}),
+            ...(detailsInput ? { description: detailsInput.value.trim() } : {}),
+            ...(purposeInput ? { category: purposeInput.value.trim() } : {}),
+            ...(goalInput    ? { goalAmount: Number(goalInput.value)||0 } : {}),
+            updatedAt: Date.now()
+          };
+          await campaignRef.update(payload);
+          toast("Saved");
+          // recompute totals if goal changed
+          const newGoal = Number(payload.goalAmount ?? goal);
+          await (loadFromStats(campaignRef, newGoal)
+              || loadFromDonations(db, campaignId, newGoal)
+              || loadFromTransactions(campaignRef, newGoal));
+        } catch (e2) {
+          console.error(e2);
+          toast("Error saving: " + e2.message, "error");
+        } finally {
+          show(overlay, false);
+        }
+      });
+    }
+
+    // “View All” transactions modal button (reads from the same source used for totals)
+    const viewAllBtn = document.getElementById("viewAllTransactions");
+    const modalOverlay = document.getElementById("modalOverlay");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalContent = document.getElementById("modalContent");
+    const modalLoader = document.getElementById("modalContentLoader");
+    document.querySelectorAll(".modal-close").forEach(b => b.addEventListener("click", ()=> modalOverlay.classList.add("hidden")));
+
+    if (viewAllBtn) {
+      viewAllBtn.addEventListener("click", async () => {
+        modalTitle.textContent = "All Donations";
+        modalContent.innerHTML = "";
+        modalLoader.style.display = "flex";
+        modalOverlay.classList.remove("hidden");
+
+        // Prefer donations/; fallback to transactions/
+        try {
+          const dSnap = await firebase.database().ref(`donations/${campaignId}`).orderByChild("createdAt").once("value");
+          let rows = [];
+          if (dSnap.exists()) {
+            dSnap.forEach(ch => rows.push({ id: ch.key, ...ch.val(), createdAt: Number(ch.val()?.createdAt)||0, amount: Number(ch.val()?.amount)||0 }));
+            rows.sort((a,b)=>b.createdAt-a.createdAt);
+          } else {
+            const tSnap = await campaignRef.child("transactions").orderByChild("timestamp").once("value");
+            tSnap.forEach(ch => rows.push({ id: ch.key, ...ch.val(), createdAt: Number(ch.val()?.timestamp)||0, amount: Number(ch.val()?.amount)||0 }));
+            rows.sort((a,b)=>b.createdAt-a.createdAt);
           }
-          
-          // Fill form fields
-          nameInput.value = donationData.name || "";
-          gcashNameInput.value = donationData.gcashName || "";
-          gcashNumInput.value = donationData.gcashNumber || "";
-          detailsInput.value = donationData.details || "";
-          purposeInput.value = donationData.purpose || "";
-          goalInput.value = (donationData.goalAmount != null) ? donationData.goalAmount : "";
-          
-          // Update character counts
-          detailsCharCount.textContent = detailsInput.value.length;
-          
-          // Load and calculate stats
-          loadDonationStats(donationRef);
-          
-          // Load related data
-          loadRelatedData(donationRef);
-        })
-        .catch(error => {
-          showLoading(false);
-          console.error("Error loading donation data:", error);
-          showNotification("Error loading donation data: " + error.message, "error");
-        });
-      
-      /**
-       * Load donation statistics
-       * @param {firebase.database.Reference} ref - Donation reference
-       */
-      function loadDonationStats(ref) {
-        // Get transactions to calculate total and donors
-        ref.child("transactions").once("value")
-          .then(snapshot => {
-            let totalRaised = 0;
-            let uniqueDonors = new Set();
-            let txCount = 0;
-            
-            snapshot.forEach(child => {
-              const tx = child.val();
-              totalRaised += parseFloat(tx.amount) || 0;
-              
-              if (tx.donorName) {
-                uniqueDonors.add(tx.donorName);
-              }
-              
-              txCount++;
-            });
-            
-            // Get goal amount
-            const goalAmount = parseFloat(goalInput.value) || 0;
-            
-            // Update stats UI
-            raisedAmount.textContent = formatCurrency(totalRaised);
-            donorCount.textContent = uniqueDonors.size;
-            transactionCount.textContent = txCount;
-            
-            // Calculate and update progress
-            if (goalAmount > 0) {
-              const progressPercent = Math.min(100, (totalRaised / goalAmount) * 100);
-              progressBar.style.width = `${progressPercent}%`;
-              progressText.textContent = `${Math.round(progressPercent)}% of goal`;
-            } else {
-              progressBar.style.width = "0%";
-              progressText.textContent = "0% of goal";
-            }
-          })
-          .catch(error => {
-            console.error("Error loading transactions:", error);
-          });
-      }
-      
-      /**
-       * Load related data (transactions, impact reports, updates)
-       * @param {firebase.database.Reference} ref - Donation reference
-       */
-      function loadRelatedData(ref) {
-        // Load transactions, impact reports, and updates
-        loadList("transactions", txList, transactionCount);
-        loadList("impactReports", impList, impactCount);
-        loadList("updates", updList, updateCount);
-        
-        /**
-         * Load a list of items from a specific path
-         * @param {string} path - Firebase path to load
-         * @param {HTMLElement} listElement - List element to update
-         * @param {HTMLElement} countElement - Count badge element
-         */
-        function loadList(path, listElement, countElement) {
-          ref.child(path).orderByChild(path === "transactions" ? "timestamp" : "date")
-            .limitToLast(3)
-            .once("value")
-            .then(snapshot => {
-              const items = [];
-              let count = 0;
-              
-              snapshot.forEach(child => {
-                items.push(child.val());
-                count++;
-              });
-              
-              // Update count badge
-              countElement.textContent = count;
-              
-              // Reverse to show newest first
-              items.reverse();
-              
-              // Update list UI
-              if (items.length) {
-                listElement.innerHTML = items.map(item => {
-                  let content = '';
-                  
-                  if (path === "transactions") {
-                    const date = new Date(item.timestamp || 0).toLocaleDateString();
-                    content = `
-                      <span class="item-main">${item.donorName || 'Anonymous'}</span>
-                      <span class="item-secondary">${formatCurrency(item.amount)} • ${date}</span>
-                    `;
-                  } else if (path === "impactReports") {
-                    const date = new Date(item.date || 0).toLocaleDateString();
-                    content = `
-                      <span class="item-main">${item.title || 'No title'}</span>
-                      <span class="item-secondary">${date}</span>
-                    `;
-                  } else { // updates
-                    const date = new Date(item.date || 0).toLocaleDateString();
-                    content = `
-                      <span class="item-main">${item.message || 'No message'}</span>
-                      <span class="item-secondary">${date}</span>
-                    `;
-                  }
-                  
-                  return `<li>${content}</li>`;
-                }).join("");
-              } else {
-                listElement.innerHTML = `<li class="loading">No items yet</li>`;
-              }
-            })
-            .catch(error => {
-              console.error(`Error loading ${path}:`, error);
-              listElement.innerHTML = `<li class="loading">Error loading data</li>`;
-            });
-        }
-      }
-      
-      /**
-       * Open modal with full list view
-       * @param {string} path - Firebase path to load
-       * @param {string} title - Modal title
-       */
-      function openListModal(path, title) {
-        // Show and set up modal
-        modalTitle.textContent = title;
-        modalContent.innerHTML = '';
-        modalContentLoader.style.display = 'flex';
-        modalOverlay.classList.remove('hidden');
-        
-        // Load all items
-        donationRef.child(path).orderByChild(path === "transactions" ? "timestamp" : "date")
-          .once("value")
-          .then(snapshot => {
-            const items = [];
-            
-            snapshot.forEach(child => {
-              items.push({
-                id: child.key,
-                ...child.val()
-              });
-            });
-            
-            // Hide loader
-            modalContentLoader.style.display = 'none';
-            
-            // Reverse to show newest first
-            items.reverse();
-            
-            // Update modal content
-            if (items.length) {
-              modalContent.innerHTML = items.map(item => {
-                let content = '';
-                
-                if (path === "transactions") {
-                  const date = new Date(item.timestamp || 0).toLocaleDateString();
-                  content = `
-                    <div class="modal-item-header">
-                      <strong>${item.donorName || 'Anonymous'}</strong>
-                      <span>${formatCurrency(item.amount)}</span>
-                    </div>
-                    <div class="modal-item-body">
-                      <span class="modal-item-date">${date}</span>
-                      ${item.message ? `<p>${item.message}</p>` : ''}
-                    </div>
-                  `;
-                } else if (path === "impactReports") {
-                  const date = new Date(item.date || 0).toLocaleDateString();
-                  content = `
-                    <div class="modal-item-header">
-                      <strong>${item.title || 'No title'}</strong>
-                      <span>${date}</span>
-                    </div>
-                    ${item.description ? `<div class="modal-item-body">
-                      <p>${item.description}</p>
-                    </div>` : ''}
-                    <div class="modal-item-actions" data-id="${item.id}" data-type="impact">
-                      <button class="btn-delete" title="Delete this report">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  `;
-                } else { // updates
-                  const date = new Date(item.date || 0).toLocaleDateString();
-                  content = `
-                    <div class="modal-item-header">
-                      <strong>Update</strong>
-                      <span>${date}</span>
-                    </div>
-                    <div class="modal-item-body">
-                      <p>${item.message || 'No message'}</p>
-                    </div>
-                    <div class="modal-item-actions" data-id="${item.id}" data-type="update">
-                      <button class="btn-delete" title="Delete this update">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  `;
-                }
-                
-                return `<li>${content}</li>`;
-              }).join("");
-              
-              // Add event listeners for delete buttons
-              document.querySelectorAll('.btn-delete').forEach(btn => {
-                btn.addEventListener('click', event => {
-                  const parentActions = event.target.closest('.modal-item-actions');
-                  const itemId = parentActions.dataset.id;
-                  const itemType = parentActions.dataset.type;
-                  
-                  if (confirm(`Are you sure you want to delete this ${itemType}?`)) {
-                    const deleteRef = itemType === 'impact' 
-                      ? donationRef.child('impactReports').child(itemId)
-                      : donationRef.child('updates').child(itemId);
-                      
-                    deleteRef.remove()
-                      .then(() => {
-                        showNotification(`${itemType === 'impact' ? 'Impact report' : 'Update'} deleted successfully`);
-                        // Refresh modal content
-                        openListModal(
-                          itemType === 'impact' ? 'impactReports' : 'updates', 
-                          itemType === 'impact' ? 'All Impact Reports' : 'All Usage Updates'
-                        );
-                        // Refresh preview lists
-                        loadRelatedData(donationRef);
-                      })
-                      .catch(error => {
-                        console.error(`Error deleting ${itemType}:`, error);
-                        showNotification(`Error deleting: ${error.message}`, "error");
-                      });
-                  }
-                });
-              });
-              
-            } else {
-              modalContent.innerHTML = `<li class="loading">No items to show</li>`;
-            }
-          })
-          .catch(error => {
-            console.error(`Error loading ${path}:`, error);
-            modalContentLoader.style.display = 'none';
-            modalContent.innerHTML = `<li class="loading">Error loading data</li>`;
-          });
-      }
-      
-      // Event handlers for "View All" buttons
-      btnAllTx.addEventListener("click", () => {
-        openListModal("transactions", "All Transactions");
-      });
-      
-      btnAllImp.addEventListener("click", () => {
-        openListModal("impactReports", "All Impact Reports");
-      });
-      
-      btnAllUpd.addEventListener("click", () => {
-        openListModal("updates", "All Usage Updates");
-      });
-      
-      // Handle form submission
-      donationForm.addEventListener("submit", event => {
-        event.preventDefault();
-        
-        showLoading(true);
-        
-        // Get form values
-        const nameVal = nameInput.value.trim();
-        const gcashNameVal = gcashNameInput.value.trim();
-        const gcashNumVal = gcashNumInput.value.trim();
-        const detailsVal = detailsInput.value.trim();
-        const purposeVal = purposeInput.value.trim();
-        const goalVal = parseFloat(goalInput.value);
-        
-        // Validate form
-        if (!nameVal || !gcashNameVal || !gcashNumVal || !detailsVal || !purposeVal || isNaN(goalVal) || goalVal <= 0) {
-          showLoading(false);
-          return showNotification("Please fill out all fields with valid values", "error");
-        }
-        
-        // Validate GCash number format
-        const gcashRegex = /^09\d{9}$/;
-        if (!gcashRegex.test(gcashNumVal)) {
-          showLoading(false);
-          return showNotification("Please enter a valid GCash number (e.g. 09XXXXXXXXX)", "error");
-        }
-        
-        // Update donation data
-        donationRef.update({
-          name: nameVal,
-          gcashName: gcashNameVal,
-          gcashNumber: gcashNumVal,
-          details: detailsVal,
-          purpose: purposeVal,
-          goalAmount: goalVal,
-          updatedAt: firebase.database.ServerValue.TIMESTAMP
-        })
-        .then(() => {
-          showLoading(false);
-          showNotification("Donation request updated successfully");
-          
-          // Redirect after a short delay
-          setTimeout(() => {
-            window.location.href = "donation.html";
-          }, 1000);
-        })
-        .catch(error => {
-          showLoading(false);
-          console.error("Error updating donation:", error);
-          showNotification("Error updating donation: " + error.message, "error");
-        });
-      });
-      
-      // Cancel button handler
-      cancelBtn.addEventListener("click", () => {
-        if (confirm("Are you sure you want to cancel? Any unsaved changes will be lost.")) {
-          window.location.href = "donation.html";
+
+          modalLoader.style.display = "none";
+          if (rows.length === 0) modalContent.innerHTML = `<li class="loading">No donations yet</li>`;
+          else {
+            modalContent.innerHTML = rows.map(r=>{
+              const who = r.anonymous ? "Anonymous" : (r.donorName || r.userId || "Donor");
+              const when = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+              const msg  = r.message ? `<div class="modal-item-body"><p>${r.message}</p></div>` : "";
+              return `<li><div class="modal-item-header"><strong>${who}</strong><span>${peso(r.amount)}</span></div><div class="modal-item-body"><span class="modal-item-date">${when}</span></div>${msg}</li>`;
+            }).join("");
+          }
+        } catch (e) {
+          console.error(e);
+          modalLoader.style.display = "none";
+          modalContent.innerHTML = `<li class="loading">Error loading</li>`;
         }
       });
-      
-      // Handle add impact report
-      addImpactBtn.addEventListener("click", () => {
-        addImpactModal.classList.remove("hidden");
-      });
-      
-      // Handle add update
-      addUpdateBtn.addEventListener("click", () => {
-        addUpdateModal.classList.remove("hidden");
-      });
-      
-      // Handle add impact form submission
-      addImpactForm.addEventListener("submit", event => {
-        event.preventDefault();
-        
-        const titleInput = document.getElementById("impactTitle");
-        const descriptionInput = document.getElementById("impactDescription");
-        
-        const title = titleInput.value.trim();
-        const description = descriptionInput.value.trim();
-        
-        if (!title || !description) {
-          return showNotification("Please fill out all fields", "error");
-        }
-        
-        // Generate a new key for the impact report
-        const newImpactKey = donationRef.child("impactReports").push().key;
-        
-        // Create impact report object
-        const impactReport = {
-          title,
-          description,
-          date: firebase.database.ServerValue.TIMESTAMP
-        };
-        
-        // Save impact report
-        donationRef.child("impactReports").child(newImpactKey).set(impactReport)
-          .then(() => {
-            showNotification("Impact report added successfully");
-            titleInput.value = "";
-            descriptionInput.value = "";
-            addImpactModal.classList.add("hidden");
-            
-            // Refresh preview lists
-            loadRelatedData(donationRef);
-          })
-          .catch(error => {
-            console.error("Error adding impact report:", error);
-            showNotification("Error adding impact report: " + error.message, "error");
-          });
-      });
-      
-      // Handle add update form submission
-      addUpdateForm.addEventListener("submit", event => {
-        event.preventDefault();
-        
-        const messageInput = document.getElementById("updateMessage");
-        const message = messageInput.value.trim();
-        
-        if (!message) {
-          return showNotification("Please enter an update message", "error");
-        }
-        
-        // Generate a new key for the update
-        const newUpdateKey = donationRef.child("updates").push().key;
-        
-        // Create update object
-        const update = {
-          message,
-          date: firebase.database.ServerValue.TIMESTAMP
-        };
-        
-        // Save update
-        donationRef.child("updates").child(newUpdateKey).set(update)
-          .then(() => {
-            showNotification("Update added successfully");
-            messageInput.value = "";
-            addUpdateModal.classList.add("hidden");
-            
-            // Refresh preview lists
-            loadRelatedData(donationRef);
-          })
-          .catch(error => {
-            console.error("Error adding update:", error);
-            showNotification("Error adding update: " + error.message, "error");
-          });
-      });
-      
-      // Handle modal close buttons
-      document.querySelectorAll(".modal-close").forEach(closeBtn => {
-        closeBtn.addEventListener("click", () => {
-          modalOverlay.classList.add("hidden");
-          addUpdateModal.classList.add("hidden");
-          addImpactModal.classList.add("hidden");
-        });
-      });
-      
-      // Close modals when clicking outside
-      modalOverlay.addEventListener("click", event => {
-        if (event.target === modalOverlay) {
-          modalOverlay.classList.add("hidden");
-        }
-      });
-      
-      addUpdateModal.addEventListener("click", event => {
-        if (event.target === addUpdateModal) {
-          addUpdateModal.classList.add("hidden");
-        }
-      });
-      
-      addImpactModal.addEventListener("click", event => {
-        if (event.target === addImpactModal) {
-          addImpactModal.classList.add("hidden");
-        }
-      });
-      
-      // Initialize logout button
-      document.getElementById("logout-btn").addEventListener("click", () => {
-        firebase.auth().signOut()
-          .then(() => {
-            window.location.href = "index.html";
-          })
-          .catch(error => {
-            console.error("Error signing out:", error);
-            showNotification("Error signing out: " + error.message, "error");
-          });
-      });
-    })
-    .catch(error => {
-      showLoading(false);
-      console.error("Authentication error:", error);
-    });
+    }
+
+  } catch (e) {
+    console.error(e);
+    toast("Error loading page", "error");
+  } finally {
+    show(overlay, false);
+  }
 });
