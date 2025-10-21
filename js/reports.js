@@ -1,3 +1,13 @@
+// ========================== reports.js (updated) ==========================
+// This version stops rendering "cards" and instead:
+// 1) Subscribes to Firebase,
+// 2) Normalizes data,
+// 3) Emits an array to window.updateReportsMapData(reports),
+// letting the HTML handle Table + Map rendering, filtering, and sorting.
+// It keeps your accept/reject/status updates, modal, messaging, and toasts.
+
+// -------- Utilities --------
+
 // Simple counter animation for statistics (if needed)
 function animateNumber(id, end, duration = 800) {
   const el = document.getElementById(id);
@@ -24,12 +34,10 @@ async function getAddressFromCoords(lat, lng) {
   }
 }
 
-// Get appropriate status badge class
+// Status badge class (for your modal/toasts)
 function getStatusBadgeClass(status) {
   if (!status) return "status-pending";
-
   status = status.toUpperCase();
-
   switch (status) {
     case "ACCEPTED":
       return "status-accepted";
@@ -46,10 +54,9 @@ function getStatusBadgeClass(status) {
   }
 }
 
-// Get appropriate severity class
+// Severity class (for your modal)
 function getSeverityClass(severity) {
   if (!severity) return "severity-unknown";
-
   switch (severity.toLowerCase()) {
     case "low":
       return "severity-low";
@@ -64,26 +71,8 @@ function getSeverityClass(severity) {
   }
 }
 
-// Map severity strings to a numeric priority: lower = more urgent
-function severityPriority(severity) {
-  switch (severity?.toLowerCase()) {
-    case "critical":
-      return 1;
-    case "high":
-      return 2;
-    case "medium":
-      return 3;
-    case "low":
-      return 4;
-    default:
-      return 5; // Unknown severity
-  }
-}
-
-// Format date from timestamp if available
 function formatDate(timestamp) {
   if (!timestamp) return "N/A";
-
   try {
     const date = new Date(timestamp);
     return (
@@ -92,404 +81,350 @@ function formatDate(timestamp) {
       date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
   } catch (e) {
-    return timestamp;
+    return String(timestamp);
   }
 }
 
-// Fetch and display reports with optional status filtering
-// Modified fetchReports function to properly sort by severity
-function fetchReports(filterStatus = "ALL", filterSeverity = "ALL") {
+// -------- Data normalization & feed to UI --------
+
+// simple cache for user emails to avoid repeated DB reads
+const _userEmailCache = {};
+
+function normalizeReport(id, r) {
+  return {
+    id,
+    reportType: r.reportType || "Unknown",
+    status: r.status || "SUBMITTED",
+    severity: r.severity || "Unknown",
+    location: r.address || "",
+    latitude: r.latitude ?? r.lat ?? "",
+    longitude: r.longitude ?? r.lng ?? "",
+    // Normalize reporter email from several possible shapes.
+    // Support multiple id keys (reportUserId, userId, reporterId, etc.) and
+    // prefer resolved cache values when available.
+    // store reporter uid when available for future use and try multiple strategies
+    reporterUid: (() => {
+      const uidKeys = [
+        "reportUserId",
+        "userId",
+        "reporterId",
+        "reportedById",
+        "reportUser",
+        "user",
+      ];
+      for (const k of uidKeys) {
+        const val = r[k];
+        const candidateUid =
+          (val && typeof val === "object" && (val.uid || val.id)) ||
+          (typeof val === "string" ? val : null);
+        if (candidateUid) return candidateUid;
+      }
+      return null;
+    })(),
+    email: (() => {
+      // candidate user id keys that reports may use
+      const uidKeys = [
+        "reportUserId",
+        "userId",
+        "reporterId",
+        "reportedById",
+        "reportUser",
+        "user",
+      ];
+
+      for (const k of uidKeys) {
+        const val = r[k];
+        // if the field is an object, try to extract .uid or .id
+        const candidateUid =
+          (val && typeof val === "object" && (val.uid || val.id)) ||
+          (typeof val === "string" ? val : null);
+        if (candidateUid && _userEmailCache[candidateUid]) {
+          return _userEmailCache[candidateUid].email || "";
+        }
+      }
+
+      // fallback to any direct email fields on the report
+      return (
+        r.reportUserEmail ||
+        r.email ||
+        r.reporterEmail ||
+        r.reportedByEmail ||
+        (r.reportUser && (r.reportUser.email || r.reportUserEmail)) ||
+        (r.reporter && (r.reporter.email || r.reporter.emailAddress)) ||
+        // as a last attempt, if we previously determined a reporterUid, try cache again
+        (
+          _userEmailCache[
+            (function () {
+              const keys = [
+                "reportUserId",
+                "userId",
+                "reporterId",
+                "reportedById",
+                "reportUser",
+                "user",
+              ];
+              for (const k of keys) {
+                const v = r[k];
+                const cid =
+                  (v && typeof v === "object" && (v.uid || v.id)) ||
+                  (typeof v === "string" ? v : null);
+                if (cid) return cid;
+              }
+              return null;
+            })()
+          ] || {}
+        ).email ||
+        ""
+      );
+    })(),
+    timestamp: r.timestamp || r.createdAt || r.date || null,
+    description: r.reportDescription || "",
+    imageUrls: r.imageUrls || [],
+    videoUrl: r.videoUrl || null,
+    // keep originals in case you need them:
+    organizationId: r.organizationId || null,
+    messages: r.messages || null,
+  };
+}
+
+/**
+ * Subscribe to Firebase, normalize, and emit to the page.
+ * No DOM rendering here — Table & Map will render from the emitted array.
+ */
+function subscribeReports() {
   const db = firebase.database();
-  const reportsContainer = document.getElementById("reports-container");
   const orgId = firebase.auth().currentUser?.uid;
 
   db.ref("reports").on("value", (snapshot) => {
-    reportsContainer.innerHTML = "";
-    const reports = snapshot.val();
+    const raw = snapshot.val();
 
-    const visibleReports = Object.entries(reports).filter(([id, report]) => {
-      return (
-        report.status?.toUpperCase() === "SUBMITTED" ||
-        report.organizationId === orgId
-      );
+    if (!raw) {
+      window.updateReportsMapData?.([]);
+      return;
+    }
+
+    // Collect report user ids from several possible keys that we may need to resolve
+    const entries = Object.entries(raw);
+    const missingUserIds = new Set();
+    const possibleUidKeys = [
+      "reportUserId",
+      "userId",
+      "reporterId",
+      "reportedById",
+      "reportUser",
+      "user",
+    ];
+
+    entries.forEach(([id, r]) => {
+      if (!r) return;
+      for (const k of possibleUidKeys) {
+        const val = r[k];
+        const candidateUid =
+          (val && typeof val === "object" && (val.uid || val.id)) ||
+          (typeof val === "string" ? val : null);
+        if (candidateUid && !_userEmailCache[candidateUid]) {
+          missingUserIds.add(candidateUid);
+        }
+      }
     });
 
-    if (reports) {
-      const searchQuery = document
-        .getElementById("report-search")
-        ?.value.toLowerCase()
-        .trim();
+    // If there are missing users, fetch them once and populate cache
+    if (missingUserIds.size > 0) {
+      // Read the full user node then extract email when possible. Some datasets
+      // store email at /users/{uid}/email, others include it in the user object.
+      const currentUid = firebase.auth().currentUser?.uid || null;
 
-      let filteredReportIds = visibleReports
-        .filter(([key, report]) => {
-          const statusMatch =
-            filterStatus === "ALL" || report.status === filterStatus;
-          const severityMatch =
-            filterSeverity === "ALL" ||
-            (report.severity &&
-              report.severity.toLowerCase() === filterSeverity.toLowerCase());
+      // Determine if current user is an admin (admins/{uid} may be simple true
+      // or an object with isAdmin). Reading admins/{currentUid} is allowed by
+      // your rules since it only permits auth.uid to read their own admin node.
+      const checkAdmin = currentUid
+        ? db
+            .ref(`admins/${currentUid}`)
+            .once("value")
+            .then((s) => {
+              const val = s.val();
+              return val === true || (val && val.isAdmin === true);
+            })
+            .catch(() => false)
+        : Promise.resolve(false);
 
-          const keywords = searchQuery ? searchQuery.split(/\s+/) : [];
-          const searchableText = [
-            report.reportType,
-            report.reportDescription,
-            report.reportUserEmail,
-            report.status,
-            report.severity,
-          ]
-            .join(" ")
-            .toLowerCase();
+      checkAdmin.then((isAdmin) => {
+        const promises = Array.from(missingUserIds).map((uid) => {
+          // Allow fetching the user node if the uid is the current user or
+          // the current user is an admin. Otherwise skip to avoid permission errors.
+          if (!currentUid || (uid !== currentUid && !isAdmin)) {
+            _userEmailCache[uid] = { email: "" };
+            console.debug(
+              `reports.subscribe -> skipped fetching user ${uid} (not current user and not admin)`
+            );
+            return Promise.resolve();
+          }
 
-          const searchMatch = keywords.every((kw) =>
-            searchableText.includes(kw)
-          );
-          return statusMatch && severityMatch && searchMatch;
-        })
-        .map(([key]) => key);
+          return db
+            .ref(`users/${uid}`)
+            .once("value")
+            .then((s) => {
+              const userObj = s.val() || {};
+              const emailVal = userObj.email || userObj.emailAddress || "";
+              _userEmailCache[uid] = { email: emailVal };
+            })
+            .catch((err) => {
+              console.warn("Error fetching user", uid, err);
+              _userEmailCache[uid] = { email: "" };
+            });
+        });
 
-      if (filteredReportIds.length === 0) {
-        reportsContainer.innerHTML =
-          '<p class="no-reports"><i class="fas fa-folder-open"></i> No reports found for the selected status.</p>';
-        return;
-      }
-
-      // Sort reports by severity priority (critical first, then high, medium, low)
-      filteredReportIds.sort((a, b) => {
-        const reportA = reports[a];
-        const reportB = reports[b];
-        // Lower number = higher priority
-        return (
-          severityPriority(reportA.severity) -
-          severityPriority(reportB.severity)
-        );
-      });
-
-      // Create and append report cards
-      filteredReportIds.forEach((key) => {
-        const report = reports[key];
-        const statusClass = getStatusBadgeClass(report.status);
-        const severityClass = getSeverityClass(report.severity);
-        const reportDate = formatDate(report.timestamp || report.date);
-
-        // --- Count unread messages ---
-        let unreadCount = 0;
-        if (report.messages) {
-          unreadCount = Object.values(report.messages).filter(
-            (msg) => msg.senderRole !== "ORG" && !msg.read
-          ).length;
-        }
-
-        // Create a card for each report
-        const card = document.createElement("div");
-        card.className = "card report-card";
-        card.setAttribute("data-aos", "fade-up");
-        card.setAttribute("data-report-id", key); // Store the report ID in the card
-        card.setAttribute("data-report-type", report.reportType || "Unknown");
-        card.setAttribute("data-latitude", report.latitude || "");
-        card.setAttribute("data-longitude", report.longitude || "");
-        card.setAttribute("data-email", report.reportUserEmail || "");
-        card.setAttribute("data-severity", report.severity || "unknown"); // Add severity attribute for easier sorting
-        card.setAttribute(
-          "data-image-urls",
-          JSON.stringify(report.imageUrls || [])
-        );
-        card.setAttribute("data-video-url", report.videoUrl || "");
-
-        // Populate the card with report details
-        card.innerHTML = `
-          <div class="card-header">
-            <div class="doc-icon">
-              <div class="doc-icon-inner">
-                <div class="doc-icon-bg"></div>
-                <i class="fas fa-file-alt"></i>
-              </div>
-            </div>
-           <span>${key}</span>
-          </div>
-          <div class="card-body">
-            <p class="report-description">${
-              report.reportDescription || "No description provided."
-            }</p>
-            <div class="report-type"><strong>Report Type:</strong> ${
-              report.reportType || "Unknown"
-            }</div>
-            <div class="report-metadata">
-              <div class="metadata-item">
-                <i class="fas fa-tag"></i>
-                <div class="metadata-content">
-                  <div class="metadata-label">Status</div>
-                  <div class="metadata-value">
-                    <span class="status-badge ${statusClass}">
-                      ${report.status || "Pending"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="metadata-item">
-                <i class="fas fa-map-marker-alt"></i>
-                <div class="metadata-content">
-                  <div class="metadata-label">Location</div>
-                  <div class="metadata-value">
-                    ${report.address || "unknown"}
-                  </div>
-                </div>
-              </div>
-              
-              <div class="metadata-item">
-                <i class="fas fa-user"></i>
-                <div class="metadata-content">
-                  <div class="metadata-label">Reported By</div>
-                  <div class="metadata-value">${
-                    report.reportUserEmail || "Anonymous"
-                  }</div>
-                </div>
-              </div>
-
-              <div class="metadata-item">
-                <i class="fas fa-exclamation-circle"></i>
-                <div class="metadata-content">
-                  <div class="metadata-label">Severity</div>
-                  <div class="metadata-value ${severityClass}">
-                    ${report.severity || "Unknown"}
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            ${
-              report.imageUrls && report.imageUrls.length > 0
-                ? `<div class="report-images-container">
-                    <button class="toggle-images-btn">Show Images</button>
-                    <div class="report-images hidden">
-                      <div class="images-label">
-                        <i class="fas fa-images"></i> Attached Images (${
-                          report.imageUrls.length
-                        })
-                      </div>
-                      <div class="image-gallery">
-                        ${report.imageUrls
-                          .map(
-                            (url) =>
-                              `<a href="${url}" target="_blank"><img src="${url}" alt="Report Image" class="report-image"></a>`
-                          )
-                          .join("")}
-                      </div>
-                    </div>
-                  </div>`
-                : ""
-            }
-            
-            ${
-              report.videoUrl
-                ? `<div class="report-video">
-                    <a href="${report.videoUrl}" target="_blank">
-                      <i class="fas fa-video"></i> View Attached Video
-                    </a>
-                  </div>`
-                : `<div class="report-video">
-                    <p class="no-video"><i class="fas fa-video-slash"></i> No attached video</p>
-                  </div>`
-            }
-          </div>
-          
-          <div class="card-footer">
-            <div class="report-date">
-              <i class="far fa-clock"></i> ${reportDate}
-            </div>
-            <div class="action-buttons">
-              <button class="btn" title="View Details">
-                <i class="fas fa-eye"></i>
-              </button>
-              ${
-                (report.status || "").toUpperCase() !== "SUBMITTED"
-                  ? `<button class="btn" title="Message">
-                      <i class="fas fa-comment-dots"></i>
-                      ${
-                        unreadCount > 0
-                          ? `<span class="unread-badge">${unreadCount}</span>`
-                          : ""
-                      }
-                    </button>`
-                  : ""
-              }
-            </div>
-          </div>
-        `;
-
-        reportsContainer.appendChild(card);
-      });
-
-      // Add event listeners for toggling images
-      document.querySelectorAll(".toggle-images-btn").forEach((button) => {
-        button.addEventListener("click", (e) => {
-          const imagesContainer = e.target.nextElementSibling;
-          if (imagesContainer.classList.contains("hidden")) {
-            imagesContainer.classList.remove("hidden");
-            e.target.textContent = "Hide Images";
+        Promise.all(promises).then(() => {
+          const visible = entries.map(([id, r]) => normalizeReport(id, r));
+          // Debug: show first few normalized reports (id + email) to help verify
+          try {
+            console.debug(
+              "reports.subscribe -> normalized preview",
+              visible.slice(0, 5).map((x) => ({ id: x.id, email: x.email }))
+            );
+          } catch (e) {}
+          if (window.updateReportsMapData) {
+            window.updateReportsMapData(visible);
           } else {
-            imagesContainer.classList.add("hidden");
-            e.target.textContent = "Show Images";
+            window.dispatchEvent(
+              new CustomEvent("reportsLoaded", { detail: { reports: visible } })
+            );
           }
         });
       });
     } else {
-      reportsContainer.innerHTML =
-        '<p class="no-reports"><i class="fas fa-folder-open"></i> No reports available.</p>';
+      const visible = entries.map(([id, r]) => normalizeReport(id, r));
+      try {
+        console.debug(
+          "reports.subscribe -> normalized preview",
+          visible.slice(0, 5).map((x) => ({ id: x.id, email: x.email }))
+        );
+      } catch (e) {}
+      if (window.updateReportsMapData) {
+        window.updateReportsMapData(visible);
+      } else {
+        window.dispatchEvent(
+          new CustomEvent("reportsLoaded", { detail: { reports: visible } })
+        );
+      }
     }
   });
 }
 
-// Function to handle report acceptance
+// -------- Status updates --------
+
 function acceptReport(reportId) {
   if (!reportId) return;
+  // Ensure we have an authenticated user before writing metadata that relies on auth
+  withAuth((user) => {
+    const db = firebase.database();
+    const orgId = user?.uid || "Unknown";
 
-  const db = firebase.database();
-  const orgId = firebase.auth().currentUser?.uid || "Unknown";
-  db.ref(`reports/${reportId}`)
-    .update({
-      status: "ACCEPTED",
-      resolvedAt: Date.now(),
-      resolvedBy: firebase.auth().currentUser?.email || "Unknown",
-      organizationId: orgId,
-    })
-    .then(() => {
-      showToast("Report accepted successfully");
-      closeModal();
-    })
-    .catch((error) => {
-      console.error("Error accepting report:", error);
-      showToast("Error accepting report", "error");
-    });
+    db.ref(`reports/${reportId}`)
+      .update({
+        status: "ACCEPTED",
+        resolvedAt: Date.now(),
+        resolvedBy: user?.email || "Unknown",
+        organizationId: orgId,
+      })
+      .then(() => {
+        showToast("Report accepted successfully");
+        closeModal();
+      })
+      .catch((error) => {
+        console.error("Error accepting report:", error);
+        showToast(
+          "Error accepting report: " + (error.message || error),
+          "error"
+        );
+      });
+  });
 }
 
-// Function to handle report rejection
 function rejectReport(reportId) {
   if (!reportId) return;
-
-  const db = firebase.database();
-  db.ref(`reports/${reportId}`)
-    .update({
-      status: "REJECTED", // 👈 Reset to 'submitted'
-      organizationId: null, // 👈 Clear ownership
-      rejectedAt: Date.now(),
-      rejectedBy: firebase.auth().currentUser?.email || "Unknown",
-    })
-    .then(() => {
-      showToast("Report rejected and returned to submitted status");
-      closeModal();
-    })
-    .catch((error) => {
-      console.error("Error rejecting report:", error);
-      showToast("Error rejecting report", "error");
-    });
+  withAuth((user) => {
+    const db = firebase.database();
+    db.ref(`reports/${reportId}`)
+      .update({
+        status: "REJECTED",
+        organizationId: null,
+        rejectedAt: Date.now(),
+        rejectedBy: user?.email || "Unknown",
+      })
+      .then(() => {
+        showToast("Report rejected");
+        closeModal();
+      })
+      .catch((error) => {
+        console.error("Error rejecting report:", error);
+        showToast(
+          "Error rejecting report: " + (error.message || error),
+          "error"
+        );
+      });
+  });
 }
 
-// Add this helper function:
 function updateReportStatus(reportId, newStatus) {
   if (!reportId) return;
-  const db = firebase.database();
-  const orgId = firebase.auth().currentUser?.uid || "Unknown";
-  db.ref(`reports/${reportId}`)
-    .update({
-      status: newStatus,
-      updatedAt: Date.now(),
-      updatedBy: firebase.auth().currentUser?.email || "Unknown",
-      organizationId: orgId,
-    })
-    .then(() => {
-      showToast(`Report status updated to ${newStatus}`);
-      closeModal();
-    })
-    .catch((error) => {
-      console.error("Error updating report status:", error);
-      showToast("Error updating report status", "error");
-    });
+  withAuth((user) => {
+    const db = firebase.database();
+    const orgId = user?.uid || "Unknown";
+
+    db.ref(`reports/${reportId}`)
+      .update({
+        status: newStatus,
+        updatedAt: Date.now(),
+        updatedBy: user?.email || "Unknown",
+        organizationId: orgId,
+      })
+      .then(() => {
+        showToast(`Report status updated to ${newStatus}`);
+        closeModal();
+      })
+      .catch((error) => {
+        console.error("Error updating report status:", error);
+        showToast(
+          "Error updating report status: " + (error.message || error),
+          "error"
+        );
+      });
+  });
 }
 
-// Add event listeners when the DOM is loaded
-document.addEventListener("DOMContentLoaded", () => {
-  if (
-    e.target.classList.contains("map-location-btn") ||
-    e.target.closest(".map-location-btn")
-  ) {
-    const modal = document.getElementById("report-modal");
+// Helper: ensure firebase auth state is ready and supply the user to the callback
+function withAuth(callback) {
+  try {
+    const user = firebase.auth().currentUser;
+    if (user) return callback(user);
 
-    const lat = parseFloat(modal.getAttribute("data-latitude"));
-    const lng = parseFloat(modal.getAttribute("data-longitude"));
-
-    if (isNaN(lat) || isNaN(lng)) {
-      alert("Location data is missing or invalid.");
-      return;
-    }
-
-    document.getElementById("map-modal").classList.add("show");
-    document.body.style.overflow = "hidden";
-
-    setTimeout(() => {
-      if (window.leafletMap) {
-        window.leafletMap.remove();
-      }
-      window.leafletMap = L.map("leaflet-map").setView([lat, lng], 14);
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(window.leafletMap);
-
-      L.marker([lat, lng])
-        .addTo(window.leafletMap)
-        .bindPopup("Report Location")
-        .openPopup();
-    }, 250);
+    // Wait once for auth state to become available
+    const off = firebase.auth().onAuthStateChanged((u) => {
+      off && typeof off === "function" && off();
+      if (u) return callback(u);
+      showToast("You must be signed in to perform this action", "error");
+    });
+  } catch (err) {
+    console.error("Auth helper error:", err);
+    showToast("Authentication error: " + (err.message || err), "error");
   }
+}
 
-  // Close button event listener
-  document.querySelector(".modal-close").addEventListener("click", closeModal);
+// -------- Modal helpers (optional — used if you still want your custom modal) --------
 
-  // Accept button event listener
-  document.querySelector(".btn-accept").addEventListener("click", () => {
-    const reportId = document
-      .getElementById("report-modal")
-      .getAttribute("data-report-id");
-    acceptReport(reportId);
-  });
-
-  // Reject button event listener
-  document.querySelector(".btn-reject").addEventListener("click", () => {
-    const reportId = document
-      .getElementById("report-modal")
-      .getAttribute("data-report-id");
-    rejectReport(reportId);
-  });
-
-  // Close modal when clicking outside of it
-  document.getElementById("report-modal").addEventListener("click", (e) => {
-    if (e.target === document.getElementById("report-modal")) {
-      closeModal();
-    }
-  });
-});
-
-document.getElementById("report-search").addEventListener("input", () => {
-  const status = document.getElementById("status-filter").value;
-  const severity = document.getElementById("severity-filter").value;
-  fetchReports(status, severity);
-});
-
-// Function to show modal with report details
 function showReportModal(report) {
   const modal = document.getElementById("report-modal");
+  if (!modal) return;
+
   modal.querySelector(".modal-report-type-value").textContent =
     report.reportType || "Unknown";
   modal.setAttribute("data-latitude", report.latitude || "");
   modal.setAttribute("data-longitude", report.longitude || "");
 
-  // Populate modal content
   modal.querySelector(".report-description").textContent =
-    report.reportDescription || "No description provided.";
+    report.description || "No description provided.";
 
-  // Set status
   const statusElement = modal.querySelector(".modal-report-status");
   statusElement.innerHTML = `
     <span class="status-badge ${getStatusBadgeClass(report.status)}">
@@ -497,28 +432,24 @@ function showReportModal(report) {
     </span>`;
 
   const locationValue = modal.querySelector(".modal-report-location");
-
   if (report.latitude && report.longitude) {
     locationValue.textContent = "Fetching address...";
     getAddressFromCoords(report.latitude, report.longitude).then((address) => {
       locationValue.textContent = address;
     });
   } else {
-    locationValue.textContent = "Not specified";
+    locationValue.textContent = report.location || "Not specified";
   }
 
-  // Set reporter email
   modal.querySelector(".modal-report-email").textContent =
-    report.reportUserEmail || "Anonymous";
+    report.email || "Anonymous";
 
-  // Set severity
   const severityElement = modal.querySelector(".modal-report-severity");
   severityElement.innerHTML = `
     <span class="${getSeverityClass(report.severity)}">
       ${report.severity || "Unknown"}
     </span>`;
 
-  // Handle images
   const imagesContainer = modal.querySelector(".report-images");
   if (report.imageUrls && report.imageUrls.length > 0) {
     imagesContainer.innerHTML = `
@@ -546,21 +477,18 @@ function showReportModal(report) {
         <i class="fas fa-video"></i> View Attached Video
       </a>`;
   } else {
-    videoContainer.innerHTML = `
-      <p class="no-video"><i class="fas fa-video-slash"></i> No attached video</p>`;
+    videoContainer.innerHTML = `<p class="no-video"><i class="fas fa-video-slash"></i> No attached video</p>`;
   }
 
-  modal.setAttribute("data-report-id", report.reportId);
+  // for action buttons
+  modal.setAttribute("data-report-id", report.id);
 
   const footer = modal.querySelector(".modal-footer .action-buttons");
   footer.innerHTML = "";
 
-  if (
-    ["ACCEPTED", "IN PROGRESS", "ON HOLD"].includes(
-      (report.status || "").toUpperCase()
-    )
-  ) {
-    const statuses = [
+  const status = (report.status || "").toUpperCase();
+  if (["ACCEPTED", "IN PROGRESS", "ON HOLD"].includes(status)) {
+    [
       {
         label: "In Progress",
         value: "IN PROGRESS",
@@ -585,250 +513,57 @@ function showReportModal(report) {
         icon: "fa-times-circle",
         class: "btn-reject",
       },
-    ];
-    statuses.forEach((s) => {
+    ].forEach((s) => {
       const btn = document.createElement("button");
       btn.className = `btn ${s.class}`;
       btn.innerHTML = `<i class="fas ${s.icon}"></i><span>${s.label}</span>`;
-      btn.onclick = () => updateReportStatus(report.reportId, s.value);
+      btn.onclick = () => updateReportStatus(report.id, s.value);
       footer.appendChild(btn);
     });
-  } else {
-    const status = (report.status || "").toUpperCase();
-    if (status !== "REJECTED" && status !== "COMPLETED") {
-      // Show Accept and Reject buttons only if not rejected
-      const acceptBtn = document.createElement("button");
-      acceptBtn.className = "btn-accept";
-      acceptBtn.textContent = "Accept";
-      acceptBtn.onclick = () => acceptReport(report.reportId);
+  } else if (status !== "REJECTED" && status !== "COMPLETED") {
+    const acceptBtn = document.createElement("button");
+    acceptBtn.className = "btn-accept";
+    acceptBtn.textContent = "Accept";
+    acceptBtn.onclick = () => acceptReport(report.id);
 
-      const rejectBtn = document.createElement("button");
-      rejectBtn.className = "btn-reject";
-      rejectBtn.textContent = "Reject";
-      rejectBtn.onclick = () => rejectReport(report.reportId);
+    const rejectBtn = document.createElement("button");
+    rejectBtn.className = "btn-reject";
+    rejectBtn.textContent = "Reject";
+    rejectBtn.onclick = () => rejectReport(report.id);
 
-      footer.appendChild(rejectBtn);
-      footer.appendChild(acceptBtn);
-    }
+    footer.appendChild(rejectBtn);
+    footer.appendChild(acceptBtn);
   }
 
-  // Show modal
   modal.classList.add("show");
-  document.body.style.overflow = "hidden"; // Prevent scrolling when modal is open
+  document.body.style.overflow = "hidden";
 }
 
-// Function to close the modal
+// Make the table's openReportDetails() compatible if it calls openModal(report)
+window.openModal = showReportModal;
+
 function closeModal() {
   const modal = document.getElementById("report-modal");
-  modal.classList.remove("show");
-  document.body.style.overflow = ""; // Restore scrolling
+  if (modal) {
+    modal.classList.remove("show");
+    document.body.style.overflow = "";
+  }
 }
 
-// Show toast notification
+// -------- Toast --------
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
   toast.textContent = message;
-
   document.body.appendChild(toast);
-
-  // Show toast
-  setTimeout(() => {
-    toast.classList.add("show");
-  }, 10);
-
-  // Hide and remove toast
+  setTimeout(() => toast.classList.add("show"), 10);
   setTimeout(() => {
     toast.classList.remove("show");
-    setTimeout(() => {
-      document.body.removeChild(toast);
-    }, 300);
+    setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
 
-// Initialize the reports page
-document.addEventListener("DOMContentLoaded", () => {
-  fetchReports();
-
-  document.getElementById("open-map-btn").addEventListener("click", () => {
-    const modal = document.getElementById("report-modal");
-    const lat = parseFloat(modal.getAttribute("data-latitude"));
-    const lng = parseFloat(modal.getAttribute("data-longitude"));
-
-    if (isNaN(lat) || isNaN(lng)) {
-      alert("Invalid coordinates for this report.");
-      return;
-    }
-
-    document.getElementById("map-modal").classList.add("show");
-    document.body.style.overflow = "hidden";
-
-    setTimeout(() => {
-      // Remove old map if exists
-      if (window.leafletMap) {
-        window.leafletMap.remove();
-      }
-
-      // Create map
-      window.leafletMap = L.map("leaflet-map").setView([lat, lng], 14);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(window.leafletMap);
-      L.marker([lat, lng]).addTo(window.leafletMap);
-    }, 300);
-  });
-
-  // Create modal if it doesn't exist
-  if (!document.getElementById("report-modal")) {
-    const modalHtml = `
-        <div id="report-modal" class="modal">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3 id="modal-report-title">Report Details</h3>
-              <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-              <p class="report-description"></p>
-              <p class="report-status"></p>
-              <p class="report-location"></p>
-              <p class="report-severity"></p>
-              <p class="report-email"></p>
-              <p class="report-id"></p>
-            </div>
-            <div class="modal-footer">
-              <button id="reject-btn" class="btn-reject">Reject</button>
-              <button id="accept-btn" class="btn-accept">Accept</button>
-            </div>
-          </div>
-        </div>
-      `;
-    document.body.insertAdjacentHTML("beforeend", modalHtml);
-
-    // Add event listeners for modal buttons
-    document.getElementById("accept-btn").addEventListener("click", () => {
-      const reportId = document
-        .getElementById("report-modal")
-        .getAttribute("data-report-id");
-      acceptReport(reportId);
-    });
-
-    document.getElementById("reject-btn").addEventListener("click", () => {
-      const reportId = document
-        .getElementById("report-modal")
-        .getAttribute("data-report-id");
-      rejectReport(reportId);
-    });
-
-    // Close modal when clicking outside
-    document.getElementById("report-modal").addEventListener("click", (e) => {
-      if (e.target === document.getElementById("report-modal")) {
-        closeModal();
-      }
-    });
-  }
-
-  // Example: Animate total reports count (if needed)
-  const db = firebase.database();
-  db.ref("reports")
-    .once("value")
-    .then((snapshot) => {
-      const reports = snapshot.val();
-      const totalReports = reports ? Object.keys(reports).length : 0;
-      animateNumber("totalReports", totalReports);
-    });
-
-  if (window.AOS) AOS.init({ duration: 600, once: true });
-
-  // Add click handlers for buttons and document icon
-  document.addEventListener("click", (e) => {
-    // Handle button clicks
-    if (
-      e.target.classList.contains("btn") ||
-      e.target.parentElement.classList.contains("btn")
-    ) {
-      const button = e.target.classList.contains("btn")
-        ? e.target
-        : e.target.parentElement;
-
-      if (button.title === "View Details") {
-        // Get the report card and report ID
-        const reportCard = button.closest(".report-card");
-        const reportId = reportCard.getAttribute("data-report-id");
-        const reportType = reportCard.getAttribute("data-report-type");
-
-        const report = {
-          reportType: reportType,
-          reportDescription: reportCard.querySelector(".report-description")
-            .textContent,
-          status: reportCard.querySelector(".status-badge").textContent.trim(),
-          latitude: reportCard.getAttribute("data-latitude"),
-          longitude: reportCard.getAttribute("data-longitude"),
-          severity: reportCard
-            .querySelector('[class*="severity-"]')
-            .textContent.trim(),
-          reportUserEmail: reportCard.getAttribute("data-email"),
-          reportId: reportId,
-          imageUrls: JSON.parse(
-            reportCard.getAttribute("data-image-urls") || "[]"
-          ),
-          videoUrl: reportCard.getAttribute("data-video-url") || null,
-        };
-
-        showReportModal(report);
-      } else if (button.title === "Message") {
-        const reportCard = button.closest(".report-card");
-        const reportUserEmail = reportCard.getAttribute("data-email");
-        const reportId = reportCard.getAttribute("data-report-id");
-        showMessageModal(reportId, reportUserEmail);
-      }
-    }
-
-    // Handle document icon clicks
-    const docIcon = e.target.closest(".doc-icon");
-    if (docIcon) {
-      const reportCard = docIcon.closest(".report-card");
-      if (reportCard) {
-        const reportId = reportCard.getAttribute("data-report-id");
-
-        const report = {
-          reportType: reportCard.querySelector(".card-header span").textContent,
-          reportDescription: reportCard.querySelector(".report-description")
-            .textContent,
-          status: reportCard.querySelector(".status-badge").textContent.trim(),
-          latitude: reportCard.getAttribute("data-latitude"),
-          longitude: reportCard.getAttribute("data-longitude"),
-          severity: reportCard
-            .querySelector('[class*="severity-"]')
-            .textContent.trim(),
-          reportUserEmail: reportCard.getAttribute("data-email"),
-          reportId: reportId,
-          imageUrls: JSON.parse(
-            reportCard.getAttribute("data-image-urls") || "[]"
-          ),
-          videoUrl: reportCard.getAttribute("data-video-url") || null,
-        };
-
-        showReportModal(report);
-      }
-    }
-  });
-
-  // Add event listener for the status filter dropdown
-  document.getElementById("status-filter").addEventListener("change", (e) => {
-    const selectedStatus = e.target.value;
-    const selectedSeverity = document.getElementById("severity-filter").value;
-    fetchReports(selectedStatus, selectedSeverity);
-  });
-
-  document.getElementById("severity-filter").addEventListener("change", (e) => {
-    const selectedSeverity = e.target.value;
-    const selectedStatus = document.getElementById("status-filter").value;
-    fetchReports(selectedStatus, selectedSeverity);
-  });
-});
-
-// --- Message Modal HTML ---
+// -------- Message modal (kept, with bugfix for read path) --------
 function createMessageModal() {
   if (document.getElementById("message-modal")) return;
   const modalHtml = `
@@ -847,37 +582,29 @@ function createMessageModal() {
           <button id="send-message-btn" class="btn btn-accept">Send</button>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
   document.body.insertAdjacentHTML("beforeend", modalHtml);
 
-  // Close modal on background click
   document.getElementById("message-modal").addEventListener("click", (e) => {
     if (e.target.id === "message-modal") closeMessageModal();
   });
-
-  // Close modal on close button click
   document
     .getElementById("message-modal-close-btn")
     .addEventListener("click", closeMessageModal);
 }
 
-// Make sure this is globally accessible
 function closeMessageModal() {
   const modal = document.getElementById("message-modal");
-  if (modal) {
-    modal.classList.remove("show");
-    document.body.style.overflow = "";
-    setTimeout(() => {
-      // Dispatch remove event for cleanup
-      modal.dispatchEvent(new Event("remove"));
-      modal.remove();
-    }, 200); // Remove from DOM after animation (if any)
-  }
+  if (!modal) return;
+  modal.classList.remove("show");
+  document.body.style.overflow = "";
+  setTimeout(() => {
+    modal.dispatchEvent(new Event("remove"));
+    modal.remove();
+  }, 200);
 }
 window.closeMessageModal = closeMessageModal;
 
-// --- Show Message Modal and Load Messages ---
 function showMessageModal(reportId, reportUserEmail) {
   createMessageModal();
   const modal = document.getElementById("message-modal");
@@ -885,8 +612,9 @@ function showMessageModal(reportId, reportUserEmail) {
   document.body.style.overflow = "hidden";
   modal.setAttribute("data-report-id", reportId);
 
-  // Load report meta (reporter and severity)
   const db = firebase.database();
+
+  // Meta
   db.ref(`reports/${reportId}`).once("value", (snapshot) => {
     const report = snapshot.val();
     const metaDiv = modal.querySelector("#message-meta");
@@ -899,37 +627,40 @@ function showMessageModal(reportId, reportUserEmail) {
           <strong>Severity:</strong> <span class="${getSeverityClass(
             report.severity
           )}">${report.severity || "Unknown"}</span>
-        </div>
-      `;
+        </div>`;
     } else {
       metaDiv.innerHTML = "";
     }
   });
 
-  // --- Real-time message history ---
+  // Real-time history under /reports/{id}/messages/{orgId}
   const historyDiv = modal.querySelector("#message-history");
   historyDiv.innerHTML = "<em>Loading...</em>";
 
-  // Remove any previous listener to avoid duplicates
   if (window._pawMessageListener) {
     window._pawMessageListener.off();
     window._pawMessageListener = null;
   }
+
   const orgId = firebase.auth().currentUser?.uid;
   const messagesRef = db
     .ref(`reports/${reportId}/messages/${orgId}`)
     .orderByChild("timestamp");
   window._pawMessageListener = messagesRef;
+
   messagesRef.on("value", (snapshot) => {
     const messages = snapshot.val();
     if (!messages) {
       historyDiv.innerHTML = "<em>No messages yet.</em>";
       return;
     }
-    // Mark all unread messages as read (ORG side)
+
+    // Mark unread as read at the correct path /messages/{orgId}/{msgId}
     Object.entries(messages).forEach(([msgId, msg]) => {
       if (msg.senderRole !== "ORG" && !msg.read) {
-        db.ref(`reports/${reportId}/messages/${msgId}`).update({ read: true });
+        db.ref(`reports/${reportId}/messages/${orgId}/${msgId}`).update({
+          read: true,
+        });
       }
     });
 
@@ -937,18 +668,22 @@ function showMessageModal(reportId, reportUserEmail) {
       .sort((a, b) => a.timestamp - b.timestamp)
       .map(
         (msg) => `
-    <div style="margin-bottom:8px;">
-      <strong>${msg.senderRole === "ORG" ? "You" : reportUserEmail}:</strong>
-      <span>${msg.text}</span>
-      <div style="font-size:10px;color:#888;">${formatDate(msg.timestamp)}</div>
-    </div>
-  `
+        <div style="margin-bottom:8px;">
+          <strong>${
+            msg.senderRole === "ORG" ? "You" : reportUserEmail
+          }:</strong>
+          <span>${msg.text}</span>
+          <div style="font-size:10px;color:#888;">${formatDate(
+            msg.timestamp
+          )}</div>
+        </div>
+      `
       )
       .join("");
+
     historyDiv.scrollTop = historyDiv.scrollHeight;
   });
 
-  // Send message handler
   modal.querySelector("#send-message-btn").onclick = function () {
     const input = modal.querySelector("#message-input");
     const text = input.value.trim();
@@ -961,27 +696,16 @@ function showMessageModal(reportId, reportUserEmail) {
         messageId: newMsgRef.key,
         senderId: user ? user.uid : "ORG",
         senderRole: "ORG",
-        text: text,
+        text,
         timestamp: Date.now(),
+        read: false,
       })
       .then(() => {
         input.value = "";
         showToast("Message sent");
-        // No need to reload modal, real-time listener will update messages
       });
   };
 
-  // Allow sending message with Enter key (but not Shift+Enter for new line)
-  modal
-    .querySelector("#message-input")
-    .addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        modal.querySelector("#send-message-btn").click();
-      }
-    });
-
-  // Clean up listener when modal is closed
   modal.addEventListener("remove", () => {
     if (window._pawMessageListener) {
       window._pawMessageListener.off();
@@ -989,3 +713,56 @@ function showMessageModal(reportId, reportUserEmail) {
     }
   });
 }
+window.showMessageModal = showMessageModal;
+
+// -------- Map button inside the detail modal (delegated) --------
+document.addEventListener("click", (e) => {
+  if (
+    e.target.classList.contains("map-location-btn") ||
+    e.target.closest(".map-location-btn")
+  ) {
+    const modal = document.getElementById("report-modal");
+    const lat = parseFloat(modal.getAttribute("data-latitude"));
+    const lng = parseFloat(modal.getAttribute("data-longitude"));
+
+    if (isNaN(lat) || isNaN(lng)) {
+      alert("Location data is missing or invalid.");
+      return;
+    }
+
+    document.getElementById("map-modal").classList.add("show");
+    document.body.style.overflow = "hidden";
+
+    setTimeout(() => {
+      if (window.leafletMap) window.leafletMap.remove();
+      window.leafletMap = L.map("leaflet-map").setView([lat, lng], 14);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(window.leafletMap);
+      L.marker([lat, lng])
+        .addTo(window.leafletMap)
+        .bindPopup("Report Location")
+        .openPopup();
+    }, 250);
+  }
+});
+
+// -------- Page init --------
+document.addEventListener("DOMContentLoaded", () => {
+  // Start subscription (no card rendering here)
+  subscribeReports();
+
+  // Example: total count animation
+  const db = firebase.database();
+  db.ref("reports")
+    .once("value")
+    .then((snapshot) => {
+      const reports = snapshot.val();
+      const totalReports = reports ? Object.keys(reports).length : 0;
+      animateNumber("totalReports", totalReports);
+    });
+
+  if (window.AOS) AOS.init({ duration: 600, once: true });
+});
+
+// ======================== end reports.js (updated) ========================
