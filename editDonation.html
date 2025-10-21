@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <meta name="description" content="Edit donation campaign details, view transactions, and track impact" />
+  <meta name="description" content="Edit donation campaign details and track impact" />
   <title>Edit Donation Campaign</title>
+
   <!-- styles -->
   <link rel="stylesheet" href="css/donation.css" />
   <link rel="stylesheet" href="css/edit-donation.css" />
@@ -12,10 +13,14 @@
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
   />
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+
+  <!-- your firebase config -->
   <script src="js/config.js"></script>
 </head>
 <body>
@@ -48,141 +53,142 @@
 
   <!-- Main content -->
   <main class="main-content">
+    <!-- Toolbar with BACK button -->
+    <div class="page-toolbar">
+      <button id="backBtn" class="btn btn-ghost back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Donations
+      </button>
+    </div>
+
     <div class="page-header">
       <h2 class="section-title">Update Donation Details</h2>
       <p class="subtitle">Edit your donation campaign information below</p>
     </div>
-    
-    <div class="form-container">
-      <form class="form-card" id="donationForm">
-        <div class="form-group">
-          <label for="title">Campaign Title</label>
-          <input type="text" id="title" placeholder="Enter campaign title" required />
-        </div>
 
-        <div class="form-group">
-          <label for="category">Category</label>
-          <input type="text" id="category" placeholder="e.g., Medical, Food, Shelter" required />
-        </div>
-
-        <div class="form-group">
-          <label for="coverUrl">Cover Image URL</label>
-          <input type="url" id="coverUrl" placeholder="https://..." />
-        </div>
-
-        <div class="form-group">
-          <label for="shortDescription">Short Description</label>
-          <input type="text" id="shortDescription" placeholder="One-line summary" maxlength="100" required />
-        </div>
-
-        <div class="form-group">
-          <label for="details">Full Description</label>
-          <textarea 
-            id="details" 
-            placeholder="Explain the campaign in detail" 
-            rows="4" 
-            maxlength="500"
-            required
-          ></textarea>
-          <div class="character-count"><span id="detailsCharCount">0</span>/500</div>
-        </div>
-
-        <div class="form-group">
-          <label for="goal">Goal Amount (₱)</label>
-          <div class="input-with-icon">
-            <i class="currency-icon">₱</i>
-            <input 
-              type="number" 
-              id="goal" 
-              placeholder="Enter target amount" 
-              min="1" 
-              step="0.01" 
-              required 
-            />
+    <!-- Two-column layout -->
+    <div class="content-grid">
+      <!-- Left: Donation Details -->
+      <div class="form-container">
+        <form class="form-card" id="donationForm">
+          <div class="form-group">
+            <label for="title">Campaign Title</label>
+            <input type="text" id="title" placeholder="Enter campaign title" required />
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="status">Status</label>
-          <select id="status">
-            <option value="Active">Active</option>
-            <option value="Paused">Paused</option>
-            <option value="Closed">Closed</option>
-          </select>
-        </div>
-        
-        <div class="form-actions">
-          <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
-          <button type="submit" id="saveBtn" class="btn btn-primary">
-            <i class="fas fa-save"></i> Save Changes
-          </button>
-        </div>
-      </form>
-    </div>
+          <div class="form-group">
+            <label for="category">Category</label>
+            <input type="text" id="category" placeholder="Medical, Housing, Food Relief, Education, Disaster Relief" required />
+          </div>
 
-    <div class="preview-container">
-      <h3 class="preview-heading">Campaign Summary</h3>
-      
-      <section id="campaign-stats" class="stats-section">
-        <div class="stat-card">
-          <i class="fas fa-hand-holding-usd stat-icon"></i>
-          <div class="stat-content">
-            <h4>Raised</h4>
-            <p id="raisedAmount" class="stat-value">₱0.00</p>
-            <div class="progress-bar">
-              <div id="progressBar" class="progress" style="width: 0%"></div>
+          <div class="form-group">
+            <label for="coverUrl">Cover Image URL</label>
+            <input type="url" id="coverUrl" placeholder="https://..." />
+          </div>
+
+          <div class="form-group">
+            <label for="shortDescription">Short Description</label>
+            <input type="text" id="shortDescription" placeholder="One-line summary" maxlength="100" required />
+          </div>
+
+          <div class="form-group">
+            <label for="details">Full Description</label>
+            <textarea 
+              id="details" 
+              placeholder="Explain the campaign in detail" 
+              rows="4" 
+              maxlength="500"
+              required
+            ></textarea>
+            <div class="character-count"><span id="detailsCharCount">0</span>/500</div>
+          </div>
+
+          <div class="form-group">
+            <label for="goal">Goal Amount (₱)</label>
+            <div class="input-with-icon">
+              <i class="currency-icon">₱</i>
+              <input 
+                type="number" 
+                id="goal" 
+                placeholder="Enter target amount" 
+                min="1" 
+                step="0.01" 
+                required 
+              />
             </div>
-            <p id="progressText" class="stat-subtext">0% of goal</p>
           </div>
-        </div>
+
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="Active">Active</option>
+              <option value="Paused">Paused</option>
+              <option value="Closed">Closed</option>
+            </select>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+            <button type="submit" id="saveBtn" class="btn btn-primary">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right: Campaign Summary -->
+      <aside class="preview-container">
+        <h3 class="preview-heading">Campaign Summary</h3>
         
-        <div class="stat-card">
-          <i class="fas fa-users stat-icon"></i>
-          <div class="stat-content">
-            <h4>Donors</h4>
-            <p id="donorCount" class="stat-value">0</p>
+        <section id="campaign-stats" class="stats-section">
+          <div class="stat-card">
+            <i class="fas fa-hand-holding-usd stat-icon"></i>
+            <div class="stat-content">
+              <h4>Raised</h4>
+              <p id="raisedAmount" class="stat-value">₱0.00</p>
+              <div class="progress-bar">
+                <div id="progressBar" class="progress" style="width: 0%"></div>
+              </div>
+              <p id="progressText" class="stat-subtext">0% of goal</p>
+            </div>
           </div>
-        </div>
-      </section>
-      
-      <section id="transactions-preview" class="preview-section">
-        <div class="section-header">
-          <h3>Recent Transactions</h3>
-          <span id="transactionCount" class="count-badge">0</span>
-        </div>
-        <ul id="transactions-list" class="preview-list"><li class="loading">Loading transactions...</li></ul>
-        <button id="viewAllTransactions" class="view-all-btn">
-          <i class="fas fa-list-ul"></i> View All Transactions
-        </button>
-      </section>
+          
+          <div class="stat-card">
+            <i class="fas fa-users stat-icon"></i>
+            <div class="stat-content">
+              <h4>Donors</h4>
+              <p id="donorCount" class="stat-value">0</p>
+            </div>
+          </div>
+        </section>
 
-      <section id="impact-preview" class="preview-section">
-        <div class="section-header">
-          <h3>Impact Reports</h3>
-          <span id="impactCount" class="count-badge">0</span>
-        </div>
+        <section id="impact-preview" class="preview-section">
+          <div class="section-header">
+            <h3>Impact Reports</h3>
+            <span id="impactCount" class="count-badge">0</span>
+          </div>
         <ul id="impact-list" class="preview-list"><li class="loading">Loading impact reports...</li></ul>
-        <button id="viewAllImpact" class="view-all-btn">
-          <i class="fas fa-chart-line"></i> View All Impact Reports
-        </button>
-        <button id="addImpactBtn" class="add-btn">
-          <i class="fas fa-plus"></i> Add New Impact Report
-        </button>
-      </section>
+          <button id="viewAllImpact" class="view-all-btn">
+            <i class="fas fa-chart-line"></i> View All Impact Reports
+          </button>
+          <button id="addImpactBtn" class="add-btn">
+            <i class="fas fa-plus"></i> Add New Impact Report
+          </button>
+        </section>
 
-      <section id="updates-preview" class="preview-section">
-        <div class="section-header">
-          <h3>Fund Usage Updates</h3>
-          <span id="updateCount" class="count-badge">0</span>
-        </div>
-        <ul id="updates-list" class="preview-list"><li class="loading">Loading updates...</li></ul>
-        <button id="viewAllUpdates" class="view-all-btn">
-          <i class="fas fa-bullhorn"></i> View All Updates
-        </button>
-        <button id="addUpdateBtn" class="add-btn">
-          <i class="fas fa-plus"></i> Add New Update
-        </button>
-      </section>
+        <section id="updates-preview" class="preview-section">
+          <div class="section-header">
+            <h3>Fund Usage Updates</h3>
+            <span id="updateCount" class="count-badge">0</span>
+          </div>
+          <ul id="updates-list" class="preview-list"><li class="loading">Loading updates...</li></ul>
+          <button id="viewAllUpdates" class="view-all-btn">
+            <i class="fas fa-bullhorn"></i> View All Updates
+          </button>
+          <button id="addUpdateBtn" class="add-btn">
+            <i class="fas fa-plus"></i> Add New Update
+          </button>
+        </section>
+      </aside>
     </div>
   </main>
 
@@ -211,6 +217,11 @@
           <label for="updateMessage">Update Message</label>
           <textarea id="updateMessage" rows="4" placeholder="Describe how funds are being used" required></textarea>
         </div>
+        <div class="form-group">
+          <label for="updateImage">Photo (optional)</label>
+          <input type="file" id="updateImage" accept="image/*" />
+          <small class="hint">PNG/JPG up to ~5MB is a good target.</small>
+        </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Save Update</button>
         </div>
@@ -231,6 +242,11 @@
         <div class="form-group">
           <label for="impactDescription">Impact Description</label>
           <textarea id="impactDescription" rows="4" placeholder="Describe the impact of this donation" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="impactImage">Cover Image (optional)</label>
+          <input type="file" id="impactImage" accept="image/*" />
+          <small class="hint">PNG/JPG up to ~5MB is a good target.</small>
         </div>
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Save Report</button>

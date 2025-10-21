@@ -4,16 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>🐾 Add Donation Campaign</title>
+
+    <!-- Styles -->
     <link rel="stylesheet" href="css/donation.css" />
     <link rel="stylesheet" href="css/addDonation.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-    />
-    <!-- Firebase SDK -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+
+    <!-- Firebase SDK v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Storage for image uploads -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script src="js/config.js"></script>
   </head>
   <body>
@@ -45,43 +47,73 @@
           <div class="form-card">
             <h2 class="form-title">Create Donation Campaign</h2>
 
-            <div class="form-group">
-              <label for="title">Campaign Title</label>
-              <input type="text" id="title" placeholder="Enter campaign title" required />
-            </div>
+            <!-- Basic Information -->
+            <h3 class="fieldset-title">Basic Information</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="title">Campaign Title</label>
+                <input type="text" id="title" placeholder="Enter campaign title" required />
+              </div>
 
-            <div class="form-group">
-              <label for="category">Category</label>
-              <input type="text" id="category" placeholder="e.g., Medical, Food, Shelter" required />
-            </div>
+              <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" required>
+                  <option value="">Select a category</option>
+                  <option value="Medical">Medical</option>
+                  <option value="Housing">Housing</option>
+                  <option value="Food Relief">Food Relief</option>
+                </select>
+              </div>
 
-            <div class="form-group">
-              <label for="goal">Target Amount</label>
-              <div class="input-with-icon">
-                <span class="prefix-icon">₱</span>
-                <input type="number" id="goal" placeholder="Enter goal amount" min="1" required />
+              <div class="form-group">
+                <label for="goal">Goal Amount</label>
+                <div class="input-with-icon">
+                  <span class="prefix-icon">₱</span>
+                  <input type="number" id="goal" placeholder="Enter goal amount" min="1" step="0.01" required />
+                </div>
               </div>
             </div>
 
+            <!-- Campaign Story -->
+            <h3 class="fieldset-title">Campaign Story</h3>
             <div class="form-group">
               <label for="shortDescription">Short Description</label>
-              <input type="text" id="shortDescription" placeholder="One-line summary" maxlength="100" required />
+              <input type="text" id="shortDescription" placeholder="One-line summary" maxlength="120" required />
             </div>
 
             <div class="form-group">
-              <label for="details">Full Description</label>
-              <textarea id="details" placeholder="Describe the campaign in detail" rows="4" required></textarea>
-              <div class="char-counter"><span id="detailsCounter">0</span>/300 characters</div>
+              <label for="details">Full Story</label>
+              <textarea id="details" placeholder="Tell supporters why this matters" rows="6" maxlength="2000" required></textarea>
+              <div class="char-counter"><span id="detailsCounter">0</span>/2000 characters</div>
             </div>
 
+            <!-- Cover Image -->
+            <h3 class="fieldset-title">Cover Image</h3>
             <div class="form-group">
-              <label for="coverUrl">Cover Image URL (optional)</label>
-              <input type="url" id="coverUrl" placeholder="https://..." />
+              <label for="coverFile">Choose Image (optional)</label>
+              <input type="file" id="coverFile" accept="image/*" />
+              <div id="coverPreview" class="image-preview hidden">
+                <img id="coverPreviewImg" alt="Cover preview"/>
+                <button type="button" id="removeCoverBtn" class="secondary-btn small">Remove</button>
+              </div>
             </div>
 
+            <!-- Fund Breakdown -->
+            <h3 class="fieldset-title">Fund Breakdown</h3>
+            <div id="breakdownList" class="breakdown-list"></div>
+
+            <div class="form-actions-row">
+              <button type="button" id="addBreakdownRow" class="secondary-btn">
+                <i class="fas fa-plus"></i> Add Item
+              </button>
+            </div>
+
+            <!-- Actions -->
             <div class="form-actions">
               <button class="secondary-btn" id="cancelBtn" type="button">Cancel</button>
-              <button class="primary-btn" id="submitDonation" type="button">Create Campaign</button>
+              <button class="primary-btn" id="submitDonation" type="button">
+                <i class="fas fa-paper-plane"></i> Publish
+              </button>
             </div>
           </div>
         </div>

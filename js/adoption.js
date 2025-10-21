@@ -1,4 +1,4 @@
-// js/adoption.js — RTDB schema–aware (orgId/photoUrl/location/ageMonths)
+// js/adoption.js — RTDB schema–aware (orgId/photoUrl/location/ageMonths) + requests badge wiring
 
 (function () {
   // ----------------------------
@@ -11,11 +11,10 @@
         ? `${raw.ageMonths} month${raw.ageMonths === 1 ? "" : "s"}`
         : "");
 
-    // contactInfo in your sample looks like a phone; try to split into phone/email if present
+    // contactInfo looks like a phone/email; try to split
     let contactPhone = "";
     let contactEmail = "";
     if (typeof raw.contactInfo === "string") {
-      // very light parsing: pull the first email and first phone-ish sequence
       const emailMatch = raw.contactInfo.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
       const phoneMatch = raw.contactInfo.match(/(\+?\d[\d\s-]{6,})/);
       contactEmail = emailMatch ? emailMatch[0] : "";
@@ -57,6 +56,8 @@
   // State
   // ----------------------------
   let allPetsData = []; // normalized pets for current org
+  // keep active listeners so we can detach when modal closes
+  const activeRequestListeners = {};
 
   // ----------------------------
   // Entry: auth -> load -> wire filters
@@ -69,7 +70,6 @@
     }
 
     try {
-      // We don’t block if organizations/<uid> is missing; we just filter by orgId
       loadAdoptionCards(user.uid);
       setupSearch();
     } catch (err) {
@@ -87,10 +87,8 @@
     if (cards) cards.innerHTML = "";
     if (empty) {
       empty.style.display = "flex";
-      if (msg) {
-        const p = empty.querySelector("p");
-        if (p) p.textContent = msg;
-      }
+      const p = empty.querySelector("p");
+      if (p && msg) p.textContent = msg;
     }
   }
 
@@ -225,7 +223,98 @@
   }
 
   // ----------------------------
-  // Modal (uses normalized pet)
+  // Requests badge helpers
+  // ----------------------------
+  async function countPendingRequests(petId) {
+    // Index: adoptionRequestsByListing/{petId} -> requestId:true
+    const idxSnap = await firebase.database().ref("adoptionRequestsByListing/" + petId).once("value");
+    if (!idxSnap.exists()) return 0;
+
+    const ids = [];
+    idxSnap.forEach((ch) => { if (ch.val()) ids.push(ch.key); });
+    if (!ids.length) return 0;
+
+    const reqSnaps = await Promise.all(
+      ids.map(id => firebase.database().ref("adoptionRequests/" + id + "/status").once("value"))
+    );
+
+    let pending = 0;
+    reqSnaps.forEach(s => {
+      const st = (s.val() || "pending").toLowerCase();
+      if (st === "pending") pending += 1;
+    });
+    return pending;
+  }
+
+  function attachLivePendingCounter(petId, badgeEl) {
+    // detach existing if any
+    if (activeRequestListeners[petId]) {
+      const { ref, handler } = activeRequestListeners[petId];
+      ref.off("value", handler);
+      delete activeRequestListeners[petId];
+    }
+
+    const ref = firebase.database().ref("adoptionRequestsByListing/" + petId);
+    const handler = async (snap) => {
+      if (!badgeEl) return;
+      if (!snap.exists()) {
+        badgeEl.textContent = "0";
+        badgeEl.style.visibility = "hidden";
+        return;
+      }
+      const ids = [];
+      snap.forEach((ch) => { if (ch.val()) ids.push(ch.key); });
+      if (!ids.length) {
+        badgeEl.textContent = "0";
+        badgeEl.style.visibility = "hidden";
+        return;
+      }
+
+      const reqSnaps = await Promise.all(
+        ids.map(id => firebase.database().ref("adoptionRequests/" + id + "/status").once("value"))
+      );
+
+      const pending = reqSnaps.reduce((acc, s) => {
+        const st = (s.val() || "pending").toLowerCase();
+        return acc + (st === "pending" ? 1 : 0);
+      }, 0);
+
+      badgeEl.textContent = String(pending);
+      badgeEl.style.visibility = pending > 0 ? "visible" : "hidden";
+    };
+
+    ref.on("value", handler);
+    activeRequestListeners[petId] = { ref, handler };
+  }
+
+  async function markAllPendingAsUnderReview(petId) {
+    const idxSnap = await firebase.database().ref("adoptionRequestsByListing/" + petId).once("value");
+    if (!idxSnap.exists()) return;
+
+    const ids = [];
+    idxSnap.forEach((ch) => { if (ch.val()) ids.push(ch.key); });
+    if (!ids.length) return;
+
+    // Load each request to check status and update if pending
+    const updates = {};
+    const now = Date.now();
+    const reqSnaps = await Promise.all(ids.map(id => firebase.database().ref("adoptionRequests/" + id).once("value")));
+    reqSnaps.forEach(s => {
+      const v = s.val() || {};
+      const st = (v.status || "pending").toLowerCase();
+      if (st === "pending") {
+        updates[`adoptionRequests/${s.key}/status`] = "under_review";
+        updates[`adoptionRequests/${s.key}/updatedAt`] = now;
+      }
+    });
+
+    if (Object.keys(updates).length) {
+      await firebase.database().ref().update(updates);
+    }
+  }
+
+  // ----------------------------
+  // Modal (uses normalized pet) + requests badge wiring
   // ----------------------------
   function openPetDetails(pet) {
     const modal = document.getElementById("pet-modal");
@@ -283,10 +372,25 @@
     modal.classList.add("show");
 
     // Close
-    modal.querySelector(".close-modal").onclick = () => modal.classList.remove("show");
+    modal.querySelector(".close-modal").onclick = () => {
+      modal.classList.remove("show");
+      // detach live listener for this pet (avoid leaks)
+      if (activeRequestListeners[pet.id]) {
+        const { ref, handler } = activeRequestListeners[pet.id];
+        ref.off("value", handler);
+        delete activeRequestListeners[pet.id];
+      }
+    };
     if (!modal._outsideHandler) {
       modal._outsideHandler = (e) => {
-        if (e.target === modal) modal.classList.remove("show");
+        if (e.target === modal) {
+          modal.classList.remove("show");
+          if (activeRequestListeners[pet.id]) {
+            const { ref, handler } = activeRequestListeners[pet.id];
+            ref.off("value", handler);
+            delete activeRequestListeners[pet.id];
+          }
+        }
       };
       modal.addEventListener("click", modal._outsideHandler);
     }
@@ -298,20 +402,22 @@
     // Requests button + badge
     const viewBtn = modal.querySelector("#viewRequestsBtn");
     const badge = modal.querySelector("#request-badge");
-    if (badge) badge.style.visibility = "hidden";
-    if (viewBtn) viewBtn.onclick = () => (window.location.href = `adoptionRequests.html?petId=${pet.id}`);
-
-    firebase
-      .database()
-      .ref("adoptionApplications")
-      .orderByChild("petId")
-      .equalTo(pet.id)
-      .on("value", (snap) => {
-        if (!badge) return;
-        const count = snap.numChildren();
-        badge.textContent = count;
-        badge.style.visibility = count > 0 ? "visible" : "hidden";
-      });
+    if (badge) {
+      badge.style.visibility = "hidden";
+      // live counter of PENDING-only requests
+      attachLivePendingCounter(pet.id, badge);
+    }
+    if (viewBtn) {
+      viewBtn.onclick = async () => {
+        try {
+          // mark all PENDING -> UNDER_REVIEW before navigation (so count becomes 0)
+          await markAllPendingAsUnderReview(pet.id);
+        } catch (e) {
+          console.warn("Could not mark requests as under_review:", e);
+        }
+        window.location.href = `adoptionRequests.html?petId=${pet.id}`;
+      };
+    }
 
     // thumbs
     modal.querySelectorAll(".gallery-thumb").forEach((thumb) => {

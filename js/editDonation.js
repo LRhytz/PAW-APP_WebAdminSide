@@ -1,6 +1,6 @@
-// editDonation.js — details page totals now match the list page
+// js/editDonation.js — Edit campaign + wired buttons for Impact & Fund Usage with robust reads
 
-/* ---------- Auth helpers ---------- */
+/* ---------- Auth & helpers ---------- */
 function requireAuth() {
   return new Promise((resolve, reject) => {
     firebase.auth().onAuthStateChanged((u) => {
@@ -19,24 +19,24 @@ function peso(n) {
 }
 function show(el, on = true) { if (el) el.classList.toggle("hidden", !on); }
 
-/* ---------- DOM ---------- */
+/* ---------- DOM refs ---------- */
 const raisedEl = document.getElementById("raisedAmount");
 const donorsEl = document.getElementById("donorCount");
 const pbarEl   = document.getElementById("progressBar");
 const ptxtEl   = document.getElementById("progressText");
 
-const txListEl = document.getElementById("transactions-list");
-const txCountEl= document.getElementById("transactionCount");
+const txListEl   = document.getElementById("transactions-list");
+const txCountEl  = document.getElementById("transactionCount");
 
-const impactListEl = document.getElementById("impact-list");
-const impactCountEl= document.getElementById("impactCount");
-const updatesListEl= document.getElementById("updates-list");
-const updateCountEl= document.getElementById("updateCount");
+const impactListEl  = document.getElementById("impact-list");
+const impactCountEl = document.getElementById("impactCount");
+const updatesListEl = document.getElementById("updates-list");
+const updateCountEl = document.getElementById("updateCount");
 
 const overlay = document.getElementById("loadingOverlay");
 const notify  = document.getElementById("notification");
 
-/* ---------- small UI helpers ---------- */
+/* ---------- toasts ---------- */
 function toast(msg, type = "success") {
   if (!notify) return;
   notify.textContent = msg;
@@ -45,7 +45,16 @@ function toast(msg, type = "success") {
   setTimeout(() => notify.classList.add("hidden"), 2200);
 }
 
-/* ---------- totals refreshers ---------- */
+/* ---------- Storage helper ---------- */
+async function uploadImageToStorage(file, storagePath) {
+  if (!file) return null;
+  const storage = firebase.storage();
+  const ref = storage.ref().child(storagePath);
+  await ref.put(file);
+  return await ref.getDownloadURL();
+}
+
+/* ---------- Stats loaders ---------- */
 async function loadFromStats(campaignRef, goalAmount) {
   const snap = await campaignRef.child("stats").once("value");
   const v = snap.val();
@@ -55,17 +64,17 @@ async function loadFromStats(campaignRef, goalAmount) {
   const supporters   = Number(v.supporters || 0);
   const pct = goalAmount > 0 ? Math.min(100, (amountRaised / goalAmount) * 100) : 0;
 
-  raisedEl && (raisedEl.textContent = peso(amountRaised));
-  donorsEl && (donorsEl.textContent = supporters);
-  pbarEl   && (pbarEl.style.width = `${pct}%`);
-  ptxtEl   && (ptxtEl.textContent = `${Math.round(pct)}% of goal`);
+  if (raisedEl) raisedEl.textContent = peso(amountRaised);
+  if (donorsEl) donorsEl.textContent = supporters;
+  if (pbarEl)   pbarEl.style.width = `${pct}%`;
+  if (ptxtEl)   ptxtEl.textContent = `${Math.round(pct)}% of goal`;
 
   return { amountRaised, supporters };
 }
 
 async function loadFromDonations(db, campaignId, goalAmount) {
   const ref = db.ref(`donations/${campaignId}`);
-  const snap = await ref.orderByChild("createdAt").once("value"); // works even if createdAt missing; returns all
+  const snap = await ref.orderByChild("createdAt").once("value");
   if (!snap.exists()) return null;
 
   let total = 0;
@@ -83,14 +92,13 @@ async function loadFromDonations(db, campaignId, goalAmount) {
   });
 
   const pct = goalAmount > 0 ? Math.min(100, (total / goalAmount) * 100) : 0;
-  raisedEl && (raisedEl.textContent = peso(total));
-  donorsEl && (donorsEl.textContent = donors.size);
-  pbarEl   && (pbarEl.style.width = `${pct}%`);
-  ptxtEl   && (ptxtEl.textContent = `${Math.round(pct)}% of goal`);
+  if (raisedEl) raisedEl.textContent = peso(total);
+  if (donorsEl) donorsEl.textContent = donors.size;
+  if (pbarEl)   pbarEl.style.width = `${pct}%`;
+  if (ptxtEl)   ptxtEl.textContent = `${Math.round(pct)}% of goal`;
 
-  // recent 3 in the preview
   items.sort((a,b)=>b.createdAt-a.createdAt);
-  txCountEl && (txCountEl.textContent = items.length);
+  if (txCountEl) txCountEl.textContent = items.length;
   if (txListEl) {
     if (items.length === 0) txListEl.innerHTML = `<li class="loading">No donations yet</li>`;
     else {
@@ -119,12 +127,11 @@ async function loadFromTransactions(campaignRef, goalAmount) {
   });
 
   const pct = goalAmount > 0 ? Math.min(100, (total / goalAmount) * 100) : 0;
-  raisedEl && (raisedEl.textContent = peso(total));
-  pbarEl   && (pbarEl.style.width = `${pct}%`);
-  ptxtEl   && (ptxtEl.textContent = `${Math.round(pct)}% of goal`);
+  if (raisedEl) raisedEl.textContent = peso(total);
+  if (pbarEl)   pbarEl.style.width = `${pct}%`;
+  if (ptxtEl)   ptxtEl.textContent = `${Math.round(pct)}% of goal`;
 
-  // donors unknown here, leave as is unless you also store donorId on transactions
-  txCountEl && (txCountEl.textContent = items.length);
+  if (txCountEl) txCountEl.textContent = items.length;
   if (txListEl) {
     if (items.length === 0) txListEl.innerHTML = `<li class="loading">No donations yet</li>`;
     else {
@@ -139,8 +146,24 @@ async function loadFromTransactions(campaignRef, goalAmount) {
   return { amountRaised: total, supporters: null };
 }
 
+/* ---------- Utility: robust child read (no orderByChild surprises) ---------- */
+async function readChildArray(parentRef, childName, sortKey) {
+  const snap = await parentRef.child(childName).once("value");
+  const raw = snap.val() || {};
+  const arr = Object.entries(raw).map(([id, v]) => ({ id, ...(v || {}) }));
+  if (sortKey) {
+    arr.sort((a, b) => (Number(b[sortKey])||0) - (Number(a[sortKey])||0));
+  }
+  return arr;
+}
+
 /* ---------- page init ---------- */
 document.addEventListener("DOMContentLoaded", async () => {
+  /* Back button -> Donation list */
+  document.getElementById("backBtn")?.addEventListener("click", () => {
+    window.location.href = "donation.html";
+  });
+
   const campaignId = getQP("donationId");
   if (!campaignId) {
     toast("Missing donationId in URL", "error");
@@ -163,69 +186,80 @@ document.addEventListener("DOMContentLoaded", async () => {
       return setTimeout(()=>location.href="donation.html", 1000);
     }
 
-    // Fill form fields that exist in your HTML
-    const nameInput    = document.getElementById("name");
-    const detailsInput = document.getElementById("details");
-    const purposeInput = document.getElementById("purpose");
-    const goalInput    = document.getElementById("goal");
-    if (nameInput)    nameInput.value    = c.title || "";
-    if (detailsInput) detailsInput.value = c.description || "";
-    if (purposeInput) purposeInput.value = c.category || "";
-    if (goalInput)    goalInput.value    = Number(c.goalAmount || 0);
+    // Form fields
+    const titleInput    = document.getElementById("title");
+    const categoryInput = document.getElementById("category");
+    const coverUrlInput = document.getElementById("coverUrl");
+    const shortDescInp  = document.getElementById("shortDescription");
+    const detailsInput  = document.getElementById("details");
+    const goalInput     = document.getElementById("goal");
+    const statusInput   = document.getElementById("status");
+
+    if (titleInput)    titleInput.value    = c.title || "";
+    if (categoryInput) categoryInput.value = c.category || "";
+    if (coverUrlInput) coverUrlInput.value = c.coverUrl || "";
+    if (shortDescInp)  shortDescInp.value  = c.shortDescription || "";
+    if (detailsInput)  detailsInput.value  = c.description || "";
+    if (goalInput)     goalInput.value     = Number(c.goalAmount || 0);
+    if (statusInput)   statusInput.value   = c.status || "Active";
 
     const goal = Number(c.goalAmount || (goalInput ? goalInput.value : 0)) || 0;
 
-    /* 1) Try to match the list page: read stats first */
+    // Prefer stats, then donations, then transactions
     let got = await loadFromStats(campaignRef, goal);
-
-    /* 2) Fallback: aggregate from /donations/{campaignId} */
     if (!got) got = await loadFromDonations(db, campaignId, goal);
-
-    /* 3) Final fallback: aggregate from /donationCampaigns/{id}/transactions */
     if (!got) got = await loadFromTransactions(campaignRef, goal);
 
-    // Impact & Updates previews (unchanged)
-    const loadPreview = async (child, listEl, countEl, dateKey="date") => {
-      try {
-        const s = await campaignRef.child(child).orderByChild(dateKey).limitToLast(3).once("value");
-        const arr = [];
-        s.forEach(ch => arr.push({ id: ch.key, ...ch.val() }));
-        arr.sort((a,b)=> (b[dateKey]||0) - (a[dateKey]||0));
-        countEl && (countEl.textContent = arr.length);
-        if (!listEl) return;
-        if (arr.length === 0) listEl.innerHTML = `<li class="loading">No items yet</li>`;
-        else listEl.innerHTML = arr.map(it=>{
-          const when = it[dateKey] ? new Date(it[dateKey]).toLocaleDateString() : "";
-          const main = child === "impactReports" ? (it.title || "Impact") : (it.text || it.message || "Update");
-          return `<li><span class="item-main">${main}</span><span class="item-secondary">${when}</span></li>`;
-        }).join("");
-      } catch (e) {
-        console.error("Preview load error", e);
-        listEl && (listEl.innerHTML = `<li class="loading">Error loading</li>`);
-      }
-    };
-    await Promise.all([
-      loadPreview("impactReports", impactListEl, impactCountEl),
-      loadPreview("updates", updatesListEl, updateCountEl)
-    ]);
+    // ---- Robust previews (NO orderByChild) ----
+    const impactArr = await readChildArray(campaignRef, "impactReports", "date");
+    if (impactCountEl) impactCountEl.textContent = impactArr.length;
+    if (impactListEl) {
+      impactListEl.innerHTML = impactArr.length
+        ? impactArr.slice(0,3).map(it => {
+            const when = it.date ? new Date(it.date).toLocaleDateString() : "";
+            return `<li><span class="item-main">${it.title || "Impact"}</span><span class="item-secondary">${when}</span></li>`;
+          }).join("")
+        : `<li class="loading">No items yet</li>`;
+    }
 
-    // Save handler (kept simple)
+    const updatesArr = await readChildArray(campaignRef, "updates", "timestamp");
+    if (updateCountEl) updateCountEl.textContent = updatesArr.length;
+    if (updatesListEl) {
+      updatesListEl.innerHTML = updatesArr.length
+        ? updatesArr.slice(0,3).map(it => {
+            const when = it.timestamp ? new Date(it.timestamp).toLocaleDateString() : "";
+            return `<li><span class="item-main">${it.text || "Update"}</span><span class="item-secondary">${when}</span></li>`;
+          }).join("")
+        : `<li class="loading">No items yet</li>`;
+    }
+
+    // Save handler
     const form = document.getElementById("donationForm");
     if (form) {
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         show(overlay, true);
         try {
+          const allowedCats = ["Medical", "Housing", "Food Relief", "Education", "Disaster Relief"];
+          const nextCategory = (categoryInput?.value || "").trim();
+          if (nextCategory && !allowedCats.includes(nextCategory)) {
+            toast("Category must be one of: " + allowedCats.join(", "), "error");
+            return;
+          }
+
           const payload = {
-            ...(nameInput    ? { title: nameInput.value.trim() } : {}),
-            ...(detailsInput ? { description: detailsInput.value.trim() } : {}),
-            ...(purposeInput ? { category: purposeInput.value.trim() } : {}),
-            ...(goalInput    ? { goalAmount: Number(goalInput.value)||0 } : {}),
+            ...(titleInput    ? { title: (titleInput.value || "").trim() } : {}),
+            ...(detailsInput  ? { description: (detailsInput.value || "").trim() } : {}),
+            ...(shortDescInp  ? { shortDescription: (shortDescInp.value || "").trim() } : {}),
+            ...(coverUrlInput ? { coverUrl: (coverUrlInput.value || "").trim() } : {}),
+            ...(categoryInput ? { category: nextCategory } : {}),
+            ...(statusInput   ? { status: (statusInput.value || "Active") } : {}),
+            ...(goalInput     ? { goalAmount: Number(goalInput.value)||0 } : {}),
             updatedAt: Date.now()
           };
           await campaignRef.update(payload);
           toast("Saved");
-          // recompute totals if goal changed
+
           const newGoal = Number(payload.goalAmount ?? goal);
           await (loadFromStats(campaignRef, newGoal)
               || loadFromDonations(db, campaignId, newGoal)
@@ -239,7 +273,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
 
-    // “View All” transactions modal button (reads from the same source used for totals)
+    // “View All” modal common nodes
     const viewAllBtn = document.getElementById("viewAllTransactions");
     const modalOverlay = document.getElementById("modalOverlay");
     const modalTitle = document.getElementById("modalTitle");
@@ -254,7 +288,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         modalLoader.style.display = "flex";
         modalOverlay.classList.remove("hidden");
 
-        // Prefer donations/; fallback to transactions/
         try {
           const dSnap = await firebase.database().ref(`donations/${campaignId}`).orderByChild("createdAt").once("value");
           let rows = [];
@@ -262,21 +295,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             dSnap.forEach(ch => rows.push({ id: ch.key, ...ch.val(), createdAt: Number(ch.val()?.createdAt)||0, amount: Number(ch.val()?.amount)||0 }));
             rows.sort((a,b)=>b.createdAt-a.createdAt);
           } else {
-            const tSnap = await campaignRef.child("transactions").orderByChild("timestamp").once("value");
-            tSnap.forEach(ch => rows.push({ id: ch.key, ...ch.val(), createdAt: Number(ch.val()?.timestamp)||0, amount: Number(ch.val()?.amount)||0 }));
-            rows.sort((a,b)=>b.createdAt-a.createdAt);
+            const t = await readChildArray(campaignRef, "transactions", "timestamp");
+            rows = t.map(x => ({ ...x, createdAt: Number(x.timestamp)||0 }));
           }
 
           modalLoader.style.display = "none";
-          if (rows.length === 0) modalContent.innerHTML = `<li class="loading">No donations yet</li>`;
-          else {
-            modalContent.innerHTML = rows.map(r=>{
-              const who = r.anonymous ? "Anonymous" : (r.donorName || r.userId || "Donor");
-              const when = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
-              const msg  = r.message ? `<div class="modal-item-body"><p>${r.message}</p></div>` : "";
-              return `<li><div class="modal-item-header"><strong>${who}</strong><span>${peso(r.amount)}</span></div><div class="modal-item-body"><span class="modal-item-date">${when}</span></div>${msg}</li>`;
-            }).join("");
-          }
+          modalContent.innerHTML = rows.length === 0
+            ? `<li class="loading">No donations yet</li>`
+            : rows.map(r=>{
+                const who = r.anonymous ? "Anonymous" : (r.donorName || r.userId || "Donor");
+                const when = r.createdAt ? new Date(r.createdAt).toLocaleString() : "";
+                const msg  = r.message ? `<div class="modal-item-body"><p>${r.message}</p></div>` : "";
+                return `<li><div class="modal-item-header"><strong>${who}</strong><span>${peso(r.amount)}</span></div><div class="modal-item-body"><span class="modal-item-date">${when}</span></div>${msg}</li>`;
+              }).join("");
         } catch (e) {
           console.error(e);
           modalLoader.style.display = "none";
@@ -284,6 +315,284 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     }
+
+    /* ------------------- Impact & Updates wiring + IMAGE UPLOAD ------------------- */
+    const currentUid = firebase.auth().currentUser?.uid || null;
+    const orgId = c.orgId;
+
+    // Hide add buttons if the viewer isn't the campaign owner
+    const addImpactBtn = document.getElementById("addImpactBtn");
+    const addUpdateBtn = document.getElementById("addUpdateBtn");
+    if (currentUid && orgId && currentUid !== orgId) {
+      addImpactBtn?.classList.add("hidden");
+      addUpdateBtn?.classList.add("hidden");
+    }
+
+    // Modal closers for the 2 add modals
+    document.querySelectorAll(".add-modal-close").forEach(b =>
+      b.addEventListener("click", () => {
+        document.getElementById("addImpactModal")?.classList.add("hidden");
+        document.getElementById("addUpdateModal")?.classList.add("hidden");
+      })
+    );
+
+    const formatDate = (ms) => (ms ? new Date(ms).toLocaleString() : "");
+    const renderList = (rows, mapper) => rows && rows.length ? rows.map(mapper).join("") : `<li class="loading">No items yet</li>`;
+
+    // VIEW ALL IMPACT REPORTS (robust + fallback image fetch)
+    const viewAllImpactBtn = document.getElementById("viewAllImpact");
+    if (viewAllImpactBtn) {
+      viewAllImpactBtn.addEventListener("click", async () => {
+        modalTitle.textContent = "All Impact Reports";
+        modalContent.innerHTML = "";
+        modalLoader.style.display = "flex";
+        modalOverlay.classList.remove("hidden");
+
+        try {
+          let rows = await readChildArray(campaignRef, "impactReports", "date");
+
+          // Fallback: fetch top-level data for any items missing coverUrl/summary
+          const needIds = rows.filter(r => !r.coverUrl || !r.summary).map(r => r.id);
+          if (needIds.length) {
+            const snaps = await Promise.all(needIds.map(id => firebase.database().ref(`impactReports/${id}`).once("value")));
+            const map = {};
+            snaps.forEach(s => { if (s.exists()) map[s.key] = s.val(); });
+            rows = rows.map(r => map[r.id] ? { ...r, ...map[r.id] } : r);
+          }
+
+          modalLoader.style.display = "none";
+          modalContent.innerHTML = renderList(rows, r => {
+            const title = r.title || "Impact";
+            const when  = formatDate(r.date || r.createdAt);
+            const desc  = r.description || r.summary || r.content || "";
+            const img   = r.coverUrl ? `<div class="modal-item-body"><img src="${r.coverUrl}" alt="${title}" style="max-width:100%;border-radius:12px;margin-top:6px"/></div>` : "";
+            return `<li>
+              <div class="modal-item-header"><strong>${title}</strong></div>
+              <div class="modal-item-body">
+                <span class="modal-item-date">${when}</span>
+                ${desc ? `<p>${desc}</p>` : ""}
+              </div>
+              ${img}
+            </li>`;
+          });
+        } catch (err) {
+          console.error(err);
+          modalLoader.style.display = "none";
+          modalContent.innerHTML = `<li class="loading">Error loading</li>`;
+        }
+      });
+    }
+
+    // ADD IMPACT REPORT (mirror coverUrl into child)
+    if (addImpactBtn) {
+      addImpactBtn.addEventListener("click", () => {
+        if (currentUid !== orgId) {
+          return toast("Only the campaign owner can add impact reports.", "error");
+        }
+        document.getElementById("impactTitle").value = "";
+        document.getElementById("impactDescription").value = "";
+        const f = document.getElementById("impactImage"); if (f) f.value = "";
+        document.getElementById("addImpactModal").classList.remove("hidden");
+      });
+    }
+
+    const addImpactForm = document.getElementById("addImpactForm");
+    if (addImpactForm) {
+      addImpactForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (currentUid !== orgId) return toast("You are not allowed to add an impact report.", "error");
+
+        const title = (document.getElementById("impactTitle").value || "").trim();
+        const description = (document.getElementById("impactDescription").value || "").trim();
+        const imageFile = document.getElementById("impactImage")?.files?.[0] || null;
+        if (!title || !description) return toast("Please fill in all fields.", "error");
+
+        show(overlay, true);
+        try {
+          const now = Date.now();
+          const newRef = firebase.database().ref("impactReports").push();
+          const impactId = newRef.key;
+
+          let coverUrl = null;
+          if (imageFile) {
+            const ext = (imageFile.name.split(".").pop() || "jpg").toLowerCase();
+            const storagePath = `donations/campaigns/${campaignId}/impact/${impactId}.${ext}`;
+            coverUrl = await uploadImageToStorage(imageFile, storagePath);
+          }
+
+          // IMPORTANT: mirror coverUrl into child so modals show it without extra fetch
+          const childPayload = { title, description, date: now, ...(coverUrl ? { coverUrl } : {}) };
+          const topPayload = {
+            id: impactId, campaignId, orgId, title, type: "general",
+            summary: description.length > 300 ? (description.slice(0, 297) + "…") : description,
+            content: description, ...(coverUrl ? { coverUrl } : {}),
+            createdAt: now, updatedAt: now
+          };
+
+          const updates = {};
+          updates[`donationCampaigns/${campaignId}/impactReports/${impactId}`] = childPayload;
+          updates[`impactReports/${impactId}`] = topPayload;
+          updates[`impactReportsByCampaign/${campaignId}/${impactId}`] = true;
+          updates[`impactReportsByOrg/${orgId}/${impactId}`] = true;
+          await firebase.database().ref().update(updates);
+
+          // Refresh preview robustly
+          const refreshed = await readChildArray(campaignRef, "impactReports", "date");
+          if (impactCountEl) impactCountEl.textContent = refreshed.length;
+          if (impactListEl) {
+            impactListEl.innerHTML = refreshed.length
+              ? refreshed.slice(0,3).map(it=>{
+                  const when = it.date ? new Date(it.date).toLocaleDateString() : "";
+                  return `<li><span class="item-main">${it.title || "Impact"}</span><span class="item-secondary">${when}</span></li>`;
+                }).join("")
+              : `<li class="loading">No items yet</li>`;
+          }
+
+          document.getElementById("addImpactModal").classList.add("hidden");
+          toast("Impact report added");
+        } catch (err) {
+          console.error(err);
+          toast("Error adding impact report: " + err.message, "error");
+        } finally {
+          show(overlay, false);
+        }
+      });
+    }
+
+    // VIEW ALL FUND USAGE UPDATES (robust + fallback image fetch)
+    const viewAllUpdatesBtn = document.getElementById("viewAllUpdates");
+    if (viewAllUpdatesBtn) {
+      viewAllUpdatesBtn.addEventListener("click", async () => {
+        modalTitle.textContent = "All Fund Usage Updates";
+        modalContent.innerHTML = "";
+        modalLoader.style.display = "flex";
+        modalOverlay.classList.remove("hidden");
+
+        try {
+          let rows = await readChildArray(campaignRef, "updates", "timestamp");
+
+          // Fallback: fetch top-level data for any items missing photoUrl/title/content
+          const needIds = rows.filter(r => !r.photoUrl || !r.title).map(r => r.id);
+          if (needIds.length) {
+            const snaps = await Promise.all(needIds.map(id => firebase.database().ref(`fundUsageUpdates/${id}`).once("value")));
+            const map = {};
+            snaps.forEach(s => { if (s.exists()) map[s.key] = s.val(); });
+            rows = rows.map(r => map[r.id] ? { ...r, ...map[r.id] } : r);
+          }
+
+          modalLoader.style.display = "none";
+          modalContent.innerHTML = renderList(rows, r => {
+            const title = r.title || "Update";
+            const when  = formatDate(r.timestamp || r.createdAt);
+            const body  = r.text || r.content || "";
+            const img   = r.photoUrl ? `<div class="modal-item-body"><img src="${r.photoUrl}" alt="${title}" style="max-width:100%;border-radius:12px;margin-top:6px"/></div>` : "";
+            return `<li>
+              <div class="modal-item-header"><strong>${title}</strong></div>
+              <div class="modal-item-body">
+                <span class="modal-item-date">${when}</span>
+                ${body ? `<p>${body}</p>` : ""}
+              </div>
+              ${img}
+            </li>`;
+          });
+        } catch (err) {
+          console.error(err);
+          modalLoader.style.display = "none";
+          modalContent.innerHTML = `<li class="loading">Error loading</li>`;
+        }
+      });
+    }
+
+    // ADD FUND USAGE UPDATE (mirror photoUrl into child)
+    if (addUpdateBtn) {
+      addUpdateBtn.addEventListener("click", () => {
+        if (currentUid !== orgId) return toast("Only the campaign owner can add updates.", "error");
+        document.getElementById("updateMessage").value = "";
+        const p = document.getElementById("updateImage"); if (p) p.value = "";
+        document.getElementById("addUpdateModal").classList.remove("hidden");
+      });
+    }
+
+    const addUpdateForm = document.getElementById("addUpdateForm");
+    if (addUpdateForm) {
+      addUpdateForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (currentUid !== orgId) return toast("You are not allowed to add an update.", "error");
+
+        const message  = (document.getElementById("updateMessage").value || "").trim();
+        const imageFile = document.getElementById("updateImage")?.files?.[0] || null;
+        if (!message) return toast("Please enter an update message.", "error");
+
+        show(overlay, true);
+        try {
+          const now = Date.now();
+          const newRef = firebase.database().ref("fundUsageUpdates").push();
+          const updateId = newRef.key;
+
+          const autoTitle = (() => {
+            const first = message.split("\n")[0].trim();
+            const short = first.length > 80 ? first.slice(0, 77) + "…" : first;
+            return short || `Update — ${new Date(now).toLocaleDateString()}`;
+          })();
+
+          let photoUrl = null;
+          if (imageFile) {
+            const ext = (imageFile.name.split(".").pop() || "jpg").toLowerCase();
+            const storagePath = `donations/campaigns/${campaignId}/updates/${updateId}.${ext}`;
+            photoUrl = await uploadImageToStorage(imageFile, storagePath);
+          }
+
+          // IMPORTANT: mirror photoUrl into child so modals show it without extra fetch
+          const childPayload = { id: updateId, authorId: currentUid, text: message, timestamp: now, ...(photoUrl ? { photoUrl } : {}) };
+          const topPayload   = { id: updateId, campaignId, orgId, title: autoTitle, content: message, ...(photoUrl ? { photoUrl } : {}), createdAt: now, updatedAt: now };
+
+          const updates = {};
+          updates[`donationCampaigns/${campaignId}/updates/${updateId}`] = childPayload;
+          updates[`fundUsageUpdates/${updateId}`] = topPayload;
+          updates[`fundUsageUpdatesByCampaign/${campaignId}/${updateId}`] = true;
+          updates[`fundUsageUpdatesByOrg/${orgId}/${updateId}`] = true;
+          await firebase.database().ref().update(updates);
+
+          // Refresh preview robustly
+          const refreshed = await readChildArray(campaignRef, "updates", "timestamp");
+          if (updateCountEl) updateCountEl.textContent = refreshed.length;
+          if (updatesListEl) {
+            updatesListEl.innerHTML = refreshed.length
+              ? refreshed.slice(0,3).map(it=>{
+                  const when = it.timestamp ? new Date(it.timestamp).toLocaleDateString() : "";
+                  return `<li><span class="item-main">${it.text || "Update"}</span><span class="item-secondary">${when}</span></li>`;
+                }).join("")
+              : `<li class="loading">No items yet</li>`;
+          }
+
+          document.getElementById("addUpdateModal").classList.add("hidden");
+          toast("Update added");
+        } catch (err) {
+          console.error(err);
+          toast("Error adding update: " + err.message, "error");
+        } finally {
+          show(overlay, false);
+        }
+      });
+    }
+
+    // Character counter (plain DOM, no jQuery)
+    const detailsCharCount = document.getElementById("detailsCharCount");
+    if (detailsInput && detailsCharCount) {
+      detailsCharCount.textContent = (detailsInput.value || "").length;
+      detailsInput.addEventListener("input", () => {
+        detailsCharCount.textContent = (detailsInput.value || "").length;
+      });
+    }
+
+    // Cancel button returns to list
+    const cancelBtn = document.getElementById("cancelBtn");
+    if (cancelBtn) cancelBtn.addEventListener("click", () => { location.href = "donation.html"; });
+
+    // Logout
+    document.getElementById("logout-btn")?.addEventListener("click", () => {
+      firebase.auth().signOut().then(() => (window.location.href = "index.html"));
+    });
 
   } catch (e) {
     console.error(e);

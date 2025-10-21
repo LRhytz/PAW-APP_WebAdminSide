@@ -1,4 +1,4 @@
-// donations.js - Handles donation campaigns list & UI
+// donations.js - Handles donation campaigns list & UI (Donate removed, bigger cards)
 
 const db = firebase.database();
 const auth = firebase.auth();
@@ -41,7 +41,7 @@ async function fetchDonations() {
 
     let idsToLoad = null;
 
-    // If organization, prefer loading ONLY their campaigns via index
+    // If organization, load ONLY their campaigns via index
     if (role === "organization") {
       const idxSnap = await db.ref(`campaignsByOrg/${user.uid}`).once("value");
       if (idxSnap.exists()) {
@@ -121,11 +121,11 @@ function renderCampaignCards(campaigns) {
     const status  = c.status || c.stats?.status || "Active";
     const cover   = c.coverUrl || "";
     const desc    = c.description || c.shortDescription || "";
-    const shortD  = desc.length > 120 ? `${desc.slice(0, 120)}…` : desc;
+    const shortD  = desc.length > 150 ? `${desc.slice(0, 150)}…` : desc;
     const funded  = percent >= 100;
 
     const card = document.createElement("div");
-    card.className = "donation-card";
+    card.className = "donation-card"; // larger styles are in base CSS now
     card.setAttribute("data-id", id);
     card.innerHTML = `
       <div class="donation-card__media">
@@ -151,10 +151,7 @@ function renderCampaignCards(campaigns) {
         </div>
 
         <div class="donation-card__actions">
-          <button class="donate-btn" data-id="${id}" ${funded ? "disabled" : ""}>
-            <i class="fas ${funded ? "fa-check-circle" : "fa-hand-holding-heart"}"></i>
-            ${funded ? "Fully Funded" : "Donate Now"}
-          </button>
+          <!-- Donate button intentionally removed -->
           <button class="edit-btn" data-id="${id}">
             <i class="fas fa-edit"></i> Edit
           </button>
@@ -164,23 +161,15 @@ function renderCampaignCards(campaigns) {
     container.appendChild(card);
   });
 
-  // Wire buttons
-  container.querySelectorAll(".donate-btn").forEach(btn => {
-    if (!btn.disabled) {
-      btn.addEventListener("click", e => {
-        e.stopPropagation();
-        const id = btn.getAttribute("data-id");
-        window.location.href = `donate.html?campaignId=${encodeURIComponent(id)}`;
-      });
-    }
-  });
+  // Wire edit button and card click
   container.querySelectorAll(".edit-btn").forEach(btn => {
     btn.addEventListener("click", e => {
       e.stopPropagation();
       const id = btn.getAttribute("data-id");
-      ;window.location.href = `editDonation.html?donationId=${encodeURIComponent(id)}`;
+      window.location.href = `editDonation.html?donationId=${encodeURIComponent(id)}`;
     });
   });
+
   container.querySelectorAll(".donation-card").forEach(card => {
     card.addEventListener("click", () => {
       const id = card.getAttribute("data-id");
