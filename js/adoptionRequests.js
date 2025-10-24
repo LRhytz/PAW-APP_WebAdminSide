@@ -24,13 +24,27 @@
   const searchInput     = document.getElementById('search-requests');
   const sortSelect      = document.getElementById('sort-requests');
 
-  // Modal
+  // App detail modal
   const modal         = document.getElementById('request-modal');
   const modalBody     = document.getElementById('modal-body');
   const modalCloseX   = document.querySelector('.close-modal');
   const modalCloseBtn = document.getElementById('close-modal-btn');
   const approveBtn    = document.getElementById('approve-btn');
   const rejectBtn     = document.getElementById('reject-btn');
+
+  // Meet modal
+  const meetModal     = document.getElementById('meet-modal');
+  const meetCloseX    = document.getElementById('meet-close-x');
+  const meetForm      = document.getElementById('meet-form');
+  const meetDateEl    = document.getElementById('meet-date');
+  const meetTimeEl    = document.getElementById('meet-time');
+  const meetLocEl     = document.getElementById('meet-location');
+  const meetNoteEl    = document.getElementById('meet-note');
+  const meetSaveBtn   = document.getElementById('meet-save-btn');
+  const meetCancelBtn = document.getElementById('meet-cancel-btn');
+  const errDate       = document.getElementById('err-date');
+  const errTime       = document.getElementById('err-time');
+  const errLoc        = document.getElementById('err-location');
 
   const urlParams = new URLSearchParams(location.search);
   const petId = urlParams.get('id') || urlParams.get('petId');
@@ -40,7 +54,8 @@
     pet: null,
     all: [],
     filtered: [],
-    selected: null
+    selected: null,
+    meetTarget: null
   };
 
   backBtn?.addEventListener('click', () => history.back());
@@ -48,14 +63,18 @@
 
   modalCloseX?.addEventListener('click', closeModal);
   modalCloseBtn?.addEventListener('click', closeModal);
-  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeMeetModal(); } });
 
   searchInput?.addEventListener('input', () => { applyFilters(); render(); });
   sortSelect?.addEventListener('change', () => { applyFilters(); render(); });
 
-  // Action buttons
   approveBtn?.addEventListener('click', onApproveOrFinalize);
   rejectBtn?.addEventListener('click', () => updateStatus('declined'));
+
+  // Meet modal handlers
+  meetCloseX?.addEventListener('click', closeMeetModal);
+  meetCancelBtn?.addEventListener('click', closeMeetModal);
+  meetSaveBtn?.addEventListener('click', onSaveMeet);
 
   auth.onAuthStateChanged(async (user) => {
     if (!user) { location.href = 'login.html'; return; }
@@ -90,7 +109,7 @@
       const apps = reqSnaps.map(s => ({ id: s.key, ...s.val() })).filter(a => a && a.listingId === petId);
       state.all = apps;
 
-      // Mark all PENDING -> REVIEWED (flat + org mirror), like Android
+      // Mark all PENDING -> REVIEWED (flat + org mirror)
       const toReviewed = state.all
         .filter(a => (a.status || 'pending').toLowerCase() === 'pending')
         .map(a => a.id);
@@ -204,22 +223,22 @@
     `;
   }
 
-  // ---------- Modal ----------
+  // ---------- App Modal ----------
   function openModal(app) {
     state.selected = app;
     modalBody.innerHTML = buildModalHTML(app);
     modal.classList.add('show');
 
-    // Button enable/disable + label logic (disable for closed states)
     const st = (app.status || 'pending').toLowerCase();
     const actionable = st === 'pending' || st === 'reviewed' || st === 'meet_scheduled';
+    approveBtn.innerHTML = st === 'meet_scheduled'
+      ? '<i class="fas fa-check-double"></i> Finalize'
+      : '<i class="fas fa-calendar-plus"></i> Approve & Schedule';
     approveBtn.disabled = !actionable;
     rejectBtn.disabled  = !actionable;
-    approveBtn.textContent = (st === 'meet_scheduled') ? 'Finalize' : 'Approve';
-    approveBtn.style.opacity = actionable ? '1' : '0.6';
-    rejectBtn.style.opacity  = actionable ? '1' : '0.6';
+    approveBtn.style.opacity = actionable ? '1' : '.6';
+    rejectBtn.style.opacity  = actionable ? '1' : '.6';
   }
-
   function closeModal() {
     state.selected = null;
     modal.classList.remove('show');
@@ -243,7 +262,6 @@
     const when  = a.createdAt || a.appliedTimestamp || null;
     const whenText = when ? new Date(Number(when)).toLocaleString() : 'Unknown';
 
-    // Approve hint
     const hint = (a.status || '').toLowerCase() === 'meet_scheduled'
       ? 'Finalize adoption for this applicant'
       : 'Approve & schedule a meet';
@@ -273,30 +291,20 @@
 
   // ================= ORG ACTIONS =================
 
-  // Approve → schedule meet (if not yet), else finalize winner
   async function onApproveOrFinalize() {
     const r = state.selected;
     if (!r) return;
-
     const st = (r.status || 'pending').toLowerCase();
     const actionable = st === 'pending' || st === 'reviewed' || st === 'meet_scheduled';
-    if (!actionable) return; // ignore clicks for closed requests
+    if (!actionable) return;
 
-    try {
-      if (st === 'meet_scheduled') {
-        await finalizeWinnerAndCloseOthers(r);
-        toast('Adoption finalized');
-        closeModal();
-        return;
-      }
-
-      await scheduleMeet(r);
-      toast('Meet scheduled');
+    if (st === 'meet_scheduled') {
+      await finalizeWinnerAndCloseOthers(r);
+      toast('Adoption finalized');
       closeModal();
-    } catch (e) {
-      console.error(e);
-      alert(e.message || 'Failed to perform action');
+      return;
     }
+    openMeetModal(r);
   }
 
   // Decline & mirror
@@ -346,23 +354,77 @@
     }
   }
 
-  // ---------- schedule meet (prompts for when/where/note) ----------
-  async function scheduleMeet(req) {
-    // simple inputs via prompt to avoid building a new dialog right now
-    const whenStr = window.prompt('Meet date/time (YYYY-MM-DD HH:mm)', '');
-    if (!whenStr) throw new Error('Cancelled');
-    const where = window.prompt('Meet location', '') || '';
-    if (!where.trim()) throw new Error('Location required');
-    const note = window.prompt('Optional note to the applicant', '') || '';
+  // ---------- Meet modal helpers ----------
+  function openMeetModal(req) {
+    state.meetTarget = req;
 
-    // parse when (best-effort)
-    const whenEpochMs = Date.parse(whenStr.replace(' ', 'T')) || (Date.now() + 3*24*60*60*1000);
-    const whenText = new Date(whenEpochMs).toLocaleString();
+    // default to 3 days ahead at 10:00
+    const now = new Date();
+    const plus3d = new Date(now.getTime() + 3*24*60*60*1000);
+    meetDateEl.value = plus3d.toISOString().slice(0,10); // yyyy-mm-dd
+    meetTimeEl.value = '10:00';
+    meetLocEl.value  = '';
+    meetNoteEl.value = '';
+    clearMeetErrors();
 
+    meetModal.classList.add('show');
+  }
+  function closeMeetModal() {
+    state.meetTarget = null;
+    meetModal.classList.remove('show');
+  }
+  function clearMeetErrors() {
+    errDate.textContent = ''; errTime.textContent = ''; errLoc.textContent = '';
+    [meetDateEl, meetTimeEl, meetLocEl].forEach(el => el.classList.remove('error'));
+  }
+
+  async function onSaveMeet() {
+    if (!state.meetTarget) return;
+
+    clearMeetErrors();
+    const date = (meetDateEl.value || '').trim();
+    const time = (meetTimeEl.value || '').trim();
+    const loc  = (meetLocEl.value  || '').trim();
+    const note = (meetNoteEl.value || '').trim();
+
+    let valid = true;
+    if (!date) { errDate.textContent = 'Date is required'; meetDateEl.classList.add('error'); valid = false; }
+    if (!time) { errTime.textContent = 'Time is required'; meetTimeEl.classList.add('error'); valid = false; }
+    if (!loc)  { errLoc.textContent  = 'Location is required'; meetLocEl.classList.add('error'); valid = false; }
+    if (!valid) return;
+
+    const whenStr = `${date}T${time}:00`;
+    const whenMs = Date.parse(whenStr);
+    if (isNaN(whenMs)) {
+      errTime.textContent = 'Invalid date/time';
+      meetTimeEl.classList.add('error');
+      return;
+    }
+
+    meetSaveBtn.disabled = true;
+
+    try {
+      await scheduleMeet(state.meetTarget, { whenMs, loc, note });
+      toast('Meet scheduled');
+      closeMeetModal();
+      closeModal();
+    } catch (e) {
+      alert(e.message || 'Failed to schedule meet');
+    } finally {
+      meetSaveBtn.disabled = false;
+    }
+  }
+
+  // ---------- schedule meet (uses modal values) ----------
+  async function scheduleMeet(req, form) {
     const orgId = state.orgUid || req.orgId || '';
     const citizenId = (req.citizenId || '').trim();
     const meetRef = db.ref('adoptionMeets').push();
     const meetId  = meetRef.key;
+
+    const whenEpochMs = form.whenMs;
+    const where = form.loc;
+    const note  = form.note;
 
     const updates = {};
 
@@ -386,15 +448,22 @@
       updates[`adoptionRequestsByOrg/${orgId}/${petId}/${req.id}/updatedAt`] = firebase.database.ServerValue.TIMESTAMP;
     }
 
-    // Notify requester (includes when/where/note in both body and fields)
+    // Notify requester with full details
     if (citizenId) {
       const notifRef = db.ref('userNotifications').child(citizenId).push();
+      const whenText = new Date(whenEpochMs).toLocaleString();
+      const lines = [
+        `Your meet for ${req.petName || 'the pet'} is scheduled.`,
+        `When: ${whenText}`,
+        `Where: ${where}`
+      ];
+      if (note) lines.push(`Note: ${note}`);
       const payload = {
         id: notifRef.key,
         type: 'request_status',
         requestId: req.id,
         title: `Meet scheduled for ${(req.petName || 'the pet')}`,
-        body: `Your meet is scheduled for ${whenText} at ${where}.` + (note ? `\nNote: ${note}` : ''),
+        body: lines.join('\n'),
         scheduledAt: whenEpochMs,
         location: where,
         note: note,

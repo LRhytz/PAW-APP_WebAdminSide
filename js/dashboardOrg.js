@@ -43,6 +43,35 @@
     return v; // fallback
   }
 
+  // 🆕 Load organization's articles
+  async function loadArticles(orgUid) {
+    const list = document.getElementById('articlesList');
+    if (!list) return;
+
+    list.innerHTML = `<p class="loading">Loading your articles...</p>`;
+
+    const snap = await db().ref('articles').orderByChild('orgId').equalTo(orgUid).once('value');
+
+    if (!snap.exists()) {
+      list.innerHTML = `<p class="loading">No articles found. <a href="create-article.html">Add one?</a></p>`;
+      return;
+    }
+
+    const articles = Object.entries(snap.val()).reverse();
+
+    list.innerHTML = articles.map(([id, data]) => `
+      <div class="article-card" data-id="${id}">
+        <img src="${data.coverUrl || data.orgPhotoUrl || 'https://via.placeholder.com/300x180?text=No+Image'}" alt="cover">
+        <div class="article-info">
+          <h3>${data.title || 'Untitled'}</h3>
+          <p>${data.description || ''}</p>
+          <small>${data.category || 'Uncategorized'} • ${new Date(data.publishedAt || Date.now()).toLocaleDateString()}</small>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── Main init ──────────────────────────────
   async function init() {
     const me = await waitForUser();
     if (!me) {
@@ -59,8 +88,10 @@
 
     const orgUid = me.uid;
 
+    // 🆕 Load Articles
+    await loadArticles(orgUid);
+
     // ── Load only this org's reports ───────────────────────────────────────
-    // Security rules allow this query shape.
     const snap = await db().ref('reports')
       .orderByChild('organizationId').equalTo(orgUid)
       .once('value');
@@ -79,7 +110,6 @@
       else if (st === 'in_progress') inProgress++;
       else if (st === 'on_hold') onHold++;
       else if (st === 'completed') completed++;
-      // ignore other statuses for this dashboard
     });
 
     const total = ids.length;

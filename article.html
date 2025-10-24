@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Articles</title>
+
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="css/article.css" />
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <!-- Config & Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/nav.js" defer></script>
+    <script src="js/article.js" defer></script>
+  </head>
+
+  <body>
+    <!-- HEADER -->
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <h1 class="app-title">🐾 Articles</h1>
+    </header>
+
+    <!-- SIDEBAR -->
+    <div id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">&times;</button>
+      <ul class="nav-links">
+        <li><a href="organizationDashboard.html">Dashboard</a></li>
+        <li><a href="article.html" class="active">Articles</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="adoption.html">Adoption</a></li>
+        <li><a href="donation.html">Donation</a></li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main id="main-content" class="main-content">
+      <section class="articles-section">
+        <h2 class="section-title">Organization Articles</h2>
+        <div id="articlesList" class="articles-list">
+          <p class="loading">Loading articles...</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Floating Add Button -->
+    <button id="fab" class="fab" title="Add Article">
+      <i class="fas fa-plus"></i>
+    </button>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const fab = document.getElementById("fab");
+        fab.addEventListener("click", () => {
+          window.location.href = "create-article.html";
+        });
+      });
+    </script>
+  </body>
+</html>

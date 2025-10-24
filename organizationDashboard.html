@@ -11,26 +11,8 @@
     <!-- AOS -->
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
 
-    <!-- Your app styles -->
+    <!-- Dashboard styles -->
     <link rel="stylesheet" href="css/dashboard.css" />
-
-    <!-- Hard cap the chart height and tidy the layout -->
-    <style>
-      html, body { min-height: 100%; }
-      .main-content { max-width: 1100px; margin: 20px auto; padding: 0 16px; }
-      .chart-card { padding: 16px; }
-
-      /* ⬇️ keep the chart from creating an endless page */
-      #reportChart {
-        display: block;
-        width: 100% !important;
-        height: 320px !important;     /* you can change to 280/360 as you like */
-        max-height: 420px !important;  /* safety cap */
-      }
-
-      /* Optional: cards look nicer with a clear max height */
-      .card { overflow: hidden; }
-    </style>
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -46,7 +28,9 @@
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
     <script src="js/dashboardOrg.js" defer></script>
   </head>
+
   <body>
+    <!-- HEADER -->
     <header class="app-header">
       <button class="openbtn" onclick="openNav()">
         <i class="fas fa-bars"></i> Menu
@@ -54,25 +38,30 @@
       <h1 class="app-title">🐾 Organization Dashboard</h1>
     </header>
 
+    <!-- SIDEBAR NAVIGATION -->
     <div id="navbar" class="navbar">
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
-        <li><a href="organizationDashboard.html" class="active">Dashboard</a></li>
-        <li><a href="reports.html">Reports</a></li>
-        <li><a href="adoption.html">Adoption</a></li>
-        <li><a href="donation.html">Donation</a></li>
-        <li><a href="profileOrg.html">Profile</a></li>
-        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
-      </ul>
+  <li><a href="organizationDashboard.html" class="active">Dashboard</a></li>
+  <li><a href="article.html">Articles</a></li>
+  <li><a href="reports.html">Reports</a></li>
+  <li><a href="adoption.html">Adoption</a></li>
+  <li><a href="donation.html">Donation</a></li>
+  <li><a href="profileOrg.html">Profile</a></li>
+  <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+</ul>
+
     </div>
 
+    <!-- MAIN CONTENT -->
     <main id="main-content" class="main-content">
+      <!-- Chart Section -->
       <section class="card chart-card" data-aos="fade-up">
-        <h2 class="section-title">Reports</h2>
-        <!-- height is also set in CSS, but this adds a secondary guard -->
+        <h2 class="section-title">Reports Overview</h2>
         <canvas id="reportChart" height="320"></canvas>
       </section>
 
+      <!-- Summary Cards -->
       <section class="summary-grid">
         <div class="card summary-card" data-aos="fade-up" data-aos-delay="100">
           <div class="card-header">

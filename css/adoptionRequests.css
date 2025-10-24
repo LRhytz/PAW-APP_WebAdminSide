@@ -537,6 +537,52 @@ body {
   background: #e53935;
 }
 
+/* Disabled button helper */
+.btn[disabled], .modal-btn[disabled] {
+  opacity: .6;
+  pointer-events: none;
+}
+
+/* ---------- Meet Modal extra styles ---------- */
+#meet-modal .modal-content {
+  max-width: 560px;
+}
+
+#meet-modal .modal-body .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+#meet-modal .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#meet-modal .form-group input,
+#meet-modal .form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid #d9d9e3;
+  border-radius: 10px;
+  outline: none;
+  font-size: 14px;
+}
+
+#meet-modal .form-group input:focus,
+#meet-modal .form-group textarea:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, .12);
+}
+
+#meet-modal .form-group .err {
+  color: #c62828;
+  font-size: 12px;
+  min-height: 16px;
+}
+
+#meet-modal .req { color: #e11d48; }
+
 /* Add a notification system */
 .notification {
   position: fixed;
@@ -569,4 +615,5 @@ body {
   .detail-grid { grid-template-columns: 1fr; }
   .search-box { max-width: 100%; }
   .pet-info-banner { flex-direction: column; align-items: flex-start; }
+  #meet-modal .modal-body .form-row { grid-template-columns: 1fr; }
 }

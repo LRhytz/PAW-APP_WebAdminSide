@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Article</title>
+
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Base Theme -->
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="css/create-article.css" />
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
+    <!-- Config + Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/nav.js" defer></script>
+    <script src="js/create-article.js" defer></script>
+  </head>
+
+  <body>
+    <!-- HEADER -->
+    <header class="app-header">
+      <button class="openbtn" onclick="openNav()">
+        <i class="fas fa-bars"></i> Menu
+      </button>
+      <h1 class="app-title">📝 Create Article</h1>
+    </header>
+
+    <!-- SIDEBAR -->
+    <div id="navbar" class="navbar">
+      <button class="closebtn" onclick="closeNav()">&times;</button>
+      <ul class="nav-links">
+        <li><a href="organizationDashboard.html">Dashboard</a></li>
+        <li><a href="article.html" class="active">Articles</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="adoption.html">Adoption</a></li>
+        <li><a href="donation.html">Donation</a></li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <section class="card form-card">
+        <div class="form-header">
+          <h2 class="section-title">Publish a New Article</h2>
+          <p class="section-subtitle">Share your story and reach more people</p>
+        </div>
+
+        <form id="articleForm" class="article-form">
+          <!-- Title & Category Row -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="title">
+                <i class="fas fa-heading"></i> Title <span class="required">*</span>
+              </label>
+              <input type="text" id="title" placeholder="Enter article title" required />
+            </div>
+
+            <div class="form-group">
+              <label for="category">
+                <i class="fas fa-tag"></i> Category <span class="required">*</span>
+              </label>
+              <select id="category" required>
+                <option value="">Select category</option>
+                <option value="Adoption">Adoption</option>
+                <option value="Rescue">Rescue</option>
+                <option value="Awareness">Awareness</option>
+                <option value="Success Story">Success Story</option>
+                <option value="Tips & Guides">Tips & Guides</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label for="description">
+              <i class="fas fa-align-left"></i> Short Description
+            </label>
+            <textarea
+              id="description"
+              maxlength="200"
+              placeholder="Write a brief summary (optional, max 200 characters)"
+              rows="3"
+            ></textarea>
+            <span class="char-count">0 / 200</span>
+          </div>
+
+          <!-- Cover Image -->
+          <div class="form-group">
+            <label for="coverImage">
+              <i class="fas fa-image"></i> Cover Image <span class="required">*</span>
+            </label>
+            <div class="file-upload-wrapper">
+              <input type="file" id="coverImage" accept="image/*" required />
+              <label for="coverImage" class="file-upload-label">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Choose an image or drag here</span>
+              </label>
+            </div>
+            <div id="previewContainer" class="preview-container">
+              <img id="previewImage" src="" alt="Preview" />
+              <button type="button" class="remove-image" id="removeImage">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Article Content -->
+          <div class="form-group">
+            <label for="body">
+              <i class="fas fa-file-alt"></i> Article Content <span class="required">*</span>
+            </label>
+            <textarea
+              id="body"
+              rows="12"
+              placeholder="Write your article content here..."
+              required
+            ></textarea>
+            <div class="editor-tips">
+              <i class="fas fa-lightbulb"></i>
+              <span>Tip: Write engaging content that tells a story and connects with readers</span>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" onclick="window.location.href='article.html'">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+            <button type="submit" class="btn-submit">
+              <i class="fas fa-paper-plane"></i> Publish Article
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <p>Publishing your article...</p>
+    </div>
+  </body>
+</html>

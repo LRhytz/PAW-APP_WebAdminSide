@@ -87,8 +87,51 @@
       
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="close-modal-btn">Close</button>
-        <button type="button" class="btn btn-success"   id="approve-btn">Approve</button>
+        <button type="button" class="btn btn-success"   id="approve-btn"><i class="fas fa-calendar-plus"></i> Approve</button>
         <button type="button" class="btn btn-danger"    id="reject-btn">Reject</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Meet Scheduler Modal -->
+  <div id="meet-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Schedule Meet</h2>
+        <span class="close-modal" id="meet-close-x">&times;</span>
+      </div>
+
+      <form id="meet-form" class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="meet-date">Date <span class="req">*</span></label>
+            <input type="date" id="meet-date" required />
+            <small class="err" id="err-date"></small>
+          </div>
+          <div class="form-group">
+            <label for="meet-time">Time <span class="req">*</span></label>
+            <input type="time" id="meet-time" required />
+            <small class="err" id="err-time"></small>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="meet-location">Location <span class="req">*</span></label>
+          <input type="text" id="meet-location" placeholder="123 Main St, City" required />
+          <small class="err" id="err-location"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="meet-note">Note (optional)</label>
+          <textarea id="meet-note" rows="3" placeholder="Anything the adopter should prepare/bring?"></textarea>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="meet-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-success" id="meet-save-btn">
+          <i class="fas fa-calendar-check"></i> Save & Notify
+        </button>
       </div>
     </div>
   </div>
