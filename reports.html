@@ -4,26 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reports Dashboard</title>
-    <!-- Font Awesome for icons -->
+
+    <!-- Fonts & Icons -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- Google Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Leaflet + Clustering -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <!-- Leaflet JS -->
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       defer
     ></script>
-    <!-- Leaflet MarkerCluster -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
@@ -36,786 +36,35 @@
       src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
       defer
     ></script>
-    <!-- AOS for scroll-based fades -->
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
-    <!-- Your custom styles -->
-    <link rel="stylesheet" href="css/reports.css" />
-    <!-- Firebase SDKs -->
+
+    <!-- AOS (optional, already used in page) -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/aos@2.3.4/dist/aos.css"
+    />
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+
+    <!-- Firebase 8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <!-- Chart.js -->
+
+    <!-- Optional charts (untouched) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- AOS, nav & dashboard logic -->
-    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
+
+    <!-- App config & nav -->
     <script src="js/config.js"></script>
     <script src="js/nav.js" defer></script>
-    <script src="js/dashboard.js" defer></script>
+
+    <!-- Page styles -->
+    <link rel="stylesheet" href="css/reports.css" />
+
+    <!-- Data loader / normalizer -->
     <script src="js/reports.js" defer></script>
-
-    <style>
-      /* View Mode Toggle Styles */
-      .view-toggle-container {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 20px;
-      }
-
-      .view-toggle {
-        display: flex;
-        background: #f0f0f0;
-        border-radius: 8px;
-        padding: 4px;
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-      }
-
-      .view-toggle-btn {
-        padding: 10px 20px;
-        border: none;
-        background: transparent;
-        cursor: pointer;
-        border-radius: 6px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #666;
-      }
-
-      .view-toggle-btn:hover {
-        color: #333;
-      }
-
-      .view-toggle-btn.active {
-        background: white;
-        color: #4caf50;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      .view-toggle-btn i {
-        font-size: 16px;
-      }
-
-      /* Map View Container */
-      #map-view-container {
-        display: none;
-        height: 650px;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        position: relative;
-      }
-
-      #reports-map {
-        height: 100%;
-        width: 100%;
-      }
-
-      /* View mode visibility */
-      .main-content.view-mode-table #table-view-container {
-        display: block;
-      }
-      .main-content.view-mode-table #map-view-container {
-        display: none;
-      }
-      .main-content.view-mode-map #table-view-container {
-        display: none;
-      }
-      .main-content.view-mode-map #map-view-container {
-        display: block;
-      }
-
-      /* Active Cases Counter */
-      .map-overlay {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        background: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-        z-index: 1000;
-        font-family: "Roboto", sans-serif;
-      }
-
-      .map-overlay h3 {
-        margin: 0 0 8px 0;
-        font-size: 14px;
-        font-weight: 600;
-        color: #666;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .map-overlay .count {
-        font-size: 32px;
-        font-weight: 700;
-        color: #d32f2f;
-        margin: 0;
-      }
-
-      /* Custom Emergency Marker Styles */
-      .emergency-marker {
-        position: relative;
-        width: 50px;
-        height: 50px;
-        cursor: pointer;
-      }
-
-      .emergency-marker-inner {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 4px solid white;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 18px;
-        font-weight: bold;
-        transition: transform 0.2s ease;
-      }
-
-      .emergency-marker:hover .emergency-marker-inner {
-        transform: translate(-50%, -50%) scale(1.15);
-      }
-
-      /* Pulsing ring animation */
-      .emergency-marker::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: rgba(211, 47, 47, 0.2);
-        animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-      }
-
-      @keyframes pulse-ring {
-        0% {
-          transform: translate(-50%, -50%) scale(0.8);
-          opacity: 1;
-        }
-        100% {
-          transform: translate(-50%, -50%) scale(2);
-          opacity: 0;
-        }
-      }
-
-      /* Severity Colors */
-      .severity-critical .emergency-marker-inner {
-        background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
-      }
-
-      .severity-high .emergency-marker-inner {
-        background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
-      }
-
-      .severity-high::before {
-        background: rgba(245, 124, 0, 0.2);
-      }
-
-      .severity-medium .emergency-marker-inner {
-        background: linear-gradient(135deg, #fbc02d 0%, #f57f17 100%);
-      }
-
-      .severity-medium::before {
-        display: none;
-      }
-
-      .severity-low .emergency-marker-inner {
-        background: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);
-      }
-
-      .severity-low::before {
-        display: none;
-      }
-
-      /* Custom Popup Styles */
-      .leaflet-popup-content-wrapper {
-        border-radius: 12px;
-        padding: 0;
-        overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-        min-width: 320px;
-      }
-
-      .leaflet-popup-content {
-        margin: 0;
-        font-family: "Roboto", sans-serif;
-      }
-
-      .emergency-popup {
-        width: 320px;
-      }
-
-      .emergency-popup-header {
-        background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
-        color: white;
-        padding: 15px 20px;
-        font-weight: 600;
-        font-size: 16px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .emergency-popup-header.severity-high {
-        background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
-      }
-
-      .emergency-popup-header.severity-medium {
-        background: linear-gradient(135deg, #fbc02d 0%, #f57f17 100%);
-      }
-
-      .emergency-popup-header.severity-low {
-        background: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);
-      }
-
-      .emergency-popup-body {
-        padding: 20px;
-        background: white;
-      }
-
-      .popup-info-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        margin-bottom: 15px;
-        font-size: 14px;
-      }
-
-      .popup-info-row i {
-        color: #666;
-        font-size: 16px;
-        width: 20px;
-        margin-top: 2px;
-      }
-
-      .popup-info-content {
-        flex: 1;
-      }
-
-      .popup-info-label {
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 2px;
-      }
-
-      .popup-info-value {
-        color: #666;
-        line-height: 1.4;
-      }
-
-      .popup-status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        color: white;
-      }
-
-      .popup-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-      }
-
-      .popup-btn {
-        flex: 1;
-        padding: 10px 16px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 13px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      }
-
-      .popup-btn-primary {
-        background: #2196f3;
-        color: white;
-      }
-
-      .popup-btn-primary:hover {
-        background: #1976d2;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-      }
-
-      .popup-btn-secondary {
-        background: #f5f5f5;
-        color: #333;
-      }
-
-      .popup-btn-secondary:hover {
-        background: #e0e0e0;
-      }
-
-      /* Marker Cluster Styles */
-      .marker-cluster {
-        background: rgba(211, 47, 47, 0.6);
-        border: 4px solid white;
-        border-radius: 50%;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      }
-      .marker-cluster div {
-        background: rgba(211, 47, 47, 0.8);
-        border-radius: 50%;
-        color: white;
-        font-weight: 700;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-      }
-      .marker-cluster-small {
-        width: 40px;
-        height: 40px;
-      }
-      .marker-cluster-medium {
-        width: 50px;
-        height: 50px;
-        background: rgba(245, 124, 0, 0.6);
-      }
-      .marker-cluster-medium div {
-        background: rgba(245, 124, 0, 0.8);
-      }
-      .marker-cluster-large {
-        width: 60px;
-        height: 60px;
-        background: rgba(183, 28, 28, 0.6);
-      }
-      .marker-cluster-large div {
-        background: rgba(183, 28, 28, 0.8);
-      }
-
-      /* Legend */
-      .map-legend {
-        position: absolute;
-        bottom: 30px;
-        right: 20px;
-        background: white;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-        z-index: 1000;
-        font-size: 13px;
-      }
-
-      .map-legend h4 {
-        margin: 0 0 10px 0;
-        font-size: 12px;
-        font-weight: 600;
-        color: #666;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-      }
-
-      .legend-item:last-child {
-        margin-bottom: 0;
-      }
-
-      .legend-marker {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      }
-
-      /* -------- TABLE VIEW STYLES -------- */
-      .table-view-container {
-        margin-top: 10px;
-      }
-      .table-scroll {
-        overflow: auto;
-        border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        background: #fff;
-      }
-      .reports-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: "Roboto", sans-serif;
-      }
-      .reports-table thead th {
-        position: sticky;
-        top: 0;
-        background: #f8f9fb;
-        text-align: left;
-        font-weight: 600;
-        color: #555;
-        padding: 12px 14px;
-        border-bottom: 1px solid #eee;
-        z-index: 1;
-      }
-      .reports-table tbody td {
-        padding: 12px 14px;
-        border-bottom: 1px solid #f0f0f0;
-        color: #444;
-        vertical-align: top;
-      }
-      .reports-table tbody tr:hover {
-        background: #fafafa;
-      }
-      /* Status badges - table (uppercase classes), modal (lowercase), and popup variants
-         Provide consistent pill styles and matching colors to the screenshot:
-         - Submitted: blue
-         - Accepted: green
-         - In Progress: orange
-         - On Hold: gray
-         - Completed: darker green
-         - Rejected: red
-      */
-      .reports-table td .status-badge,
-      .modal-report-status .status-badge,
-      .popup-status-badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 14px;
-        font-size: 12px;
-        font-weight: 700;
-        color: #fff;
-        line-height: 1;
-        vertical-align: middle;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-        text-transform: uppercase;
-        letter-spacing: 0.6px;
-      }
-
-      /* TABLE (uppercase) classes the renderer creates (spaces escaped) */
-      .status-SUBMITTED {
-        background: linear-gradient(180deg, #42a5f5, #1e88e5);
-        color: #fff;
-      }
-      .status-ACCEPTED {
-        background: linear-gradient(180deg, #66bb6a, #43a047);
-        color: #fff;
-      }
-      .status-IN\ PROGRESS {
-        background: linear-gradient(180deg, #ffb74d, #ff9800);
-        color: #222;
-      }
-      .status-ON\ HOLD {
-        background: linear-gradient(180deg, #bdbdbd, #9e9e9e);
-        color: #222;
-      }
-      .status-COMPLETED {
-        background: linear-gradient(180deg, #4caf50, #2e7d32);
-        color: #fff;
-      }
-      .status-REJECTED {
-        background: linear-gradient(180deg, #ef5350, #e53935);
-        color: #fff;
-      }
-
-      /* POPUP uppercase variants (if used) */
-      .popup-status-SUBMITTED {
-        background: linear-gradient(180deg, #42a5f5, #1e88e5);
-      }
-      .popup-status-ACCEPTED {
-        background: linear-gradient(180deg, #66bb6a, #43a047);
-      }
-      .popup-status-IN\ PROGRESS {
-        background: linear-gradient(180deg, #ffb74d, #ff9800);
-        color: #222;
-      }
-      .popup-status-ON\ HOLD {
-        background: linear-gradient(180deg, #bdbdbd, #9e9e9e);
-        color: #222;
-      }
-      .popup-status-COMPLETED {
-        background: linear-gradient(180deg, #4caf50, #2e7d32);
-      }
-      .popup-status-REJECTED {
-        background: linear-gradient(180deg, #ef5350, #e53935);
-      }
-
-      /* Modal / JS-friendly lowercase hyphen classes (used by getStatusBadgeClass) */
-      .status-badge {
-        text-transform: none;
-      } /* keep modal text natural-case if desired */
-      .status-submitted {
-        background: linear-gradient(135deg, #42a5f5, #1e88e5);
-        color: #fff;
-      }
-      .status-accepted {
-        background: linear-gradient(135deg, #66bb6a, #43a047);
-        color: #fff;
-      }
-      .status-in-progress {
-        background: linear-gradient(135deg, #ffb74d, #ff9800);
-        color: #222;
-      }
-      .status-on-hold {
-        background: linear-gradient(135deg, #bdbdbd, #9e9e9e);
-        color: #222;
-      }
-      .status-completed {
-        background: linear-gradient(135deg, #4caf50, #2e7d32);
-        color: #fff;
-      }
-      .status-rejected {
-        background: linear-gradient(135deg, #ef5350, #e53935);
-        color: #fff;
-      }
-
-      /* Fallback attribute selectors: in case classes contain spaces or different case variants
-         (the table renderer escapes spaces but some environments may render differently).
-      */
-      .status-badge[class*="SUBMITTED"],
-      .status-badge[class*="status-submitted"],
-      .reports-table td .status-badge[class*="SUBMITTED"],
-      .popup-status-badge[class*="SUBMITTED"] {
-        background: linear-gradient(180deg, #42a5f5, #1e88e5) !important;
-        color: #fff !important;
-      }
-
-      .status-badge[class*="ACCEPTED"],
-      .status-badge[class*="status-accepted"],
-      .reports-table td .status-badge[class*="ACCEPTED"],
-      .popup-status-badge[class*="ACCEPTED"] {
-        background: linear-gradient(180deg, #66bb6a, #43a047) !important;
-        color: #fff !important;
-      }
-
-      /* In Progress might appear as 'IN PROGRESS' (space) or 'IN\\ PROGRESS' (escaped) or lowercase hyphen form */
-      .status-badge[class*="IN PROGRESS"],
-      .status-badge[class*="IN\\ PROGRESS"],
-      .status-badge[class*="status-in-progress"],
-      .reports-table td .status-badge[class*="IN PROGRESS"],
-      .popup-status-badge[class*="IN PROGRESS"] {
-        background: linear-gradient(180deg, #ffb74d, #ff9800) !important;
-        color: #222 !important;
-      }
-
-      .status-badge[class*="ON HOLD"],
-      .status-badge[class*="ON\\ HOLD"],
-      .status-badge[class*="status-on-hold"],
-      .reports-table td .status-badge[class*="ON HOLD"],
-      .popup-status-badge[class*="ON HOLD"] {
-        background: linear-gradient(180deg, #bdbdbd, #9e9e9e) !important;
-        color: #222 !important;
-      }
-
-      .status-badge[class*="COMPLETED"],
-      .status-badge[class*="status-completed"],
-      .reports-table td .status-badge[class*="COMPLETED"],
-      .popup-status-badge[class*="COMPLETED"] {
-        background: linear-gradient(180deg, #4caf50, #2e7d32) !important;
-        color: #fff !important;
-      }
-
-      .status-badge[class*="REJECTED"],
-      .status-badge[class*="status-rejected"],
-      .reports-table td .status-badge[class*="REJECTED"],
-      .popup-status-badge[class*="REJECTED"] {
-        background: linear-gradient(180deg, #ef5350, #e53935) !important;
-        color: #fff !important;
-      }
-
-      .reports-table td .severity-dot {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin-right: 8px;
-        vertical-align: middle;
-      }
-      .sev-Critical {
-        background: #d32f2f;
-      }
-      .sev-High {
-        background: #f57c00;
-      }
-      .sev-Medium {
-        background: #fbc02d;
-      }
-      .sev-Low {
-        background: #388e3c;
-      }
-
-      .reports-table .row-actions {
-        display: flex;
-        gap: 8px;
-      }
-      .reports-table .row-actions .btn {
-        padding: 8px 10px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 12px;
-        cursor: pointer;
-      }
-      .reports-table .row-actions .btn[disabled] {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .reports-table .row-actions .btn-view {
-        background: #2196f3;
-        color: #fff;
-      }
-      .reports-table .row-actions .btn-map {
-        background: #f5f5f5;
-        color: #333;
-      }
-      .reports-table .loading {
-        text-align: center;
-        color: #777;
-      }
-
-      /* Sortable headers */
-      .sortable {
-        cursor: pointer;
-        user-select: none;
-      }
-      .sortable::after {
-        content: "\f0dc"; /* fa-sort */
-        font-family: "Font Awesome 6 Free";
-        font-weight: 900;
-        margin-left: 8px;
-        opacity: 0.4;
-      }
-      .sortable.sort-asc::after {
-        content: "\f0de";
-        opacity: 0.9;
-      } /* fa-sort-up */
-      .sortable.sort-desc::after {
-        content: "\f0dd";
-        opacity: 0.9;
-      } /* fa-sort-down */
-
-      /* Filter tab (drawer) */
-      .filter-tab-toggle {
-        margin-left: auto;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 14px;
-        border: none;
-        border-radius: 8px;
-        background: #eef5ff;
-        color: #1e63d7;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .filter-tab {
-        position: fixed;
-        right: -360px;
-        top: 0;
-        height: 100vh;
-        width: 360px;
-        background: #fff;
-        box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
-        z-index: 2000;
-        transition: right 0.3s ease;
-        display: flex;
-        flex-direction: column;
-      }
-      .filter-tab.open {
-        right: 0;
-      }
-      .filter-tab-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 18px;
-        border-bottom: 1px solid #eee;
-      }
-      .filter-tab-close {
-        background: transparent;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: #666;
-      }
-      .filter-tab-body {
-        padding: 16px 18px;
-        overflow: auto;
-      }
-      .filter-row {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 14px;
-      }
-      .filter-row label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #666;
-      }
-      .filter-row select,
-      .filter-row input {
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid #ddd;
-        outline: none;
-      }
-      .filter-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 8px;
-      }
-      .apply-btn {
-        background: #4caf50;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .clear-btn {
-        background: #f5f5f5;
-        color: #333;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      .filter-tab-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.25);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.3s ease;
-        z-index: 1500;
-      }
-      .filter-tab-backdrop.show {
-        opacity: 1;
-        pointer-events: auto;
-      }
-    </style>
   </head>
+
   <body>
+    <!-- Header -->
     <header class="app-header">
       <button class="openbtn" onclick="openNav()">
         <i class="fas fa-bars"></i> Menu
@@ -823,45 +72,38 @@
       <h1 class="app-title">🐾 Reports</h1>
     </header>
 
-    <div id="navbar" class="navbar">
+    <!-- Sidebar -->
+    <nav id="navbar" class="navbar">
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
-        <li>
-          <a href="organizationDashboard.html" class="active">Dashboard</a>
-        </li>
-          <li><a href="article.html">Articles</a></li>
+        <li><a href="organizationDashboard.html" class="active">Dashboard</a></li>
+        <li><a href="article.html">Articles</a></li>
         <li><a href="reports.html">Reports</a></li>
         <li><a href="adoption.html">Adoption</a></li>
         <li><a href="donation.html">Donation</a></li>
         <li><a href="profileOrg.html">Profile</a></li>
         <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
       </ul>
-    </div>
+    </nav>
 
+    <!-- Main -->
     <main id="main-content" class="main-content view-mode-table">
       <section class="card chart-card" data-aos="fade-up">
         <h2 class="section-title">Reports Overview</h2>
 
-        <!-- View Mode Toggle -->
+        <!-- Controls -->
         <div class="view-toggle-container">
-          <label style="font-weight: 500; color: #666">View Mode:</label>
+          <label class="view-toggle-label">View Mode:</label>
           <div class="view-toggle">
             <button class="view-toggle-btn active" data-view="table">
-              <i class="fas fa-table"></i>
-              <span>Table</span>
+              <i class="fas fa-table"></i><span>Table</span>
             </button>
             <button class="view-toggle-btn" data-view="map">
-              <i class="fas fa-map-marked-alt"></i>
-              <span>Map</span>
+              <i class="fas fa-map-marked-alt"></i><span>Map</span>
             </button>
           </div>
 
-          <!-- Filter Tab Toggle -->
-          <button
-            id="open-filter-tab"
-            class="filter-tab-toggle"
-            title="Open filters"
-          >
+          <button id="open-filter-tab" class="filter-tab-toggle" title="Open filters">
             <i class="fas fa-sliders-h"></i> Filters
           </button>
         </div>
@@ -892,27 +134,23 @@
             id="report-search"
             class="report-search"
             placeholder="Search reports..."
-            title="Search by description, email, or location"
+            title="Search by description, name, email, or location"
           />
         </div>
 
-        <div class="report-stats"></div>
-
-        <!-- TABLE VIEW -->
+        <!-- Table -->
         <div id="table-view-container" class="table-view-container">
           <div class="table-scroll">
             <table id="reports-table" class="reports-table">
               <thead>
                 <tr>
-                  <th data-key="timestamp" class="sortable sort-desc">Date</th>
+                  <th data-key="createdAt" class="sortable sort-desc">Date</th>
                   <th data-key="reportType" class="sortable">Type</th>
                   <th data-key="status" class="sortable">Status</th>
                   <th data-key="severity" class="sortable">Severity</th>
                   <th data-key="location" class="sortable">Location</th>
-                  <th data-key="email" class="sortable">Reported By</th>
-                  <th data-key="reporterUid" class="sortable">
-                    Reported By (UID)
-                  </th>
+                  <th data-key="reporterDisplayName" class="sortable">Reported By (Name)</th>
+                  <th data-key="email" class="sortable">Reported By (Email)</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -927,52 +165,26 @@
           </div>
         </div>
 
-        <!-- Map View Container -->
+        <!-- Map -->
         <div id="map-view-container">
-          <!-- Active Cases Counter -->
           <div class="map-overlay">
-            <h3>Active Emergency Cases</h3>
+            <h3>Total Reports</h3>
             <p class="count" id="active-cases-count">0</p>
           </div>
 
-          <!-- Legend -->
           <div class="map-legend">
             <h4>Severity Levels</h4>
             <div class="legend-item">
-              <div
-                class="legend-marker"
-                style="
-                  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
-                "
-              ></div>
-              <span>Critical</span>
+              <div class="legend-marker legend-critical"></div><span>Critical</span>
             </div>
             <div class="legend-item">
-              <div
-                class="legend-marker"
-                style="
-                  background: linear-gradient(135deg, #f57c00 0%, #e65100 100%);
-                "
-              ></div>
-              <span>High</span>
+              <div class="legend-marker legend-high"></div><span>High</span>
             </div>
             <div class="legend-item">
-              <div
-                class="legend-marker"
-                style="
-                  background: linear-gradient(135deg, #fbc02d 0%, #f57f17 100%);
-                "
-              ></div>
-              <span>Medium</span>
+              <div class="legend-marker legend-medium"></div><span>Medium</span>
             </div>
             <div class="legend-item">
-              <div
-                class="legend-marker"
-                style="
-                  background: linear-gradient(135deg, #388e3c 0%, #1b5e20 100%);
-                "
-              ></div>
-              <span>Low</span>
+              <div class="legend-marker legend-low"></div><span>Low</span>
             </div>
           </div>
 
@@ -981,17 +193,11 @@
       </section>
     </main>
 
-    <!-- Slide-out Filter Tab -->
+    <!-- Slide-out Filters -->
     <aside id="filter-tab" class="filter-tab" aria-label="Filters">
       <div class="filter-tab-header">
         <h3><i class="fas fa-sliders-h"></i> Filters</h3>
-        <button
-          id="close-filter-tab"
-          class="filter-tab-close"
-          aria-label="Close filters"
-        >
-          &times;
-        </button>
+        <button id="close-filter-tab" class="filter-tab-close" aria-label="Close filters">&times;</button>
       </div>
 
       <div class="filter-tab-body">
@@ -1005,354 +211,301 @@
         </div>
         <div class="filter-row">
           <label for="report-search-tab">Search</label>
-          <input
-            type="text"
-            id="report-search-tab"
-            placeholder="Search reports..."
-          />
+          <input type="text" id="report-search-tab" placeholder="Search reports..." />
         </div>
 
         <div class="filter-actions">
-          <button id="filters-apply" class="apply-btn">
-            <i class="fas fa-check"></i> Apply
-          </button>
-          <button id="filters-clear" class="clear-btn">
-            <i class="fas fa-broom"></i> Clear
-          </button>
+          <button id="filters-apply" class="apply-btn"><i class="fas fa-check"></i> Apply</button>
+          <button id="filters-clear" class="clear-btn"><i class="fas fa-broom"></i> Clear</button>
         </div>
       </div>
     </aside>
-    <div
-      id="filter-tab-backdrop"
-      class="filter-tab-backdrop"
-      tabindex="-1"
-      aria-hidden="true"
-    ></div>
+    <div id="filter-tab-backdrop" class="filter-tab-backdrop" tabindex="-1" aria-hidden="true"></div>
 
-    <!-- REPORT MODAL -->
+        <!-- Report Modal (enhanced layout, fixed tall height via CSS) -->
     <div id="report-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 class="modal-report-type">Report Details</h3>
+      <div class="modal-content modal-wide">
+        <div class="modal-header report-details-header">
+          <div class="header-left">
+            <h3 class="modal-report-type">
+              <span class="modal-report-type-value">Report</span>
+            </h3>
+            <div class="header-sub"><!-- “updated … ago” injected by JS --></div>
+          </div>
+          <div class="header-right">
+            <div class="modal-report-status"><!-- status badge injected --></div>
+          </div>
           <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
-        <div class="modal-body">
-          <p class="report-description"></p>
-          <div class="report-metadata">
-            <div class="metadata-item">
-              <i class="fas fa-file-alt"></i>
-              <div class="metadata-content">
-                <div class="metadata-label">Report Type</div>
-                <div class="metadata-value modal-report-type-value"></div>
+
+        <!-- Body scrolls internally when content exceeds fixed height -->
+        <div class="modal-body details-layout">
+          <!-- LEFT COLUMN -->
+          <section class="details-col">
+            <div class="report-metadata report-meta-grid">
+              <!-- JS adds assigned org / created / updated -->
+              <div class="metadata-item meta-severity">
+                <i class="fas fa-exclamation-circle"></i>
+                <div class="metadata-content">
+                  <div class="metadata-label">Severity</div>
+                  <div class="metadata-value modal-report-severity"></div>
+                </div>
+              </div>
+              <div class="metadata-item meta-reporter">
+                <i class="fas fa-user"></i>
+                <div class="metadata-content">
+                  <div class="metadata-label">Reporter</div>
+                  <div class="metadata-value modal-report-email">—</div>
+                </div>
+              </div>
+              <div class="metadata-item meta-location">
+                <i class="fas fa-map-marker-alt"></i>
+                <div class="metadata-content">
+                  <div class="metadata-label">Location</div>
+                  <div class="metadata-value modal-report-location">—</div>
+                </div>
+              </div>
+              <div class="metadata-item meta-assigned-org">
+                <i class="fas fa-building"></i>
+                <div class="metadata-content">
+                  <div class="metadata-label">Assigned Organization</div>
+                  <div class="metadata-value"></div>
+                </div>
+              </div>
+              <div class="metadata-item meta-created-at">
+                <i class="fas fa-calendar-plus"></i>
+                <div class="metadata-content">
+                  <div class="metadata-label">Created At</div>
+                  <div class="metadata-value"></div>
+                </div>
+              </div>
+              <div class="metadata-item meta-updated-at">
+                <i class="fas fa-clock"></i>
+                <div class="metadata-content">
+                  <div class="metadata-label">Updated At</div>
+                  <div class="metadata-value"></div>
+                </div>
               </div>
             </div>
-            <div class="metadata-item">
-              <i class="fas fa-tag"></i>
-              <div class="metadata-content">
-                <div class="metadata-label">Status</div>
-                <div class="metadata-value modal-report-status"></div>
-              </div>
+
+            <h4 class="section-heading"><i class="fas fa-align-left"></i> Description</h4>
+            <p class="report-description">No description provided.</p>
+
+            <!-- MEDIA now BELOW description -->
+            <div class="media-block">
+              <button class="map-location-btn" id="open-map-btn">
+                <i class="fas fa-map-marker-alt"></i> Map Location
+              </button>
+
+              <div class="report-images"></div>
+              <div class="report-video"></div>
             </div>
-            <div class="metadata-item">
-              <i class="fas fa-map-marker-alt"></i>
-              <div class="metadata-content">
-                <div class="metadata-label">Location</div>
-                <div class="metadata-value modal-report-location"></div>
-              </div>
+          </section>
+
+          <!-- RIGHT COLUMN — STATUS TIMELINE -->
+          <aside class="timeline-col">
+            <h4 class="section-heading"><i class="fas fa-clock"></i> Status Timeline</h4>
+            <div class="timeline-list" id="timeline-list">
+              <!-- timeline items injected -->
             </div>
-            <div class="metadata-item">
-              <i class="fas fa-user"></i>
-              <div class="metadata-content">
-                <div class="metadata-label">Reported By</div>
-                <div class="metadata-value modal-report-email"></div>
-              </div>
-            </div>
-            <div class="metadata-item">
-              <i class="fas fa-exclamation-circle"></i>
-              <div class="metadata-content">
-                <div class="metadata-label">Severity</div>
-                <div class="metadata-value modal-report-severity"></div>
-              </div>
-            </div>
-          </div>
-          <div class="report-images"></div>
-          <button
-            class="map-location-btn"
-            id="open-map-btn"
-            style="margin-top: -8px"
-          >
-            <i class="fas fa-map-marker-alt"></i> Map Location
-          </button>
-          <div class="report-video"></div>
+          </aside>
         </div>
+
         <div class="modal-footer">
-          <div class="report-date">
-            <span class="modal-report-date"></span>
-          </div>
-          <div class="action-buttons">
-            <button id="reject-btn" class="btn-reject">Reject</button>
-            <button id="accept-btn" class="btn-accept">Accept</button>
-          </div>
+          <div class="footer-left-actions"></div>
+          <div class="action-buttons"></div>
         </div>
       </div>
     </div>
 
-    <!-- MAP MODAL -->
+    <!-- Map Modal (keeps normal overlay behavior) -->
     <div id="map-modal" class="modal">
-      <div class="modal-content" style="max-width: 700px; padding: 20px">
+      <div class="modal-content map-modal-content">
         <div class="modal-header">
-          <h3 class="modal-title">
-            <i class="fas fa-map-marked-alt"></i> Report Location
-          </h3>
+          <h3 class="modal-title"><i class="fas fa-map-marked-alt"></i> Report Location</h3>
           <button
             class="modal-close"
-            onclick="document.getElementById('map-modal').classList.remove('show'); document.body.style.overflow = '';"
-          >
-            &times;
-          </button>
+            onclick="document.getElementById('map-modal').classList.remove('show'); document.body.style.overflow='';"
+          >&times;</button>
         </div>
         <div class="modal-body">
-          <div
-            id="leaflet-map"
-            style="height: 400px; width: 100%; border-radius: 10px"
-          ></div>
+          <div id="leaflet-map"></div>
         </div>
       </div>
     </div>
 
+    <!-- Inline page logic kept (table/map rendering + filters) -->
     <script>
-      // ====== STATE ======
+      if (typeof window.renderReportsTable !== "function") window.renderReportsTable = function(){};
+      if (typeof window.updateMapMarkers !== "function") window.updateMapMarkers = function(){};
+
       let reportsMap = null;
       let markerClusterGroup = null;
       let allReportsData = [];
-      let tableSort = { key: "timestamp", dir: "desc" }; // default sort: newest first
+      let tableSort = { key: "createdAt", dir: "desc" };
 
-      // ====== VIEW TOGGLE ======
+      // Severity ranking for sorting
+      const SEVERITY_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+
       document.addEventListener("DOMContentLoaded", function () {
         const viewToggleBtns = document.querySelectorAll(".view-toggle-btn");
         const mainContent = document.getElementById("main-content");
-
-        // Ensure Table is default
         mainContent.className = "main-content view-mode-table";
 
         viewToggleBtns.forEach((btn) => {
           btn.addEventListener("click", function () {
             viewToggleBtns.forEach((b) => b.classList.remove("active"));
             this.classList.add("active");
-
             const viewMode = this.getAttribute("data-view");
             mainContent.className = "main-content view-mode-" + viewMode;
 
             if (viewMode === "map") {
               if (!reportsMap) initializeReportsMap();
-              setTimeout(() => {
-                reportsMap.invalidateSize();
-                updateMapMarkers();
-              }, 100);
+              setTimeout(() => { reportsMap.invalidateSize(); updateMapMarkers(); }, 100);
             } else {
               renderReportsTable();
             }
           });
         });
 
-        // Filters wired to both Table and Map
-        document
-          .getElementById("status-filter")
-          ?.addEventListener("change", () => {
-            renderReportsTable();
-            updateMapMarkers();
-          });
-        document
-          .getElementById("severity-filter")
-          ?.addEventListener("change", () => {
-            renderReportsTable();
-            updateMapMarkers();
-          });
-        document
-          .getElementById("report-search")
-          ?.addEventListener("input", () => {
-            renderReportsTable();
-            updateMapMarkers();
-          });
+        document.getElementById("status-filter")?.addEventListener("change", () => { renderReportsTable(); updateMapMarkers(); });
+        document.getElementById("severity-filter")?.addEventListener("change", () => { renderReportsTable(); updateMapMarkers(); });
+        document.getElementById("report-search")?.addEventListener("input", () => { renderReportsTable(); updateMapMarkers(); });
 
         initTableSorting();
         initFilterTab();
       });
 
-      // ====== CENTRALIZED FILTERING ======
       function getFilteredReports() {
-        const statusFilter = (
-          document.getElementById("status-filter")?.value || "ALL"
-        ).toUpperCase();
-        const severityFilter = (
-          document.getElementById("severity-filter")?.value || "ALL"
-        ).toUpperCase();
-        const searchQuery = (
-          document.getElementById("report-search")?.value || ""
-        ).toLowerCase();
+        const statusFilter = (document.getElementById("status-filter")?.value || "ALL").toUpperCase();
+        const severityFilter = (document.getElementById("severity-filter")?.value || "ALL").toUpperCase();
+        const searchQuery = (document.getElementById("report-search")?.value || "").toLowerCase();
 
         return allReportsData.filter((report) => {
           const status = (report.status || "").toUpperCase();
           const severity = (report.severity || "").toUpperCase();
 
-          const matchesStatus =
-            statusFilter === "ALL" || status === statusFilter;
-          const matchesSeverity =
-            severityFilter === "ALL" || severity === severityFilter;
+          const matchesStatus = statusFilter === "ALL" || status === statusFilter;
+          const matchesSeverity = severityFilter === "ALL" || severity === severityFilter;
 
           const hay = [
             report.description || "",
             report.email || "",
+            report.reporterDisplayName || "",
             report.location || "",
             report.reportType || "",
             report.status || "",
             report.severity || "",
-          ]
-            .join(" ")
-            .toLowerCase();
+          ].join(" ").toLowerCase();
 
           const matchesSearch = !searchQuery || hay.includes(searchQuery);
           return matchesStatus && matchesSeverity && matchesSearch;
         });
       }
 
-      // ====== TABLE RENDERING ======
       function renderReportsTable() {
         const tbody = document.querySelector("#reports-table tbody");
         if (!tbody) return;
 
         let rows = getFilteredReports();
 
-        // Sort rows
         const key = tableSort.key;
         const dir = tableSort.dir === "asc" ? 1 : -1;
         rows.sort((a, b) => {
-          let va = a[key],
-            vb = b[key];
+          let va = a[key], vb = b[key];
 
-          if (key === "timestamp") {
-            va = new Date(a.timestamp || a.date || 0).getTime();
-            vb = new Date(b.timestamp || b.date || 0).getTime();
+          if (key === "createdAt") {
+            va = Number(a.createdAt || a.timestamp || 0);
+            vb = Number(b.createdAt || b.timestamp || 0);
+          } else if (key === "severity") {
+            const ra = SEVERITY_RANK[(a.severity || "").toUpperCase()] || 0;
+            const rb = SEVERITY_RANK[(b.severity || "").toUpperCase()] || 0;
+            if (ra < rb) return -1 * dir;
+            if (ra > rb) return  1 * dir;
+            return 0;
           } else if (typeof va === "string" && typeof vb === "string") {
-            va = va.toLowerCase();
-            vb = vb.toLowerCase();
+            va = va.toLowerCase(); vb = vb.toLowerCase();
           }
 
           if (va < vb) return -1 * dir;
-          if (va > vb) return 1 * dir;
+          if (va > vb) return  1 * dir;
           return 0;
         });
 
         if (rows.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#777;padding:20px">
+          tbody.innerHTML = `<tr><td colspan="8" class="empty">
             <i class="fas fa-magnifying-glass"></i> No reports match your filters.
           </td></tr>`;
-          // keep count in sync even if in map view
           const activeCountEl = document.getElementById("active-cases-count");
           if (activeCountEl) activeCountEl.textContent = 0;
           return;
         }
 
-        const html = rows
-          .map((r) => {
-            const dateStr =
-              r.timestamp || r.date
-                ? new Date(r.timestamp || r.date).toLocaleString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "N/A";
+        const html = rows.map((r) => {
+          const createdMs = Number(r.createdAt || r.timestamp || 0);
 
-            const statusClass = `status-${(r.status || "SUBMITTED")
-              .toUpperCase()
-              .replace(/\s/g, "\\ ")}`;
-            const sevClass = `sev-${r.severity || "Low"}`;
+          let dateCell = "N/A";
+          if (createdMs) {
+            const d = new Date(createdMs);
+            const datePart = d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+            const timePart = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+            dateCell = `<div>${datePart}</div><div class="time">${timePart}</div>`;
+          }
 
-            const lat = parseFloat(r.latitude);
-            const lng = parseFloat(r.longitude);
-            const hasCoords =
-              Number.isFinite(lat) &&
-              Number.isFinite(lng) &&
-              lat !== 0 &&
-              lng !== 0;
+          const statusClass = `status-${(r.status || "SUBMITTED").toUpperCase().replace(/\s+/g, "-")}`;
+          const sevClass = `sev-${r.severity || "Low"}`;
 
-            return `
+          const lat = parseFloat(r.latitude);
+          const lng = parseFloat(r.longitude);
+          const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0;
+
+          return `
             <tr>
-              <td>${dateStr}</td>
+              <td class="date-cell">${dateCell}</td>
               <td>${r.reportType || "Report"}</td>
-              <td><span class="status-badge ${statusClass}">${
-              r.status || "SUBMITTED"
-            }</span></td>
-              <td><span class="severity-dot ${sevClass}"></span>${
-              r.severity || "Low"
-            }</td>
+              <td><span class="status-badge ${statusClass}">${r.status || "SUBMITTED"}</span></td>
+              <td><span class="severity-dot ${sevClass}"></span>${r.severity || "Low"}</td>
               <td>${r.location || "Unknown"}</td>
+              <td>${r.reporterDisplayName || "—"}</td>
               <td>${r.email || "—"}</td>
-              <td>${r.reporterUid || "—"}</td>
               <td>
                 <div class="row-actions">
-                  <button class="btn btn-view" onclick="openReportDetails('${
-                    r.id
-                  }')">
+                  <button class="btn btn-view" onclick="openReportDetails('${r.id}')">
                     <i class="fas fa-eye"></i> View
                   </button>
-                  <button class="btn btn-message" onclick="showMessageModal('${
-                    r.id
-                  }', '${(r.email || "").replace(/'/g, "\\'")}')">
-                    <i class="fas fa-comment"></i> Message
-                  </button>
-                  <button class="btn btn-map" ${
-                    hasCoords ? "" : "disabled"
-                  } onclick="${
-              hasCoords ? `openGoogleMaps(${lat}, ${lng})` : ""
-            }">
+                  <button class="btn btn-map" ${hasCoords ? "" : "disabled"} onclick="${hasCoords ? `openGoogleMaps(${lat}, ${lng})` : ""}">
                     <i class="fas fa-location-arrow"></i> Directions
                   </button>
                 </div>
               </td>
             </tr>
           `;
-          })
-          .join("");
+        }).join("");
 
         tbody.innerHTML = html;
 
-        // sync count shown on map overlay
         const activeCountEl = document.getElementById("active-cases-count");
         if (activeCountEl) activeCountEl.textContent = rows.length;
       }
 
       function initTableSorting() {
-        document
-          .querySelectorAll("#reports-table thead th.sortable")
-          .forEach((th) => {
-            th.addEventListener("click", () => {
-              const newKey = th.getAttribute("data-key");
-              if (tableSort.key === newKey) {
-                tableSort.dir = tableSort.dir === "asc" ? "desc" : "asc";
-              } else {
-                tableSort.key = newKey;
-                tableSort.dir = newKey === "timestamp" ? "desc" : "asc";
-              }
-
-              document
-                .querySelectorAll("#reports-table thead th.sortable")
-                .forEach((h) => {
-                  h.classList.remove("sort-asc", "sort-desc");
-                });
-              th.classList.add(
-                tableSort.dir === "asc" ? "sort-asc" : "sort-desc"
-              );
-
-              renderReportsTable();
-            });
+        document.querySelectorAll("#reports-table thead th.sortable").forEach((th) => {
+          th.addEventListener("click", () => {
+            const newKey = th.getAttribute("data-key");
+            if (tableSort.key === newKey) {
+              tableSort.dir = tableSort.dir === "asc" ? "desc" : "asc";
+            } else {
+              tableSort.key = newKey;
+              // default direction: date desc, severity desc, others asc
+              tableSort.dir = (newKey === "createdAt" || newKey === "severity") ? "desc" : "asc";
+            }
+            document.querySelectorAll("#reports-table thead th.sortable").forEach((h) => h.classList.remove("sort-asc", "sort-desc"));
+            th.classList.add(tableSort.dir === "asc" ? "sort-asc" : "sort-desc");
+            renderReportsTable();
           });
+        });
       }
 
-      // ====== FILTER TAB (DRAWER) ======
       function initFilterTab() {
         const openBtn = document.getElementById("open-filter-tab");
         const closeBtn = document.getElementById("close-filter-tab");
@@ -1367,7 +520,6 @@
         const severityTab = document.getElementById("severity-filter-tab");
         const searchTab = document.getElementById("report-search-tab");
 
-        // Mirror options
         statusTab.innerHTML = statusMain.innerHTML;
         severityTab.innerHTML = severityMain.innerHTML;
 
@@ -1382,119 +534,75 @@
           searchMain.value = searchTab.value;
         }
 
-        function openDrawer() {
-          syncToTab();
-          drawer.classList.add("open");
-          backdrop.classList.add("show");
-          setTimeout(() => {
-            statusTab.focus();
-          }, 50);
-        }
-        function closeDrawer() {
-          drawer.classList.remove("open");
-          backdrop.classList.remove("show");
-        }
+        function openDrawer() { syncToTab(); drawer.classList.add("open"); backdrop.classList.add("show"); setTimeout(() => { statusTab.focus(); }, 50); }
+        function closeDrawer() { drawer.classList.remove("open"); backdrop.classList.remove("show"); }
 
         openBtn?.addEventListener("click", openDrawer);
         closeBtn?.addEventListener("click", closeDrawer);
         backdrop?.addEventListener("click", closeDrawer);
 
-        document
-          .getElementById("filters-apply")
-          ?.addEventListener("click", () => {
-            syncToMain();
-            renderReportsTable();
-            updateMapMarkers();
-            closeDrawer();
-          });
+        document.getElementById("filters-apply")?.addEventListener("click", () => {
+          syncToMain();
+          renderReportsTable();
+          updateMapMarkers();
+          closeDrawer();
+        });
 
-        document
-          .getElementById("filters-clear")
-          ?.addEventListener("click", () => {
-            statusTab.value = "ALL";
-            severityTab.value = "ALL";
-            searchTab.value = "";
-          });
+        document.getElementById("filters-clear")?.addEventListener("click", () => {
+          statusTab.value = "ALL";
+          severityTab.value = "ALL";
+          searchTab.value = "";
+        });
       }
 
-      // ====== MAP ======
       function initializeReportsMap() {
-        reportsMap = L.map("reports-map", {
-          zoomControl: true,
-          scrollWheelZoom: true,
-        }).setView([14.4637, 120.9464], 12);
-
+        reportsMap = L.map("reports-map", { zoomControl: true, scrollWheelZoom: true }).setView([14.4637, 120.9464], 12);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap contributors",
-          maxZoom: 19,
-          minZoom: 5,
+          attribution: "© OpenStreetMap contributors", maxZoom: 19, minZoom: 5,
         }).addTo(reportsMap);
 
         markerClusterGroup = L.markerClusterGroup({
-          maxClusterRadius: 60,
-          spiderfyOnMaxZoom: true,
-          showCoverageOnHover: false,
-          zoomToBoundsOnClick: true,
+          maxClusterRadius: 60, spiderfyOnMaxZoom: true, showCoverageOnHover: false, zoomToBoundsOnClick: true,
         });
-
         reportsMap.addLayer(markerClusterGroup);
 
-        setTimeout(() => {
-          reportsMap.invalidateSize();
-          updateMapMarkers();
-        }, 100);
+        setTimeout(() => { reportsMap.invalidateSize(); updateMapMarkers(); }, 100);
       }
 
       function updateMapMarkers() {
         if (!reportsMap || !markerClusterGroup) return;
-
         markerClusterGroup.clearLayers();
 
         const filteredByUI = getFilteredReports();
-
         const countEl = document.getElementById("active-cases-count");
         if (countEl) countEl.textContent = filteredByUI.length;
 
         const filteredWithCoords = filteredByUI.filter((report) => {
           const lat = parseFloat(report.latitude);
           const lng = parseFloat(report.longitude);
-          return (
-            Number.isFinite(lat) &&
-            Number.isFinite(lng) &&
-            lat !== 0 &&
-            lng !== 0
-          );
+          return Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0;
         });
 
         filteredWithCoords.forEach((report) => {
           const lat = parseFloat(report.latitude);
           const lng = parseFloat(report.longitude);
-          const severityClass =
-            "severity-" + (report.severity || "low").toLowerCase();
+          const severityClass = "severity-" + (report.severity || "low").toLowerCase();
 
           const icon = L.divIcon({
             className: "emergency-marker " + severityClass,
             html: `<div class="emergency-marker-inner"><i class="fas fa-exclamation-triangle"></i></div>`,
-            iconSize: [50, 50],
-            iconAnchor: [25, 25],
-            popupAnchor: [0, -25],
+            iconSize: [50, 50], iconAnchor: [25, 25], popupAnchor: [0, -25],
           });
 
           const marker = L.marker([lat, lng], { icon });
 
-          const dateStr =
-            report.timestamp || report.date
-              ? new Date(report.timestamp || report.date).toLocaleDateString(
-                  "en-US",
-                  {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                )
-              : "N/A";
+          const createdMs = Number(report.createdAt || report.timestamp || 0);
+          const dateStr = createdMs
+            ? new Date(createdMs).toLocaleDateString("en-US", {
+                year: "numeric", month: "short", day: "numeric",
+                hour: "2-digit", minute: "2-digit",
+              })
+            : "N/A";
 
           const popupContent = `
             <div class="emergency-popup">
@@ -1507,18 +615,14 @@
                   <i class="fas fa-map-marker-alt"></i>
                   <div class="popup-info-content">
                     <div class="popup-info-label">Location</div>
-                    <div class="popup-info-value">${
-                      report.location || "Unknown location"
-                    }</div>
+                    <div class="popup-info-value">${report.location || "Unknown location"}</div>
                   </div>
                 </div>
                 <div class="popup-info-row">
                   <i class="fas fa-exclamation-triangle"></i>
                   <div class="popup-info-content">
                     <div class="popup-info-label">Severity</div>
-                    <div class="popup-info-value">${
-                      report.severity || "Low"
-                    }</div>
+                    <div class="popup-info-value">${report.severity || "Low"}</div>
                   </div>
                 </div>
                 <div class="popup-info-row">
@@ -1526,9 +630,7 @@
                   <div class="popup-info-content">
                     <div class="popup-info-label">Status</div>
                     <div class="popup-info-value">
-                      <span class="popup-status-badge" style="background: ${getStatusColor(
-                        report.status
-                      )}">
+                      <span class="popup-status-badge" style="background:${getStatusColor(report.status)}">
                         ${report.status || "SUBMITTED"}
                       </span>
                     </div>
@@ -1545,17 +647,11 @@
                   <i class="fas fa-align-left"></i>
                   <div class="popup-info-content">
                     <div class="popup-info-label">Description</div>
-                    <div class="popup-info-value">${(
-                      report.description || "No description"
-                    ).substring(0, 120)}${
-            (report.description || "").length > 120 ? "..." : ""
-          }</div>
+                    <div class="popup-info-value">${(report.description || "No description").substring(0, 120)}${(report.description || "").length > 120 ? "..." : ""}</div>
                   </div>
                 </div>
                 <div class="popup-buttons">
-                  <button class="popup-btn popup-btn-primary" onclick="openReportDetails('${
-                    report.id
-                  }')">
+                  <button class="popup-btn popup-btn-primary" onclick="openReportDetails('${report.id}')">
                     <i class="fas fa-eye"></i> View Details
                   </button>
                   <button class="popup-btn popup-btn-secondary" onclick="openGoogleMaps(${lat}, ${lng})">
@@ -1566,20 +662,13 @@
             </div>
           `;
 
-          marker.bindPopup(popupContent, {
-            maxWidth: 320,
-            className: "custom-emergency-popup",
-            closeButton: false,
-          });
-
+          marker.bindPopup(popupContent, { maxWidth: 320, className: "custom-emergency-popup", closeButton: false });
           markerClusterGroup.addLayer(marker);
         });
 
         if (filteredWithCoords.length > 0) {
           const bounds = markerClusterGroup.getBounds();
-          if (bounds.isValid()) {
-            reportsMap.fitBounds(bounds.pad(0.1), { maxZoom: 15 });
-          }
+          if (bounds.isValid()) reportsMap.fitBounds(bounds.pad(0.1), { maxZoom: 15 });
         }
       }
 
@@ -1597,48 +686,21 @@
 
       function openReportDetails(reportId) {
         const report = allReportsData.find((r) => r.id === reportId);
-        if (report && typeof openModal === "function") {
-          openModal(report);
-        }
+        if (report && typeof openModal === "function") openModal(report);
       }
 
       function openGoogleMaps(lat, lng) {
-        window.open(
-          `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-          "_blank"
-        );
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank");
       }
 
-      // ====== DATA FLOW HOOKS ======
-      // If reports.js calls window.updateReportsMapData, intercept and render table too.
       const _origUpdateReportsMapData = window.updateReportsMapData;
       window.updateReportsMapData = function (reports) {
-        // DEBUG: log incoming normalized reports so we can verify 'email' is populated
-        try {
-          const preview = (reports || []).slice(0, 5).map((r) => ({
-            id: r.id,
-            email: r.email,
-            status: r.status,
-            reportType: r.reportType,
-          }));
-          console.debug(
-            "updateReportsMapData -> count:",
-            (reports || []).length,
-            "preview:",
-            preview
-          );
-        } catch (e) {
-          console.debug("updateReportsMapData preview error", e);
-        }
-
         allReportsData = reports || [];
         renderReportsTable();
         if (reportsMap && markerClusterGroup) updateMapMarkers();
-        if (typeof _origUpdateReportsMapData === "function")
-          _origUpdateReportsMapData(reports);
+        if (typeof _origUpdateReportsMapData === "function") _origUpdateReportsMapData(reports);
       };
 
-      // If reports.js dispatches "reportsLoaded", render table/map
       window.addEventListener("reportsLoaded", function (event) {
         if (event.detail && event.detail.reports) {
           allReportsData = event.detail.reports;
@@ -1646,22 +708,6 @@
           if (reportsMap && markerClusterGroup) updateMapMarkers();
         }
       });
-
-      // Safety log if nothing arrives
-      setTimeout(() => {
-        if (allReportsData.length === 0) {
-          console.warn("⚠️ NO REPORTS LOADED");
-          console.log(
-            "Make sure to call: window.updateReportsMapData(reports)"
-          );
-          console.log(
-            'Or dispatch event: window.dispatchEvent(new CustomEvent("reportsLoaded", {detail: {reports: data}}))'
-          );
-        } else {
-          console.log("✅ Reports already loaded:", allReportsData.length);
-          renderReportsTable();
-        }
-      }, 3000);
     </script>
   </body>
 </html>

@@ -1,14 +1,11 @@
-// ========================== reports.js (updated) ==========================
-// This version stops rendering "cards" and instead:
-// 1) Subscribes to Firebase,
-// 2) Normalizes data,
-// 3) Emits an array to window.updateReportsMapData(reports),
-// letting the HTML handle Table + Map rendering, filtering, and sorting.
-// It keeps your accept/reject/status updates, modal, messaging, and toasts.
+// ---- Early no-op shims (avoid ReferenceError if called before HTML defines them) ----
+(function ensureShims() {
+  if (typeof window.renderReportsTable !== "function") window.renderReportsTable = function () {};
+  if (typeof window.updateMapMarkers !== "function") window.updateMapMarkers = function () {};
+})();
 
 // -------- Utilities --------
 
-// Simple counter animation for statistics (if needed)
 function animateNumber(id, end, duration = 800) {
   const el = document.getElementById(id);
   let start = 0;
@@ -34,45 +31,24 @@ async function getAddressFromCoords(lat, lng) {
   }
 }
 
-// Status badge class (for your modal/toasts)
 function getStatusBadgeClass(status) {
-  if (!status) return "status-pending";
-  status = status.toUpperCase();
-  switch (status) {
-    case "ACCEPTED":
-      return "status-accepted";
-    case "IN PROGRESS":
-      return "status-in-progress";
-    case "ON HOLD":
-      return "status-on-hold";
-    case "COMPLETED":
-      return "status-completed";
-    case "REJECTED":
-      return "status-rejected";
-    default:
-      return "status-pending";
-  }
+  const s = (status || "SUBMITTED").toUpperCase().replace(/\s+/g, "-");
+  return `status-${s}`;
 }
 
-// Severity class (for your modal)
 function getSeverityClass(severity) {
   if (!severity) return "severity-unknown";
   switch (severity.toLowerCase()) {
-    case "low":
-      return "severity-low";
-    case "medium":
-      return "severity-medium";
-    case "high":
-      return "severity-high";
-    case "critical":
-      return "severity-critical";
-    default:
-      return "severity-unknown";
+    case "low": return "severity-low";
+    case "medium": return "severity-medium";
+    case "high": return "severity-high";
+    case "critical": return "severity-critical";
+    default: return "severity-unknown";
   }
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return "N/A";
+  if (!timestamp) return "—";
   try {
     const date = new Date(timestamp);
     return (
@@ -80,17 +56,83 @@ function formatDate(timestamp) {
       " " +
       date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     );
-  } catch (e) {
+  } catch {
     return String(timestamp);
   }
 }
 
-// -------- Data normalization & feed to UI --------
+/** Parse yyyyMMdd_HHmmss from reportId, if needed */
+function parseTimestampFromReportId(reportId) {
+  if (!reportId || typeof reportId !== "string") return 0;
+  const parts = reportId.split("_");
+  if (parts.length < 3) return 0;
+  const raw = (parts[1] || "") + (parts[2] || "");
+  if (!/^\d{14}$/.test(raw)) return 0;
+  const y = +raw.slice(0, 4);
+  const M = +raw.slice(4, 6) - 1;
+  const d = +raw.slice(6, 8);
+  const h = +raw.slice(8, 10);
+  const m = +raw.slice(10, 12);
+  const s = +raw.slice(12, 14);
+  const dt = new Date(y, M, d, h, m, s);
+  return isFinite(dt.getTime()) ? dt.getTime() : 0;
+}
 
-// simple cache for user emails to avoid repeated DB reads
-const _userEmailCache = {};
+// Build " • 5 min ago"
+function buildUpdatedAgo(updatedAt, fallbackReportId) {
+  let ts = updatedAt || 0;
+  if (!ts && fallbackReportId) {
+    const parts = fallbackReportId.split("_");
+    if (parts.length >= 3) {
+      const date = parts[1]; // yyyyMMdd
+      const time = parts[2]; // HHmmss
+      try {
+        const y = +date.slice(0, 4),
+          M = +date.slice(4, 6) - 1,
+          d = +date.slice(6, 8),
+          h = +time.slice(0, 2),
+          m = +time.slice(2, 4),
+          s = +time.slice(4, 6);
+        ts = new Date(y, M, d, h, m, s).getTime();
+      } catch {}
+    }
+  }
+  if (!ts) return "";
+  const diff = Date.now() - ts;
+  const mins = Math.max(1, Math.round(diff / 60000));
+  if (mins < 60) return ` • ${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return ` • ${hrs} hr${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.round(hrs / 24);
+  return ` • ${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+// -------- Data normalization --------
+
+function pickReportEmail(r) {
+  return r.reportUserEmail || r.email || "";
+}
 
 function normalizeReport(id, r) {
+  const reporterUid = (() => {
+    const uidKeys = ["reportUserId", "userId", "reporterId", "reportedById", "reportUser", "user"];
+    for (const k of uidKeys) {
+      const val = r[k];
+      const candidateUid =
+        (val && typeof val === "object" && (val.uid || val.id)) ||
+        (typeof val === "string" ? val : null);
+      if (candidateUid) return candidateUid;
+    }
+    return null;
+  })();
+
+  const createdAt =
+    Number(r.createdAt) ||
+    Number(r.timestamp) ||
+    Number(r.date) ||
+    parseTimestampFromReportId(id) ||
+    0;
+
   return {
     id,
     reportType: r.reportType || "Unknown",
@@ -99,270 +141,127 @@ function normalizeReport(id, r) {
     location: r.address || "",
     latitude: r.latitude ?? r.lat ?? "",
     longitude: r.longitude ?? r.lng ?? "",
-    // Normalize reporter email from several possible shapes.
-    // Support multiple id keys (reportUserId, userId, reporterId, etc.) and
-    // prefer resolved cache values when available.
-    // store reporter uid when available for future use and try multiple strategies
-    reporterUid: (() => {
-      const uidKeys = [
-        "reportUserId",
-        "userId",
-        "reporterId",
-        "reportedById",
-        "reportUser",
-        "user",
-      ];
-      for (const k of uidKeys) {
-        const val = r[k];
-        const candidateUid =
-          (val && typeof val === "object" && (val.uid || val.id)) ||
-          (typeof val === "string" ? val : null);
-        if (candidateUid) return candidateUid;
-      }
-      return null;
-    })(),
-    email: (() => {
-      // candidate user id keys that reports may use
-      const uidKeys = [
-        "reportUserId",
-        "userId",
-        "reporterId",
-        "reportedById",
-        "reportUser",
-        "user",
-      ];
-
-      for (const k of uidKeys) {
-        const val = r[k];
-        // if the field is an object, try to extract .uid or .id
-        const candidateUid =
-          (val && typeof val === "object" && (val.uid || val.id)) ||
-          (typeof val === "string" ? val : null);
-        if (candidateUid && _userEmailCache[candidateUid]) {
-          return _userEmailCache[candidateUid].email || "";
-        }
-      }
-
-      // fallback to any direct email fields on the report
-      return (
-        r.reportUserEmail ||
-        r.email ||
-        r.reporterEmail ||
-        r.reportedByEmail ||
-        (r.reportUser && (r.reportUser.email || r.reportUserEmail)) ||
-        (r.reporter && (r.reporter.email || r.reporter.emailAddress)) ||
-        // as a last attempt, if we previously determined a reporterUid, try cache again
-        (
-          _userEmailCache[
-            (function () {
-              const keys = [
-                "reportUserId",
-                "userId",
-                "reporterId",
-                "reportedById",
-                "reportUser",
-                "user",
-              ];
-              for (const k of keys) {
-                const v = r[k];
-                const cid =
-                  (v && typeof v === "object" && (v.uid || v.id)) ||
-                  (typeof v === "string" ? v : null);
-                if (cid) return cid;
-              }
-              return null;
-            })()
-          ] || {}
-        ).email ||
-        ""
-      );
-    })(),
-    timestamp: r.timestamp || r.createdAt || r.date || null,
+    reporterUid,
+    reporterDisplayName: r.reporterDisplayName || "",
+    email: pickReportEmail(r),
+    createdAt,
+    timestamp: createdAt,
     description: r.reportDescription || "",
     imageUrls: r.imageUrls || [],
     videoUrl: r.videoUrl || null,
-    // keep originals in case you need them:
     organizationId: r.organizationId || null,
     messages: r.messages || null,
   };
 }
 
-/**
- * Subscribe to Firebase, normalize, and emit to the page.
- * No DOM rendering here — Table & Map will render from the emitted array.
- */
+/** Subscribe -> normalize -> emit to page */
 function subscribeReports() {
   const db = firebase.database();
-  const orgId = firebase.auth().currentUser?.uid;
-
   db.ref("reports").on("value", (snapshot) => {
     const raw = snapshot.val();
-
     if (!raw) {
       window.updateReportsMapData?.([]);
       return;
     }
-
-    // Collect report user ids from several possible keys that we may need to resolve
-    const entries = Object.entries(raw);
-    const missingUserIds = new Set();
-    const possibleUidKeys = [
-      "reportUserId",
-      "userId",
-      "reporterId",
-      "reportedById",
-      "reportUser",
-      "user",
-    ];
-
-    entries.forEach(([id, r]) => {
-      if (!r) return;
-      for (const k of possibleUidKeys) {
-        const val = r[k];
-        const candidateUid =
-          (val && typeof val === "object" && (val.uid || val.id)) ||
-          (typeof val === "string" ? val : null);
-        if (candidateUid && !_userEmailCache[candidateUid]) {
-          missingUserIds.add(candidateUid);
-        }
-      }
-    });
-
-    // If there are missing users, fetch them once and populate cache
-    if (missingUserIds.size > 0) {
-      // Read the full user node then extract email when possible. Some datasets
-      // store email at /users/{uid}/email, others include it in the user object.
-      const currentUid = firebase.auth().currentUser?.uid || null;
-
-      // Determine if current user is an admin (admins/{uid} may be simple true
-      // or an object with isAdmin). Reading admins/{currentUid} is allowed by
-      // your rules since it only permits auth.uid to read their own admin node.
-      const checkAdmin = currentUid
-        ? db
-            .ref(`admins/${currentUid}`)
-            .once("value")
-            .then((s) => {
-              const val = s.val();
-              return val === true || (val && val.isAdmin === true);
-            })
-            .catch(() => false)
-        : Promise.resolve(false);
-
-      checkAdmin.then((isAdmin) => {
-        const promises = Array.from(missingUserIds).map((uid) => {
-          // Allow fetching the user node if the uid is the current user or
-          // the current user is an admin. Otherwise skip to avoid permission errors.
-          if (!currentUid || (uid !== currentUid && !isAdmin)) {
-            _userEmailCache[uid] = { email: "" };
-            console.debug(
-              `reports.subscribe -> skipped fetching user ${uid} (not current user and not admin)`
-            );
-            return Promise.resolve();
-          }
-
-          return db
-            .ref(`users/${uid}`)
-            .once("value")
-            .then((s) => {
-              const userObj = s.val() || {};
-              const emailVal = userObj.email || userObj.emailAddress || "";
-              _userEmailCache[uid] = { email: emailVal };
-            })
-            .catch((err) => {
-              console.warn("Error fetching user", uid, err);
-              _userEmailCache[uid] = { email: "" };
-            });
-        });
-
-        Promise.all(promises).then(() => {
-          const visible = entries.map(([id, r]) => normalizeReport(id, r));
-          // Debug: show first few normalized reports (id + email) to help verify
-          try {
-            console.debug(
-              "reports.subscribe -> normalized preview",
-              visible.slice(0, 5).map((x) => ({ id: x.id, email: x.email }))
-            );
-          } catch (e) {}
-          if (window.updateReportsMapData) {
-            window.updateReportsMapData(visible);
-          } else {
-            window.dispatchEvent(
-              new CustomEvent("reportsLoaded", { detail: { reports: visible } })
-            );
-          }
-        });
-      });
+    const visible = Object.entries(raw).map(([id, r]) => normalizeReport(id, r));
+    try {
+      console.debug(
+        "reports.subscribe -> normalized preview",
+        visible.slice(0, 5).map((x) => ({ id: x.id, createdAt: x.createdAt, name: x.reporterDisplayName, email: x.email }))
+      );
+    } catch {}
+    if (typeof window.updateReportsMapData === "function") {
+      window.updateReportsMapData(visible);
     } else {
-      const visible = entries.map(([id, r]) => normalizeReport(id, r));
-      try {
-        console.debug(
-          "reports.subscribe -> normalized preview",
-          visible.slice(0, 5).map((x) => ({ id: x.id, email: x.email }))
-        );
-      } catch (e) {}
-      if (window.updateReportsMapData) {
-        window.updateReportsMapData(visible);
-      } else {
-        window.dispatchEvent(
-          new CustomEvent("reportsLoaded", { detail: { reports: visible } })
-        );
-      }
+      window.dispatchEvent(new CustomEvent("reportsLoaded", { detail: { reports: visible } }));
     }
   });
 }
 
-// -------- Status updates --------
+// -------- Status transitions (Android parity) --------
+
+const allowedTransitions = {
+  SUBMITTED: ["ACCEPTED"],
+  ACCEPTED: ["IN PROGRESS", "ON HOLD"],
+  "IN PROGRESS": ["ON HOLD", "COMPLETED"],
+  "ON HOLD": ["IN PROGRESS", "COMPLETED"],
+  COMPLETED: [],
+};
+
+function canTransition(current, next) {
+  return (allowedTransitions[(current || "").toUpperCase()] || []).includes((next || "").toUpperCase());
+}
+
+// -------- Status updates with confirmations --------
 
 function acceptReport(reportId) {
   if (!reportId) return;
-  // Ensure we have an authenticated user before writing metadata that relies on auth
   withAuth((user) => {
     const db = firebase.database();
-    const orgId = user?.uid || "Unknown";
+    const ref = db.ref(`reports/${reportId}`);
 
-    db.ref(`reports/${reportId}`)
-      .update({
+    ref.once("value").then((snap) => {
+      const data = snap.val() || {};
+      const currStatus = String(data.status || "SUBMITTED").toUpperCase();
+      const assignedTo = data.organizationId || null;
+      if (currStatus !== "SUBMITTED") {
+        showToast(`This report is already ${currStatus}`, "error");
+        return;
+      }
+      if (assignedTo) {
+        showToast("This report has already been assigned", "error");
+        return;
+      }
+
+      const type = data.reportType || "Report";
+      const addr = data.address;
+      const msg = `Respond to this ${type}?\n\nResponding will assign this report to your organization and enable chat with the reporter.\n\nThis action can’t be undone (ownership stays with your org).` + (addr ? `\n\nLocation:\n${addr}` : "");
+      if (!window.confirm(msg)) return;
+
+      const myUid = user.uid;
+      // step 1: claim + set ACCEPTED
+      const step1 = {
+        organizationId: myUid,
         status: "ACCEPTED",
-        resolvedAt: Date.now(),
-        resolvedBy: user?.email || "Unknown",
-        organizationId: orgId,
-      })
-      .then(() => {
-        showToast("Report accepted successfully");
-        closeModal();
-      })
-      .catch((error) => {
-        console.error("Error accepting report:", error);
-        showToast(
-          "Error accepting report: " + (error.message || error),
-          "error"
-        );
-      });
-  });
-}
+        updatedAt: Date.now(),
+        updatedBy: user.email || myUid,
+      };
 
-function rejectReport(reportId) {
-  if (!reportId) return;
-  withAuth((user) => {
-    const db = firebase.database();
-    db.ref(`reports/${reportId}`)
-      .update({
-        status: "REJECTED",
-        organizationId: null,
-        rejectedAt: Date.now(),
-        rejectedBy: user?.email || "Unknown",
-      })
-      .then(() => {
-        showToast("Report rejected");
-        closeModal();
-      })
-      .catch((error) => {
-        console.error("Error rejecting report:", error);
-        showToast(
-          "Error rejecting report: " + (error.message || error),
-          "error"
-        );
+      ref.update(step1).then(() => {
+        // step 2: enrich org fields from /users/{uid}
+        firebase
+          .database()
+          .ref("users")
+          .child(myUid)
+          .once("value")
+          .then((uSnap) => {
+            const u = uSnap.val() || {};
+            const orgName = u.organizationName || u.displayName || u.representativeName || "Organization";
+            const orgPhoto = u.logoImageUri || u.organizationPhotoUrl || u.photoUrl || "";
+            return ref.update({
+              organizationName: orgName,
+              organizationEmail: user.email || "",
+              organizationPhotoUrl: orgPhoto,
+              updatedAt: Date.now(),
+              updatedBy: user.email || myUid,
+            });
+          })
+          .finally(() => {
+            // history entry
+            ref.child("history").push({
+              status: "ACCEPTED",
+              changedBy: myUid,
+              timestamp: Date.now(),
+            });
+            showToast("Report accepted successfully");
+            // Refresh modal with latest data (keep it open)
+            ref.once("value").then((fresh) => {
+              const freshNorm = normalizeReport(reportId, fresh.val() || {});
+              showReportModal(freshNorm);
+            });
+          });
       });
+    });
   });
 }
 
@@ -370,36 +269,65 @@ function updateReportStatus(reportId, newStatus) {
   if (!reportId) return;
   withAuth((user) => {
     const db = firebase.database();
-    const orgId = user?.uid || "Unknown";
+    const ref = db.ref(`reports/${reportId}`);
+    const myUid = user.uid;
 
-    db.ref(`reports/${reportId}`)
-      .update({
+    ref.once("value").then((snap) => {
+      const data = snap.val() || {};
+      const currStatus = String(data.status || "SUBMITTED").toUpperCase();
+      const currOrgId = data.organizationId || null;
+
+      if (!canTransition(currStatus, newStatus)) {
+        showToast(`You can’t move from ${currStatus} to ${newStatus}`, "error");
+        return;
+      }
+
+      // Only assigned org can change after claim
+      if (currStatus !== "SUBMITTED" && (!currOrgId || currOrgId !== myUid)) {
+        showToast("Only the assigned organization can update this report", "error");
+        return;
+      }
+
+      if (newStatus === "COMPLETED") {
+        const ok = window.confirm("Mark this report as Completed?\n\nMake sure all actions are finalized.");
+        if (!ok) return;
+      }
+
+      const updates = {
         status: newStatus,
         updatedAt: Date.now(),
-        updatedBy: user?.email || "Unknown",
-        organizationId: orgId,
-      })
-      .then(() => {
-        showToast(`Report status updated to ${newStatus}`);
-        closeModal();
-      })
-      .catch((error) => {
-        console.error("Error updating report status:", error);
-        showToast(
-          "Error updating report status: " + (error.message || error),
-          "error"
-        );
-      });
+        updatedBy: user.email || myUid,
+      };
+
+      ref
+        .update(updates)
+        .then(() => {
+          // write history
+          ref.child("history").push({
+            status: newStatus,
+            changedBy: myUid,
+            timestamp: Date.now(),
+          });
+          showToast(`Report status updated to ${newStatus}`);
+          // Refresh modal with latest data (keep it open)
+          ref.once("value").then((fresh) => {
+            const freshNorm = normalizeReport(reportId, fresh.val() || {});
+            showReportModal(freshNorm);
+          });
+        })
+        .catch((error) => {
+          console.error("Error updating report status:", error);
+          showToast("Error updating report status: " + (error.message || error), "error");
+        });
+    });
   });
 }
 
-// Helper: ensure firebase auth state is ready and supply the user to the callback
+// Ensure firebase auth is ready and supply the user
 function withAuth(callback) {
   try {
     const user = firebase.auth().currentUser;
     if (user) return callback(user);
-
-    // Wait once for auth state to become available
     const off = firebase.auth().onAuthStateChanged((u) => {
       off && typeof off === "function" && off();
       if (u) return callback(u);
@@ -411,26 +339,152 @@ function withAuth(callback) {
   }
 }
 
-// -------- Modal helpers (optional — used if you still want your custom modal) --------
+// -------- Modal helpers --------
 
+function ensureMetaItem(container, cls, icon, labelText) {
+  let item = container.querySelector(`.${cls}`);
+  if (!item) {
+    item = document.createElement("div");
+    item.className = `metadata-item ${cls}`;
+    item.innerHTML = `
+      <i class="${icon}"></i>
+      <div class="metadata-content">
+        <div class="metadata-label">${labelText}</div>
+        <div class="metadata-value"></div>
+      </div>`;
+    container.appendChild(item);
+  }
+  return item.querySelector(".metadata-value");
+}
+
+// ===== NEW: Status timeline helpers =====
+function _normStatusWeb(s) {
+  const u = String(s || '').toUpperCase();
+  if (u === 'PENDING') return 'SUBMITTED';
+  if (u === 'APPROVED') return 'ACCEPTED';
+  if (u === 'IN-PROGRESS' || u === 'IN_PROGRESS') return 'IN PROGRESS';
+  if (u === 'ON-HOLD' || u === 'ON_HOLD') return 'ON HOLD';
+  return u;
+}
+
+function renderTimelineFromSnapshot(reportId, snap) {
+  const list = document.getElementById('timeline-list');
+  if (!list) return;
+
+  const data = snap.val() || {};
+  const allowed = new Set(['SUBMITTED', 'ACCEPTED', 'IN PROGRESS', 'ON HOLD', 'COMPLETED']);
+
+  // 1) collect history entries
+  const raw = [];
+  const hist = snap.child('history');
+  hist.forEach(h => {
+    const st = _normStatusWeb(h.child('status').val());
+    raw.push({
+      status: st,
+      timestamp: Number(h.child('timestamp').val()) || 0,
+      changedBy: h.child('changedBy').val() || null,
+      changedByName: h.child('changedByName').val() || null
+    });
+  });
+
+  // 2) seed SUBMITTED if missing
+  const hasSubmitted = raw.some(x => x.status === 'SUBMITTED');
+  if (!hasSubmitted) {
+    const createdAt =
+      Number(data.createdAt || 0) ||
+      parseTimestampFromReportId(reportId) || 0;
+    raw.push({
+      status: 'SUBMITTED',
+      timestamp: createdAt,
+      changedBy: data.reportUserId || null,
+      changedByName: data.reporterDisplayName || data.reportUserEmail || null
+    });
+  }
+
+  // 3) keep allowed only
+  const filtered = raw.filter(x => allowed.has(x.status));
+
+  // 4) sort asc then drop consecutive duplicates
+  const asc = filtered.sort((a,b) => (a.timestamp||0)-(b.timestamp||0));
+  const dedup = [];
+  let last = null;
+  asc.forEach(e => {
+    if (e.status !== last) { dedup.push(e); last = e.status; }
+  });
+
+  // 5) newest first
+  const finalList = dedup.sort((a,b) => (b.timestamp||0)-(a.timestamp||0));
+
+  // 6) render
+  const fmtDate = (ts) => {
+    if (!ts) return {d:'', t:''};
+    const d = new Date(ts);
+    return {
+      d: d.toLocaleDateString(undefined, { month:'short', day:'2-digit' }),
+      t: d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' })
+    };
+  };
+  const who = (e) => {
+    if (e.changedByName) return e.changedByName;
+    if (e.status === 'SUBMITTED') return data.reporterDisplayName || data.reportUserEmail || 'Reporter';
+    return data.organizationName || data.organizationEmail || 'Organization';
+  };
+  const titleFor = (st) => ({
+    'SUBMITTED':'Report Submitted',
+    'ACCEPTED':'Report Accepted',
+    'IN PROGRESS':'Report In Progress',
+    'ON HOLD':'Report On Hold',
+    'COMPLETED':'Report Completed'
+  }[st] || `Status updated to ${st}`);
+
+  list.innerHTML = finalList.map((e, idx) => {
+    const dt = fmtDate(e.timestamp);
+    return `
+      <div class="timeline-item">
+        <div class="timeline-date">
+          <div class="d">${dt.d}</div>
+          <div class="t">${dt.t}</div>
+        </div>
+        <div class="timeline-axis">
+          <div class="timeline-dot"></div>
+          <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-body">
+          <div class="timeline-title">${titleFor(e.status)}</div>
+          <div class="timeline-sub">${e.status === 'SUBMITTED' ? 'Reported by ' : 'By '}${who(e)}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// -------- Report Modal (reordered + timeline) --------
 function showReportModal(report) {
   const modal = document.getElementById("report-modal");
   if (!modal) return;
 
-  modal.querySelector(".modal-report-type-value").textContent =
-    report.reportType || "Unknown";
+  // Enable background scroll for this modal
+  modal.classList.add("modal-backscroll");
+
+  // Title + header sub
+  const titleSpan = modal.querySelector(".modal-report-type-value");
+  if (titleSpan) titleSpan.textContent = report.reportType || "Report";
+
+  // store coords on modal root
   modal.setAttribute("data-latitude", report.latitude || "");
   modal.setAttribute("data-longitude", report.longitude || "");
 
+  // description
   modal.querySelector(".report-description").textContent =
     report.description || "No description provided.";
 
+  // status badge
   const statusElement = modal.querySelector(".modal-report-status");
   statusElement.innerHTML = `
     <span class="status-badge ${getStatusBadgeClass(report.status)}">
-      ${report.status || "Pending"}
+      ${report.status || "SUBMITTED"}
     </span>`;
 
+  // location (resolve from coords when available)
   const locationValue = modal.querySelector(".modal-report-location");
   if (report.latitude && report.longitude) {
     locationValue.textContent = "Fetching address...";
@@ -441,22 +495,25 @@ function showReportModal(report) {
     locationValue.textContent = report.location || "Not specified";
   }
 
+  // Reporter (name/email combined line)
   modal.querySelector(".modal-report-email").textContent =
-    report.email || "Anonymous";
+    (report.reporterDisplayName && report.email)
+      ? `${report.reporterDisplayName} • ${report.email}`
+      : (report.reporterDisplayName || report.email || "Anonymous");
 
+  // Severity chip
   const severityElement = modal.querySelector(".modal-report-severity");
   severityElement.innerHTML = `
     <span class="${getSeverityClass(report.severity)}">
       ${report.severity || "Unknown"}
     </span>`;
 
+  // ===== MEDIA (now under description in the left column) =====
   const imagesContainer = modal.querySelector(".report-images");
   if (report.imageUrls && report.imageUrls.length > 0) {
     imagesContainer.innerHTML = `
       <div class="images-label">
-        <i class="fas fa-images"></i> Attached Images (${
-          report.imageUrls.length
-        })
+        <i class="fas fa-images"></i> Attached Images (${report.imageUrls.length})
       </div>
       <div class="image-gallery">
         ${report.imageUrls
@@ -480,73 +537,113 @@ function showReportModal(report) {
     videoContainer.innerHTML = `<p class="no-video"><i class="fas fa-video-slash"></i> No attached video</p>`;
   }
 
-  // for action buttons
+  // For actions
   modal.setAttribute("data-report-id", report.id);
 
-  const footer = modal.querySelector(".modal-footer .action-buttons");
-  footer.innerHTML = "";
+  // -------- Extra metadata (Assigned Org / Created / Updated + updated-ago) --------
+  const metaGrid = modal.querySelector(".report-metadata");
 
-  const status = (report.status || "").toUpperCase();
-  if (["ACCEPTED", "IN PROGRESS", "ON HOLD"].includes(status)) {
-    [
-      {
-        label: "In Progress",
-        value: "IN PROGRESS",
-        icon: "fa-spinner",
-        class: "btn-inprogress",
-      },
-      {
-        label: "On Hold",
-        value: "ON HOLD",
-        icon: "fa-pause-circle",
-        class: "btn-onhold",
-      },
-      {
-        label: "Completed",
-        value: "COMPLETED",
-        icon: "fa-check-circle",
-        class: "btn-completed",
-      },
-      {
-        label: "Rejected",
-        value: "REJECTED",
-        icon: "fa-times-circle",
-        class: "btn-reject",
-      },
-    ].forEach((s) => {
-      const btn = document.createElement("button");
-      btn.className = `btn ${s.class}`;
-      btn.innerHTML = `<i class="fas ${s.icon}"></i><span>${s.label}</span>`;
-      btn.onclick = () => updateReportStatus(report.id, s.value);
-      footer.appendChild(btn);
-    });
-  } else if (status !== "REJECTED" && status !== "COMPLETED") {
-    const acceptBtn = document.createElement("button");
-    acceptBtn.className = "btn-accept";
-    acceptBtn.textContent = "Accept";
-    acceptBtn.onclick = () => acceptReport(report.id);
+  const assignedVal = ensureMetaItem(metaGrid, "meta-assigned-org", "fas fa-building", "Assigned Organization");
+  const createdVal  = ensureMetaItem(metaGrid, "meta-created-at", "fas fa-calendar-plus", "Created At");
+  const updatedVal  = ensureMetaItem(metaGrid, "meta-updated-at", "fas fa-clock", "Updated At");
 
-    const rejectBtn = document.createElement("button");
-    rejectBtn.className = "btn-reject";
-    rejectBtn.textContent = "Reject";
-    rejectBtn.onclick = () => rejectReport(report.id);
+  // Load fresh snapshot for organizationName/Email + updatedAt + TIMELINE
+  firebase.database().ref(`reports/${report.id}`).once("value").then((snap) => {
+    const data = snap.val() || {};
+    const orgName = data.organizationName;
+    const orgEmail = data.organizationEmail;
+    const orgId = data.organizationId;
 
-    footer.appendChild(rejectBtn);
-    footer.appendChild(acceptBtn);
+    if (!orgId) {
+      assignedVal.textContent = "Unassigned";
+    } else if (orgName) {
+      assignedVal.textContent = orgName;
+    } else if (orgEmail) {
+      assignedVal.textContent = orgEmail;
+    } else {
+      assignedVal.textContent = orgId;
+    }
+
+    const createdAtMs = Number(data.createdAt || report.createdAt || 0) || parseTimestampFromReportId(report.id);
+    createdVal.textContent = createdAtMs ? new Date(createdAtMs).toLocaleString() : "—";
+
+    const updatedAtMs = Number(data.updatedAt || 0);
+    const updatedStr = updatedAtMs ? new Date(updatedAtMs).toLocaleString() : "—";
+    updatedVal.textContent = updatedStr;
+
+    // Update header sub ("Report Details • … ago")
+    const subEl = modal.querySelector(".header-sub");
+    const ago = buildUpdatedAgo(updatedAtMs, report.id);
+    if (subEl) subEl.textContent = `Report Details${ago || ""}`;
+
+    // ===== NEW: render right-side timeline =====
+    renderTimelineFromSnapshot(report.id, snap);
+  });
+
+  // ---------- LEFT: Message button slot (participants on active statuses only) ----------
+  const footerEl = modal.querySelector(".modal-footer");
+  let leftSlot = modal.querySelector(".footer-left-actions");
+  if (!leftSlot) {
+    leftSlot = document.createElement("div");
+    leftSlot.className = "footer-left-actions";
+    footerEl.insertBefore(leftSlot, footerEl.firstChild);
+  }
+  leftSlot.innerHTML = "";
+
+  const currentUser = firebase.auth().currentUser;
+  const me = currentUser?.uid || null;
+  const statusUpper = (report.status || "").toUpperCase();
+  const isActive = ["ACCEPTED", "IN PROGRESS", "ON HOLD"].includes(statusUpper);
+  const isParticipant = !!me && (report.organizationId === me || report.reporterUid === me);
+
+  if (isActive && isParticipant) {
+    const msgBtn = document.createElement("button");
+    msgBtn.className = "btn btn-message";
+    msgBtn.innerHTML = `<i class="fas fa-comment"></i><span>Message</span>`;
+    msgBtn.onclick = () => showMessageModal(report.id, report.email || "Anonymous");
+    leftSlot.appendChild(msgBtn);
   }
 
+  // ---------- RIGHT: status action buttons (use allowedTransitions + special ACCEPTED rule) ----------
+  const actionsWrap = modal.querySelector(".modal-footer .action-buttons");
+  actionsWrap.innerHTML = "";
+
+  const curr = statusUpper;
+
+  // Helper to create a button
+  const addBtn = (label, value, icon, className) => {
+    const btn = document.createElement("button");
+    btn.className = `btn ${className}`;
+    btn.innerHTML = `<i class="fas ${icon}"></i><span>${label}</span>`;
+    btn.onclick = () => (value === "ACCEPTED" ? acceptReport(report.id) : updateReportStatus(report.id, value));
+    actionsWrap.appendChild(btn);
+  };
+
+  if (curr === "SUBMITTED") {
+    addBtn("Respond", "ACCEPTED", "fa-check", "btn-accept");
+  } else if (curr === "ACCEPTED") {
+    addBtn("In Progress", "IN PROGRESS", "fa-spinner", "btn-inprogress");
+  } else if (curr === "IN PROGRESS") {
+    addBtn("On Hold", "ON HOLD", "fa-pause-circle", "btn-onhold");
+    addBtn("Completed", "COMPLETED", "fa-check-circle", "btn-completed");
+  } else if (curr === "ON HOLD") {
+    addBtn("In Progress", "IN PROGRESS", "fa-spinner", "btn-inprogress");
+    addBtn("Completed", "COMPLETED", "fa-check-circle", "btn-completed");
+  }
+  // COMPLETED -> no buttons
+
+  // Show modal (no body scroll locking)
   modal.classList.add("show");
-  document.body.style.overflow = "hidden";
 }
 
-// Make the table's openReportDetails() compatible if it calls openModal(report)
+// Compatibility alias
 window.openModal = showReportModal;
 
 function closeModal() {
   const modal = document.getElementById("report-modal");
   if (modal) {
     modal.classList.remove("show");
-    document.body.style.overflow = "";
+    // leave background scroll as-is
   }
 }
 
@@ -563,164 +660,326 @@ function showToast(message, type = "success") {
   }, 3000);
 }
 
-// -------- Message modal (kept, with bugfix for read path) --------
-function createMessageModal() {
-  if (document.getElementById("message-modal")) return;
-  const modalHtml = `
-    <div id="message-modal" class="modal">
-      <div class="modal-content" style="max-width:400px">
-        <div class="modal-header">
-          <h3>Send Message</h3>
-          <button class="modal-close" id="message-modal-close-btn">&times;</button>
+// -------- Message modal (fixed-size + reliable stream) --------
+(function () {
+  let _msgsOff = null;
+  let _headerOff = null;
+
+  function createMessageModal() {
+    if (document.getElementById("message-modal")) return;
+
+    const html = `
+      <div id="message-modal" class="modal">
+        <div class="modal-content modal-wide" id="message-modal-content">
+          <style>
+            /* Scoped to #message-modal only */
+            #message-modal .modal-content.modal-wide{
+              max-width:980px; width:calc(100% - 48px);
+              /* make the whole modal taller and let the middle row truly fill */
+              height:calc(100vh - 24px);
+              max-height:calc(100vh - 24px);
+              overflow:hidden;
+              display:grid;
+              grid-template-rows:auto minmax(0,1fr) auto; /* header • FULL • input */
+              overscroll-behavior: contain;
+            }
+
+            /* Header */
+            #message-modal .chat-header{
+              position:sticky; top:0; z-index:2;
+              display:flex; align-items:center; gap:12px;
+              padding:12px 16px; border-bottom:1px solid var(--border); background:#f5f5f5;
+            }
+            #message-modal .x-close{
+              position:absolute; right:10px; top:8px; border:0; background:transparent;
+              font-size:22px; line-height:1; cursor:pointer; color:#777;
+            }
+            #message-modal .x-close:hover{ color:#333; }
+            #message-modal .peer-avatar{ width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #e5e7eb; }
+            #message-modal .chat-title{ font-weight:700; font-size:16px; line-height:1.2; }
+            #message-modal .chat-sub{ font-size:12px; color:#6b7280; }
+
+            /* Messages list — now truly takes all free space */
+            #message-modal .chat-body{
+              padding:12px 16px;
+              overflow:auto;
+              background:#fff;
+              min-height:0;   /* CRITICAL so the grid row can shrink/expand */
+            }
+            #message-modal .msg-row{ display:flex; align-items:flex-end; gap:10px; margin:10px 0; }
+            #message-modal .msg-left{ justify-content:flex-start; }
+            #message-modal .msg-right{ justify-content:flex-end; }
+            #message-modal .msg-avatar{ width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid #e5e7eb; flex:0 0 32px; }
+            /* Make bubbles wider so the chat “feels” larger without changing layout */
+            #message-modal .bubble{ max-width:96%; padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.45; word-break:break-word; }
+            #message-modal .bubble.org{ background:#e8f5e9; color:#1b5e20; }
+            #message-modal .bubble.citizen{ background:#fffde7; color:#7a4b00; }
+            #message-modal .bubble.peer{ background:#f3f4f6; color:#111827; }
+            #message-modal .ts{ font-size:10px; color:#888; margin-top:2px; }
+
+            /* Input bar (fixed at the bottom) */
+            #message-modal .chat-input{
+              display:flex; gap:8px; padding:12px 16px;
+              border-top:1px solid var(--border); background:#fafafa;
+            }
+            #message-modal .chat-input textarea{
+              flex:1; resize:none; min-height:42px; max-height:120px;
+              border:1px solid var(--border); border-radius:8px; padding:10px; font-size:14px; background:#fff;
+            }
+            #message-modal .chat-input button{
+              background:var(--primary); color:#fff; border:0; border-radius:20px; padding:10px 16px; font-weight:700; cursor:pointer;
+            }
+            #message-modal .chat-input button:hover{ background:#388e3c; }
+            #message-modal .chat-input.hidden{ display:none; }
+          </style>
+
+          <div class="chat-header">
+            <img class="peer-avatar" alt="peer"/>
+            <div style="min-width:0;">
+              <div class="chat-title" id="chat-title">Chat</div>
+              <div class="chat-sub" id="chat-sub"></div>
+            </div>
+            <button class="x-close" id="message-modal-close-btn" title="Close">&times;</button>
+          </div>
+
+          <div class="chat-body" id="message-history"><em>Loading…</em></div>
+
+          <div class="chat-input" id="chat-input">
+            <textarea id="message-input" rows="2" placeholder="Type your message..."></textarea>
+            <button id="send-message-btn"><i class="fas fa-paper-plane"></i> Send</button>
+          </div>
         </div>
-        <div class="modal-body">
-          <div id="message-meta" style="margin-bottom:10px;"></div>
-          <div id="message-history" style="max-height:200px;overflow-y:auto;margin-bottom:10px;"></div>
-          <textarea id="message-input" rows="3" style="width:100%;" placeholder="Type your message..."></textarea>
-        </div>
-        <div class="modal-footer">
-          <button id="send-message-btn" class="btn btn-accept">Send</button>
-        </div>
-      </div>
-    </div>`;
-  document.body.insertAdjacentHTML("beforeend", modalHtml);
+      </div>`;
+    document.body.insertAdjacentHTML("beforeend", html);
 
-  document.getElementById("message-modal").addEventListener("click", (e) => {
-    if (e.target.id === "message-modal") closeMessageModal();
-  });
-  document
-    .getElementById("message-modal-close-btn")
-    .addEventListener("click", closeMessageModal);
-}
-
-function closeMessageModal() {
-  const modal = document.getElementById("message-modal");
-  if (!modal) return;
-  modal.classList.remove("show");
-  document.body.style.overflow = "";
-  setTimeout(() => {
-    modal.dispatchEvent(new Event("remove"));
-    modal.remove();
-  }, 200);
-}
-window.closeMessageModal = closeMessageModal;
-
-function showMessageModal(reportId, reportUserEmail) {
-  createMessageModal();
-  const modal = document.getElementById("message-modal");
-  modal.classList.add("show");
-  document.body.style.overflow = "hidden";
-  modal.setAttribute("data-report-id", reportId);
-
-  const db = firebase.database();
-
-  // Meta
-  db.ref(`reports/${reportId}`).once("value", (snapshot) => {
-    const report = snapshot.val();
-    const metaDiv = modal.querySelector("#message-meta");
-    if (report) {
-      metaDiv.innerHTML = `
-        <div style="font-size:13px;">
-          <strong>Reported By:</strong> ${
-            report.reportUserEmail || "Anonymous"
-          }<br>
-          <strong>Severity:</strong> <span class="${getSeverityClass(
-            report.severity
-          )}">${report.severity || "Unknown"}</span>
-        </div>`;
-    } else {
-      metaDiv.innerHTML = "";
-    }
-  });
-
-  // Real-time history under /reports/{id}/messages/{orgId}
-  const historyDiv = modal.querySelector("#message-history");
-  historyDiv.innerHTML = "<em>Loading...</em>";
-
-  if (window._pawMessageListener) {
-    window._pawMessageListener.off();
-    window._pawMessageListener = null;
+    // Backdrop click closes
+    const mm = document.getElementById("message-modal");
+    mm.addEventListener("click", (e) => { if (e.target.id === "message-modal") closeMessageModal(); });
+    document.getElementById("message-modal-close-btn").addEventListener("click", closeMessageModal);
   }
 
-  const orgId = firebase.auth().currentUser?.uid;
-  const messagesRef = db
-    .ref(`reports/${reportId}/messages/${orgId}`)
-    .orderByChild("timestamp");
-  window._pawMessageListener = messagesRef;
+  function closeMessageModal() {
+    // Clean listeners
+    if (_msgsOff) { _msgsOff(); _msgsOff = null; }
+    if (_headerOff) { _headerOff(); _headerOff = null; }
+    const modal = document.getElementById("message-modal");
+    if (!modal) return;
+    modal.classList.remove("show");
+    setTimeout(() => modal.remove(), 120);
+  }
+  window.closeMessageModal = closeMessageModal;
 
-  messagesRef.on("value", (snapshot) => {
-    const messages = snapshot.val();
-    if (!messages) {
-      historyDiv.innerHTML = "<em>No messages yet.</em>";
+  // Safe getters for participants like Android
+  function resolveCitizenUid(report) {
+    return (
+      report.reportUserId ||
+      (report.reportUser && (report.reportUser.uid || report.reportUser.id)) ||
+      report.userId || report.reporterId || null
+    );
+  }
+  function resolveOrgUid(report) {
+    return report.organizationId || null;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c])
+    );
+  }
+
+  function showMessageModal(reportId, fallbackPeerLabel) {
+    createMessageModal();
+    const modal = document.getElementById("message-modal");
+    modal.classList.add("show");
+    modal.setAttribute("data-report-id", reportId);
+
+    const me = firebase.auth().currentUser;
+    const myUid = me?.uid || null;
+
+    const db = firebase.database();
+    const reportRef = db.ref(`reports/${reportId}`);
+    const msgsRef = reportRef.child("messages");
+
+    const historyDiv = document.getElementById("message-history");
+    const titleEl = document.getElementById("chat-title");
+    const subEl = document.getElementById("chat-sub");
+    const peerAvatarEl = modal.querySelector(".peer-avatar");
+    const inputWrap = document.getElementById("chat-input");
+    const inputEl = document.getElementById("message-input");
+    const sendBtn = document.getElementById("send-message-btn");
+
+    if (!myUid) {
+      inputWrap.classList.add("hidden");
+      historyDiv.innerHTML = `<em>You must be signed in to send messages.</em>`;
       return;
     }
 
-    // Mark unread as read at the correct path /messages/{orgId}/{msgId}
-    Object.entries(messages).forEach(([msgId, msg]) => {
-      if (msg.senderRole !== "ORG" && !msg.read) {
-        db.ref(`reports/${reportId}/messages/${orgId}/${msgId}`).update({
-          read: true,
+    // ----- Header, participants & input visibility -----
+    let orgUid = null, citizenUid = null, myRole = "CITIZEN";
+
+    const onReportValue = async (snap) => {
+      const r = snap.val() || {};
+      orgUid = resolveOrgUid(r);
+      citizenUid = resolveCitizenUid(r);
+      myRole = (myUid && orgUid === myUid) ? "ORG" : "CITIZEN";
+
+      // Title + sub
+      const peerName = (myRole === "ORG"
+        ? (r.reporterDisplayName || r.reportUserEmail)
+        : (r.organizationName || r.organizationEmail)) || fallbackPeerLabel || "Chat";
+      titleEl.textContent = peerName;
+      subEl.textContent = `${r.reportType || "Report"}${r.severity ? " • " + r.severity : ""}`;
+
+      // Peer avatar (denorm first, then /users fallback)
+      let url = (myRole === "ORG" ? r.reporterPhotoUrl : r.organizationPhotoUrl) || "";
+      if (!url) {
+        const peerUid = (myRole === "ORG") ? citizenUid : orgUid;
+        if (peerUid) {
+          const uSnap = await firebase.database().ref("users").child(peerUid).once("value");
+          const u = uSnap.val() || {};
+          url = u.logoImageUri || u.photoUrl || u.profilePhotoUrl || u.avatarUrl || "";
+          if (titleEl.textContent === "Chat") {
+            titleEl.textContent =
+              (myRole === "ORG")
+                ? (u.fullName || u.displayName || u.name || u.email || peerName)
+                : (u.organizationName || u.representativeName || u.email || peerName);
+          }
+        }
+      }
+      peerAvatarEl.src = url || "";
+      peerAvatarEl.alt = peerName || "User";
+      peerAvatarEl.onerror = function () {
+        this.onerror = null;
+        this.src =
+          "data:image/svg+xml;charset=UTF-8," +
+          encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="32" fill="#e5e7eb"/><text x="50%" y="54%" text-anchor="middle" font-family="Arial" font-size="22" fill="#9ca3af">👤</text></svg>');
+      };
+
+      // If some incoming bubbles were rendered before we had the URL, patch them
+      if (url) {
+        document.querySelectorAll('#message-modal .msg-avatar.peer').forEach(img => {
+          if (!img.getAttribute('data-set')) {
+            img.src = url;
+            img.setAttribute('data-set', '1');
+          }
         });
       }
+
+      // Input allowed only on active statuses
+      const allowed = ["ACCEPTED", "IN PROGRESS", "ON HOLD"].includes(String(r.status || "").toUpperCase());
+      inputWrap.classList.toggle("hidden", !allowed);
+    };
+    reportRef.on("value", onReportValue);
+    _headerOff = () => reportRef.off("value", onReportValue);
+
+    // ----- Seed existing messages (once), then live stream -----
+    let lastTs = 0;
+    historyDiv.innerHTML = "<em>Loading…</em>";
+    msgsRef.once("value").then((s) => {
+      const all = s.val() || {};
+      const arr = Object.values(all).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      historyDiv.innerHTML = "";
+      arr.forEach((m) => {
+        lastTs = Math.max(lastTs, Number(m.timestamp || 0));
+        historyDiv.insertAdjacentHTML("beforeend", renderRow(m, myUid, me?.photoURL, peerAvatarEl.src));
+      });
+      historyDiv.scrollTop = historyDiv.scrollHeight;
+
+      // live: only newer messages
+      const q = msgsRef.orderByChild("timestamp").startAt(lastTs + 1);
+      const onChildAdded = (sn) => {
+        const m = sn.val() || {};
+        historyDiv.insertAdjacentHTML("beforeend", renderRow(m, myUid, me?.photoURL, peerAvatarEl.src));
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+        // mark read (best effort)
+        if (m.senderId && m.senderId !== myUid) {
+          msgsRef.child(sn.key).child("readBy").update({ [myUid]: true }).catch(() => {});
+        }
+      };
+      q.on("child_added", onChildAdded);
+      _msgsOff = () => q.off("child_added", onChildAdded);
     });
 
-    historyDiv.innerHTML = Object.values(messages)
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .map(
-        (msg) => `
-        <div style="margin-bottom:8px;">
-          <strong>${
-            msg.senderRole === "ORG" ? "You" : reportUserEmail
-          }:</strong>
-          <span>${msg.text}</span>
-          <div style="font-size:10px;color:#888;">${formatDate(
-            msg.timestamp
-          )}</div>
-        </div>
-      `
-      )
-      .join("");
+    // ----- Send -----
+    sendBtn.onclick = async () => {
+      const text = (inputEl.value || "").trim();
+      if (!text) return;
 
-    historyDiv.scrollTop = historyDiv.scrollHeight;
-  });
-
-  modal.querySelector("#send-message-btn").onclick = function () {
-    const input = modal.querySelector("#message-input");
-    const text = input.value.trim();
-    if (!text) return;
-    const user = firebase.auth().currentUser;
-    const newMsgRef = db.ref(`reports/${reportId}/messages/${orgId}`).push();
-
-    newMsgRef
-      .set({
-        messageId: newMsgRef.key,
-        senderId: user ? user.uid : "ORG",
-        senderRole: "ORG",
+      const role = (myUid === orgUid) ? "ORG" : "CITIZEN";
+      const node = msgsRef.push();
+      const payload = {
+        messageId: node.key,
+        senderId: myUid,
+        senderRole: role,
         text,
         timestamp: Date.now(),
-        read: false,
-      })
-      .then(() => {
-        input.value = "";
-        showToast("Message sent");
-      });
-  };
+        senderName: me.displayName || me.email || null,
+        senderPhotoUrl: me.photoURL || null
+      };
 
-  modal.addEventListener("remove", () => {
-    if (window._pawMessageListener) {
-      window._pawMessageListener.off();
-      window._pawMessageListener = null;
+      try {
+        // write message
+        await node.set(payload);
+
+        // bump thread timestamp (allowed since author is a participant)
+        await reportRef.update({ lastMessageAt: Date.now() });
+
+        // clear input + keep view at bottom
+        inputEl.value = "";
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+
+        // notify peer
+        const recipientUid = (role === "ORG") ? citizenUid : orgUid;
+        if (recipientUid) {
+          const notifRef = firebase.database().ref("notifications").child(recipientUid).push();
+          await notifRef.set({
+            id: notifRef.key || "",
+            type: "message",
+            reportId,
+            messageId: node.key,
+            title: me.displayName || "New message",
+            senderName: me.displayName || "User",
+            body: text.substring(0, 80),
+            createdAt: Date.now(),
+            seen: false
+          });
+        }
+      } catch (e) {
+        console.error("send message error:", e);
+        showToast("Failed to send message: " + (e.message || e), "error");
+      }
+    };
+
+    // Helpers
+    function renderRow(m, myUid, myPhotoUrl, peerPhotoUrl) {
+      const isMine = m.senderId === myUid;
+      const side = isMine ? "msg-right" : "msg-left";
+      const bubbleClass = isMine
+        ? (String(m.senderRole || "").toUpperCase() === "ORG" ? "org" : "citizen")
+        : "peer";
+      const ts = m.timestamp ? new Date(m.timestamp).toLocaleString() : "";
+      // Show avatar only for peer (incoming) messages
+      const avatarHtml = !isMine
+        ? `<img class="msg-avatar peer" src="${peerPhotoUrl || ""}" alt="">`
+        : "";
+      return `
+        <div class="msg-row ${side}">
+          ${avatarHtml}
+          <div>
+            <div class="bubble ${bubbleClass}">${escapeHtml(m.text || "")}</div>
+            <div class="ts">${ts}</div>
+          </div>
+        </div>`;
     }
-  });
-}
-window.showMessageModal = showMessageModal;
+  }
+
+  window.showMessageModal = showMessageModal;
+})();
+
 
 // -------- Map button inside the detail modal (delegated) --------
 document.addEventListener("click", (e) => {
-  if (
-    e.target.classList.contains("map-location-btn") ||
-    e.target.closest(".map-location-btn")
-  ) {
+  if (e.target.classList.contains("map-location-btn") || e.target.closest(".map-location-btn")) {
     const modal = document.getElementById("report-modal");
     const lat = parseFloat(modal.getAttribute("data-latitude"));
     const lng = parseFloat(modal.getAttribute("data-longitude"));
@@ -730,8 +989,9 @@ document.addEventListener("click", (e) => {
       return;
     }
 
-    document.getElementById("map-modal").classList.add("show");
-    document.body.style.overflow = "hidden";
+    const mapModal = document.getElementById("map-modal");
+    mapModal.classList.add("modal-backscroll");
+    mapModal.classList.add("show");
 
     setTimeout(() => {
       if (window.leafletMap) window.leafletMap.remove();
@@ -739,20 +999,15 @@ document.addEventListener("click", (e) => {
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(window.leafletMap);
-      L.marker([lat, lng])
-        .addTo(window.leafletMap)
-        .bindPopup("Report Location")
-        .openPopup();
+      L.marker([lat, lng]).addTo(window.leafletMap).bindPopup("Report Location").openPopup();
     }, 250);
   }
 });
 
 // -------- Page init --------
 document.addEventListener("DOMContentLoaded", () => {
-  // Start subscription (no card rendering here)
   subscribeReports();
 
-  // Example: total count animation
   const db = firebase.database();
   db.ref("reports")
     .once("value")
@@ -765,4 +1020,4 @@ document.addEventListener("DOMContentLoaded", () => {
   if (window.AOS) AOS.init({ duration: 600, once: true });
 });
 
-// ======================== end reports.js (updated) ========================
+// ======================== end reports.js ========================
