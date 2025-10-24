@@ -1,20 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Organization Dashboard</title>
 
-    <!-- Font Awesome -->
+    <!-- Icons & AOS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
 
-    <!-- AOS -->
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+    <!-- App styles -->
+    <link rel="stylesheet" href="css/dashboard.css"/>
 
-    <!-- Dashboard styles -->
-    <link rel="stylesheet" href="css/dashboard.css" />
-
-    <!-- Firebase SDKs -->
+    <!-- Firebase v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -22,81 +20,140 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Init + scripts -->
+    <!-- App scripts -->
     <script src="js/config.js"></script>
     <script src="js/nav.js" defer></script>
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
     <script src="js/dashboardOrg.js" defer></script>
   </head>
-
   <body>
-    <!-- HEADER -->
     <header class="app-header">
-      <button class="openbtn" onclick="openNav()">
-        <i class="fas fa-bars"></i> Menu
-      </button>
+      <button class="openbtn" onclick="openNav()"><i class="fas fa-bars"></i> Menu</button>
       <h1 class="app-title">🐾 Organization Dashboard</h1>
     </header>
 
-    <!-- SIDEBAR NAVIGATION -->
-    <div id="navbar" class="navbar">
+    <nav id="navbar" class="navbar">
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
-  <li><a href="organizationDashboard.html" class="active">Dashboard</a></li>
-  <li><a href="article.html">Articles</a></li>
-  <li><a href="reports.html">Reports</a></li>
-  <li><a href="adoption.html">Adoption</a></li>
-  <li><a href="donation.html">Donation</a></li>
-  <li><a href="profileOrg.html">Profile</a></li>
-  <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
-</ul>
+        <li><a href="organizationDashboard.html" class="active">Dashboard</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="adoption.html">Adoption</a></li>
+        <li><a href="donation.html">Donation</a></li>
+        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+      </ul>
+    </nav>
 
-    </div>
-
-    <!-- MAIN CONTENT -->
     <main id="main-content" class="main-content">
-      <!-- Chart Section -->
-      <section class="card chart-card" data-aos="fade-up">
-        <h2 class="section-title">Reports Overview</h2>
-        <canvas id="reportChart" height="320"></canvas>
+      <!-- Reports -->
+      <section class="panel" data-aos="fade-up">
+        <div class="panel-header">
+          <h2 class="section-title">Reports</h2>
+        </div>
+        <div class="summary-grid">
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-file"></i><span>Total</span></div>
+            <p class="stat-number" id="rep_total">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-thumbs-up"></i><span>Accepted</span></div>
+            <p class="stat-number" id="rep_accepted">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-spinner"></i><span>In Progress</span></div>
+            <p class="stat-number" id="rep_inprog">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-pause-circle"></i><span>On Hold</span></div>
+            <p class="stat-number" id="rep_onhold">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-check-circle"></i><span>Completed</span></div>
+            <p class="stat-number" id="rep_completed">0</p>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <canvas id="reportChart" height="320"></canvas>
+        </div>
       </section>
 
-      <!-- Summary Cards -->
-      <section class="summary-grid">
-        <div class="card summary-card" data-aos="fade-up" data-aos-delay="100">
-          <div class="card-header">
-            <i class="fas fa-file"></i>
-            <span>Total Reports</span>
-          </div>
-          <p class="stat-number" id="totalReports">0</p>
+      <!-- Adoptions -->
+      <section class="panel" data-aos="fade-up">
+        <div class="panel-header">
+          <h2 class="section-title">Adoptions</h2>
         </div>
-        <div class="card summary-card" data-aos="fade-up" data-aos-delay="200">
-          <div class="card-header">
-            <i class="fas fa-thumbs-up"></i>
-            <span>Accepted Reports</span>
+        <div class="summary-grid">
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-dog"></i><span>Listed</span></div>
+            <p class="stat-number" id="adp_listed">0</p>
           </div>
-          <p class="stat-number" id="acceptedReports">0</p>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-heart"></i><span>Available</span></div>
+            <p class="stat-number" id="adp_available">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-house-circle-check"></i><span>Adopted</span></div>
+            <p class="stat-number" id="adp_adopted">0</p>
+          </div>
         </div>
-        <div class="card summary-card" data-aos="fade-up" data-aos-delay="300">
-          <div class="card-header">
-            <i class="fas fa-spinner"></i>
-            <span>In Progress Reports</span>
-          </div>
-          <p class="stat-number" id="inProgressReports">0</p>
+        <div class="card chart-card">
+          <canvas id="adoptionChart" height="320"></canvas>
         </div>
-        <div class="card summary-card" data-aos="fade-up" data-aos-delay="400">
-          <div class="card-header">
-            <i class="fas fa-pause-circle"></i>
-            <span>On Hold Reports</span>
-          </div>
-          <p class="stat-number" id="onHoldReports">0</p>
+      </section>
+
+      <!-- Donations -->
+      <section class="panel" data-aos="fade-up">
+        <div class="panel-header">
+          <h2 class="section-title">Donations</h2>
         </div>
-        <div class="card summary-card" data-aos="fade-up" data-aos-delay="500">
-          <div class="card-header">
-            <i class="fas fa-check-circle"></i>
-            <span>Completed Reports</span>
+        <div class="summary-grid">
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-seedling"></i><span>Active</span></div>
+            <p class="stat-number" id="don_active">0</p>
           </div>
-          <p class="stat-number" id="completedReports">0</p>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-pause"></i><span>Paused</span></div>
+            <p class="stat-number" id="don_paused">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-lock"></i><span>Closed</span></div>
+            <p class="stat-number" id="don_closed">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-piggy-bank"></i><span>Raised (₱)</span></div>
+            <p class="stat-number" id="don_raised">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-users"></i><span>Supporters</span></div>
+            <p class="stat-number" id="don_supporters">0</p>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <canvas id="donationChart" height="320"></canvas>
+        </div>
+      </section>
+
+      <!-- Articles -->
+      <section class="panel" data-aos="fade-up">
+        <div class="panel-header">
+          <h2 class="section-title">Articles</h2>
+        </div>
+        <div class="summary-grid">
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-newspaper"></i><span>Total</span></div>
+            <p class="stat-number" id="art_total">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-bullhorn"></i><span>Published</span></div>
+            <p class="stat-number" id="art_published">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-pencil-alt"></i><span>Draft</span></div>
+            <p class="stat-number" id="art_draft">0</p>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <canvas id="articlesChart" height="320"></canvas>
         </div>
       </section>
     </main>
