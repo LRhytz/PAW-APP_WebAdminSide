@@ -1,0 +1,124 @@
+/* Aligns with your admin dashboard style */
+.main-content {
+  background: var(--bg);
+  padding: 2rem;
+  min-height: calc(100vh - 64px);
+}
+
+/* Campaign Grid */
+.campaign-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Campaign Card */
+.campaign-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 6px 16px var(--shadow-md);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.campaign-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px var(--shadow-lg);
+}
+.campaign-cover {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+.campaign-info {
+  padding: 1rem;
+}
+.campaign-info h3 {
+  color: var(--primary);
+  margin: 0 0 0.3rem;
+}
+.campaign-info p {
+  margin: 0.25rem 0;
+  color: #444;
+  font-size: 0.9rem;
+}
+
+/* Progress Bar */
+.progress-container {
+  height: 8px;
+  background: #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+.progress-bar {
+  height: 8px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+.progress-text {
+  text-align: right;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+/* Button */
+.view-donors-btn {
+  background: #2196f3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 0.6rem;
+}
+.view-donors-btn:hover {
+  background: #1976d2;
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+.modal.show {
+  display: flex;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.5rem 2rem;
+  width: 90%;
+  max-width: 420px;
+  position: relative;
+  box-shadow: 0 6px 16px var(--shadow-lg);
+}
+.modal-content h3 {
+  color: var(--primary);
+}
+#donorList {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+#donorList li {
+  border-bottom: 1px solid #eee;
+  padding: 8px 0;
+  font-size: 0.9rem;
+}
+.close {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  font-size: 1.4rem;
+  color: #555;
+  cursor: pointer;
+}
+.close:hover {
+  color: #000;
+}

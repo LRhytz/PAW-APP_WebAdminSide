@@ -1,0 +1,175 @@
+/* =============== ARTICLES PAGE ONLY =============== */
+.filter-bar {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.filter-bar select,
+.filter-bar input {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+/* --- Table --- */
+#articlesTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+#articlesTable th,
+#articlesTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e5e5;
+  text-align: left;
+}
+
+#articlesTable thead th {
+  background: var(--header-bg);
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+#articlesTable tr:hover {
+  background: #f9f9f9;
+}
+
+.status-pending { color: #e67e22; font-weight: 600; }
+.status-approved { color: #3498db; font-weight: 600; }
+.status-published { color: var(--primary); font-weight: 600; }
+.status-archived { color: #7f8c8d; font-weight: 600; }
+
+/* --- Buttons --- */
+button {
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.btn-view { background: var(--accent); color: #000; }
+.btn-approve { background: #3498db; color: #fff; }
+.btn-publish { background: #2ecc71; color: #fff; }
+.btn-archive { background: #95a5a6; color: #fff; }
+
+.btn-view:hover { background: #e6a300; }
+.btn-approve:hover { background: #2980b9; }
+.btn-publish:hover { background: #27ae60; }
+.btn-archive:hover { background: #7f8c8d; }
+
+/* --- Modal Overlay --- */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: flex-start;
+  padding: 50px 0;
+}
+
+/* --- Modal Box --- */
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px 35px;
+  width: 600px;
+  max-width: 90%;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
+  position: relative;
+  animation: fadeInUp 0.25s ease;
+  color: #333;
+}
+
+/* --- Close Button --- */
+.modal .close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-size: 26px;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.modal .close:hover {
+  color: #000;
+}
+
+/* --- Title & Meta Info --- */
+#modalTitle {
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2e4f2d;
+}
+
+#modalMeta {
+  font-size: 0.9rem;
+  color: #777;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+
+/* --- Cover Image --- */
+#modalImage {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Article Content --- */
+#modalContent {
+  line-height: 1.7;
+  color: #444;
+  white-space: pre-line; /* preserve line breaks */
+  font-size: 0.95rem;
+}
+
+/* Optional: subtle entry animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+.close {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--primary);
+}
+.author-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.author-cell img {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}

@@ -18,18 +18,16 @@
   --c6:#B279A2; /* purple */
 }
 
-/* Reset */
 *{box-sizing:border-box;margin:0;padding:0}
 
-/* Fix: keep content below fixed header */
 body{
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial;
   background:var(--bg);
   color:var(--text);
-  padding-top:64px; /* why: header is fixed; prevent overlap */
+  padding-top:64px;
 }
 
-/* Header */
+/* HEADER */
 .app-header{
   position:fixed; inset:0 0 auto 0; height:64px;
   background:var(--header-bg); color:#fff;
@@ -40,7 +38,7 @@ body{
 .app-header .openbtn{background:none;border:0;color:#fff;font-size:1.05rem;cursor:pointer}
 .app-title{font-size:1.35rem;font-weight:700}
 
-/* Sidebar */
+/* NAVBAR */
 .navbar{
   position:fixed; top:64px; left:0; width:0;
   height:calc(100% - 64px); background:var(--header-bg);
@@ -52,27 +50,33 @@ body{
 .navbar .nav-links a{display:block;color:#fff;text-decoration:none;padding:.5rem .75rem;border-radius:6px}
 .navbar .nav-links a:hover,.navbar .nav-links a.active{background:#388E3C}
 
-/* Main */
+/* MAIN CONTENT */
 .main-content{
-  max-width:1200px;margin:0 auto;padding:20px 16px;
+  max-width:1200px;
+  margin:0 auto;
+  padding:20px 16px;
 }
 
-/* Panels */
 .panel{margin-bottom:28px}
 .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .section-title{font-size:1.5rem;font-weight:700}
 .section-title::after{content:'';display:block;width:3rem;height:4px;background:var(--accent);margin-top:.25rem;border-radius:2px}
 
-/* Cards & grids */
+/* CARDS */
 .card{
-  background:var(--card-bg);border-radius:12px;padding:16px;
+  background:var(--card-bg);
+  border-radius:12px;
+  padding:16px;
   box-shadow:0 6px 16px var(--shadow-md);
   transition:transform .2s ease, box-shadow .2s ease;
 }
 .card:hover{transform:translateY(-2px);box-shadow:0 10px 24px var(--shadow-lg)}
 
+/* SUMMARY CARDS */
 .summary-grid{
-  display:grid; gap:14px; margin:12px 0 18px;
+  display:grid;
+  gap:14px;
+  margin:12px 0 18px;
   grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
 }
 .summary-card{text-align:center}
@@ -80,11 +84,129 @@ body{
 .summary-card .card-header i{color:var(--primary)}
 .stat-number{font-size:2rem;font-weight:800;color:var(--primary)}
 
-/* Charts */
-.chart-card{margin-top:8px}
-#reportChart,#adoptionChart,#donationChart,#articlesChart{
-  display:block; width:100%!important; height:340px!important; max-height:420px!important;
+/* CHARTS */
+.chart-card{
+  margin-top:8px;
+  position:relative;
+  overflow:hidden;
 }
 
-/* Optional: small helpers when sidebar opens (if nav.js toggles width) */
-body.nav-open #main-content{margin-left:260px}
+/* FIX: Chart expansion & layout */
+.chart-card {
+  position: relative;
+  overflow: hidden;
+  height: 380px;            /* fixed height for all charts */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Chart.js canvas */
+.chart-card canvas {
+  width: 100% !important;
+  height: 300px !important; /* consistent height inside card */
+  max-height: 320px !important;
+  display:block;
+}
+
+/* GRID FOR CHARTS */
+.charts-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(380px,1fr));
+  gap:var(--gap);
+  margin-top:2rem;
+  align-items:start;       /* prevent vertical stretch */
+}
+
+/* ACTIVITY FEED */
+.activity-card {
+  margin-top:2rem;
+  padding:1rem;
+}
+#activityFeed {
+  list-style:none;
+  margin-top:1rem;
+  display:flex;
+  flex-direction:column;
+  gap:.75rem;
+}
+#activityFeed li {
+  background:var(--card-bg);
+  border-left:4px solid var(--primary);
+  padding:.75rem 1rem;
+  border-radius:6px;
+  box-shadow:0 2px 6px var(--shadow-md);
+  font-size:.95rem;
+}
+#activityFeed time {
+  font-size:.85rem;
+  color:#777;
+  display:block;
+  margin-top:.25rem;
+}
+
+/* MISC ELEMENTS */
+.chart-filter {
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:0.95rem;
+  background:#fff;
+  color:var(--text);
+  box-shadow:0 1px 3px var(--shadow-md);
+  cursor:pointer;
+}
+
+.panel-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:0.5rem;
+}
+
+/* RESPONSIVE FIXES */
+@media (max-width: 900px) {
+  .summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .chart-card {
+    height: 320px;
+  }
+  .chart-card canvas {
+    height: 260px !important;
+  }
+}
+.live-dot {
+  display:inline-block;
+  width:10px; height:10px;
+  margin-left:6px;
+  border-radius:50%;
+  background:#0f0;
+  box-shadow:0 0 8px #0f0;
+  animation:pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%,100% {opacity:0.6}
+  50% {opacity:1}
+}
+/* --- Pulse animation for summary --- */
+@keyframes pulseHighlight {
+  0% { transform: scale(1); color: var(--primary); }
+  30% { transform: scale(1.25); color: var(--accent, #4C78A8); }
+  100% { transform: scale(1); color: var(--primary); }
+}
+.stat-number.pulse {
+  animation: pulseHighlight 0.5s ease;
+}
+
+/* --- Flicker for quick insight trend changes --- */
+@keyframes flickerTrend {
+  0%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+.trend-up { color: #2ecc71; font-weight: 600; }
+.trend-down { color: #e74c3c; font-weight: 600; }

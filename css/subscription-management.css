@@ -163,3 +163,13 @@ body {
   border: none !important;
   outline: none !important;
 }
+
+/* Highlight inactive rows */
+.inactive-row {
+  background-color: #ffeaea !important;
+}
+
+#notifyAllBtn {
+  margin-bottom: 1rem;
+  background-color: var(--primary);
+}

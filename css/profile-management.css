@@ -1,10 +1,10 @@
 :root {
-  --bg:         #F5F5DC;
+  --bg:         #f5f5dc;
   --header-bg:  #4CAF50;
-  --card-bg:    #FFFFFF;
+  --card-bg:    #fff;
   --primary:    #4CAF50;
-  --text:       #333333;
-  --border:     #CCCCCC;
+  --text:       #333;
+  --border:     #ccc;
   --shadow-md:  rgba(0, 0, 0, 0.1);
   --gap:        1.5rem;
 }
@@ -12,7 +12,8 @@
 /* Reset */
 * {
   box-sizing: border-box;
-  margin: 0; padding: 0;
+  margin: 0;
+  padding: 0;
 }
 
 /* Body */
@@ -22,44 +23,69 @@ body {
   color: var(--text);
 }
 
-/* App Header */
+/* Header */
 .app-header {
-  position: fixed; top: 0; left: 0; right: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 60px;
   background: var(--header-bg);
-  display: flex; align-items: center;
+  display: flex;
+  align-items: center;
   padding: 0 var(--gap);
   box-shadow: 0 2px 8px var(--shadow-md);
   z-index: 1001;
 }
 .app-header .openbtn {
-  background: none; border: none; color: #fff;
-  font-size: 1.2rem; cursor: pointer; margin-right: var(--gap);
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-right: var(--gap);
 }
 .app-header .app-title {
-  color: #fff; font-size: 1.4rem; flex: 1;
+  color: #fff;
+  font-size: 1.4rem;
+  flex: 1;
 }
 
-/* Sidebar Nav */
+/* Sidebar */
 .navbar {
-  position: fixed; top: 60px; left: 0;
-  width: 0; height: calc(100% - 60px);
+  position: fixed;
+  top: 60px;
+  left: 0;
+  width: 0;
+  height: calc(100% - 60px);
   background: var(--header-bg);
-  overflow-x: hidden; transition: width 0.3s ease;
+  overflow-x: hidden;
+  transition: width 0.3s ease;
   z-index: 1000;
 }
 .navbar .closebtn {
-  position: absolute; top: 8px; right: 8px;
-  background: none; border: none; color: #fff;
-  font-size: 1.5rem; cursor: pointer;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
 }
 .navbar .nav-links {
-  list-style: none; padding: 1rem;
+  list-style: none;
+  padding: 1rem;
 }
-.navbar .nav-links li + li { margin-top: 0.5rem; }
+.navbar .nav-links li + li {
+  margin-top: 0.5rem;
+}
 .navbar .nav-links a {
-  display: block; color: #fff; text-decoration: none;
-  padding: 0.5rem 1rem; border-radius: 4px;
+  display: block;
+  color: #fff;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
   transition: background 0.2s;
 }
 .navbar .nav-links a:hover,
@@ -67,15 +93,17 @@ body {
   background: #388E3C;
 }
 
-/* Main Content */
+/* Main */
 .main-content {
-  margin-top: 60px; padding: var(--gap);
+  margin-top: 60px;
+  padding: var(--gap);
   transition: margin-left 0.3s ease;
 }
 
 /* Container & Card */
 .container {
-  max-width: 600px; margin: 40px auto;
+  max-width: 600px;
+  margin: 40px auto;
 }
 .card.profile-card {
   background: var(--card-bg);
@@ -98,12 +126,35 @@ body {
   flex-wrap: wrap;
   justify-content: center;
 }
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
 .profile-avatar {
-  width: 96px; height: 96px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   object-fit: cover;
   background: #eee;
   border: 2px solid var(--primary);
+}
+.avatar-overlay {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 4px var(--shadow-md);
+}
+.avatar-overlay:hover {
+  background: #388E3C;
 }
 .profile-details p {
   font-size: 1rem;
@@ -111,7 +162,7 @@ body {
   text-align: left;
 }
 
-/* Form Fields */
+/* Form */
 .field {
   margin-bottom: 1.25rem;
   text-align: left;
@@ -121,8 +172,7 @@ body {
   margin-bottom: 0.4rem;
   font-weight: 500;
 }
-.field input[type="text"],
-.field input[type="file"] {
+.field input[type="text"] {
   width: 100%;
   padding: 0.6rem 0.8rem;
   font-size: 1rem;
@@ -144,13 +194,38 @@ body {
   cursor: pointer;
   font-size: 1rem;
 }
-.btn.save:hover {
+.btn.save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btn.save:hover:not(:disabled) {
   background: #388E3C;
 }
 
-/* Feedback Message */
-.message {
-  margin-top: 1rem;
-  font-size: 0.95rem;
-  color: var(--primary);
+/* Toast Messages */
+#toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2000;
+}
+.toast {
+  background: #4caf50;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 6px;
+  margin-top: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast.info {
+  background: #2196F3;
+}
+.toast.error {
+  background: #f44336;
 }

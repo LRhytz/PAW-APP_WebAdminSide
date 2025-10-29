@@ -11,13 +11,13 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
   />
 
-  <!-- AOS CSS (unpkg) -->
+  <!-- AOS CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/aos@2.3.4/dist/aos.css"
   />
 
-  <!-- Your custom styles -->
+  <!-- Custom Styles -->
   <link rel="stylesheet" href="css/profile-management.css"/>
 
   <!-- Firebase SDKs -->
@@ -30,10 +30,10 @@
   <script src="js/config.js"></script>
   <script src="js/nav.js" defer></script>
 
-  <!-- AOS JS (unpkg) -->
+  <!-- AOS -->
   <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
 
-  <!-- Your profile-management logic -->
+  <!-- JS Logic -->
   <script src="js/profile-management.js" defer></script>
 </head>
 <body>
@@ -53,6 +53,8 @@
       <li><a href="profile.html" class="active">Profile Management</a></li>
       <li><a href="subscription-management.html">Subscription Management</a></li>
       <li><a href="accounts.html">Accounts Management</a></li>
+      <li><a href="admin-articles.html">Articles Moderation</a></li>
+      <li><a href="admin-donations.html">Donation Tracking</a></li>
       <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
     </ul>
   </div>
@@ -64,11 +66,13 @@
         <h2>Manage Your Profile</h2>
 
         <div class="profile-info">
-          <!-- updated placeholder URL -->
-          <img id="avatar"
-               class="profile-avatar"
-               src="https://placehold.co/96x96"
-               alt="Avatar"/>
+          <div class="avatar-wrapper">
+            <img id="avatar" class="profile-avatar" src="https://placehold.co/96x96" alt="Avatar"/>
+            <label for="profileImage" class="avatar-overlay">
+              <i class="fas fa-camera"></i>
+            </label>
+            <input type="file" id="profileImage" accept="image/*" hidden />
+          </div>
           <div class="profile-details">
             <p><strong>Email:</strong> <span id="email">Loading…</span></p>
             <p><strong>Name:</strong>  <span id="name">Loading…</span></p>
@@ -84,25 +88,20 @@
             <label for="lastName">Last Name</label>
             <input type="text" id="lastName" required />
           </div>
-          <div class="field">
-            <label for="profileImage">Change Avatar</label>
-            <input type="file" id="profileImage" accept="image/*" />
-          </div>
+
           <div class="buttons">
             <button type="submit" class="btn save">Save Changes</button>
           </div>
-          <div id="msg" class="message"></div>
         </form>
       </div>
     </div>
   </main>
 
+  <div id="toast-container"></div>
+
   <script>
-    // Initialize AOS as soon as it's available
     document.addEventListener('DOMContentLoaded', () => {
-      if (window.AOS) {
-        AOS.init({ duration: 500, once: true });
-      }
+      if (window.AOS) AOS.init({ duration: 500, once: true });
     });
   </script>
 </body>

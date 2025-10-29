@@ -25,9 +25,10 @@
   transition: width 0.3s ease;
   padding-top: 60px;
   z-index: 1000;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Close button — force transparent */
+/* Close button */
 #navbar .closebtn {
   position: absolute;
   top: 16px;
@@ -44,18 +45,20 @@
 /* Nav links */
 #navbar .nav-links {
   list-style: none;
+  margin: 0;
+  padding: 0;
 }
 #navbar .nav-links li a {
   display: block;
   padding: 12px 32px;
   color: var(--text);
   text-decoration: none;
-  background: none !important;
   transition: background-color 0.2s ease;
 }
 #navbar .nav-links li a.active,
 #navbar .nav-links li a:hover {
   background-color: var(--hover);
+  color: var(--text);
 }
 
 /* Hamburger open button */
@@ -70,21 +73,27 @@
   margin: 20px;
 }
 
-/* Main content shifting */
+/* --- When Sidebar Opens --- */
+body.nav-open #navbar {
+  width: 250px;
+}
+body.nav-open .app-header {
+  margin-left: 250px;
+  transition: margin-left 0.3s ease;
+}
+body.nav-open .admin-container {
+  margin-left: 260px;
+  transition: margin-left 0.3s ease;
+}
+
+/* Optional: make main content smooth */
 .main-content {
   transition: margin-left 0.3s ease;
   padding: 20px;
   margin-left: 0;
 }
-/* nav.css (or at the bottom of your dashboard.css / accounts.css / profile-management.css, etc.) */
-.navbar .closebtn {
-  background-color: transparent !important;
-  border: none !important;
-  color: #fff;             /* keep the × white */
-  font-size: 36px;         /* same as before */
-  line-height: 1;          /* tighten up the button box */
-  padding: 0;              /* remove any extra padding */
-  cursor: pointer;
-  outline: none;           /* removes focus ring if you want */
-}
 
+.nav-links a.active {
+  background-color: #2f855a;
+  color: white !important;
+}

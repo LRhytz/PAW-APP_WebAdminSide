@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Articles Moderation | PAW Admin</title>
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+  <!-- Main unified styles -->
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <link rel="stylesheet" href="css/admin-articles.css"/>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <button class="openbtn" onclick="openNav()"><i class="fas fa-bars"></i> Menu</button>
+    <h1🐾 class="app-title">
+       Articles Management
+      <span id="liveIndicator" class="live-dot"></span>
+    </h1>
+  </header>
+
+  <div id="navbar" class="navbar">
+    <button class="closebtn" onclick="closeNav()">&times;</button>
+    <ul class="nav-links">
+      <li><a href="home.html">Dashboard</a></li>
+      <li><a href="profile.html">Profile Management</a></li>
+      <li><a href="subscription-management.html">Subscription Management</a></li>
+      <li><a href="accounts.html">Accounts Management</a></li>
+      <li><a href="admin-articles.html" class="active">Articles Moderation</a></li>
+            <li><a href="admin-donations.html" class="active">Donation Tracking</a></li>
+
+      <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+    </ul>
+  </div>
+
+  <main id="main-content" class="main-content">
+    <section class="card" style="padding:2rem;">
+      <h2 class="section-title"><i class="fas fa-newspaper"></i> Articles Moderation</h2>
+
+      <div class="filter-bar">
+        <select id="categoryFilter">
+          <option value="all">All Categories</option>
+        </select>
+        <select id="statusFilter">
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="published">Published</option>
+          <option value="archived">Archived</option>
+        </select>
+        <input type="text" id="searchBox" placeholder="Search title or author..." />
+      </div>
+
+      <table id="articlesTable">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Author</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- Preview Modal -->
+  <div id="previewModal" class="modal">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <h2 id="modalTitle"></h2>
+      <img id="modalImage" alt="Cover" />
+      <p id="modalContent"></p>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+<script src="js/config.js"></script>   <!-- must load first -->
+<script src="js/nav.js" defer></script>
+<script src="js/admin-articles.js" type="module"></script>
+</body>
+</html>
