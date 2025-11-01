@@ -35,7 +35,7 @@
       <button class="closebtn" onclick="closeNav()">×</button>
       <ul class="nav-links">
         <li><a href="organizationDashboard.html">Dashboard</a></li>
-          <li><a href="article.html">Articles</a></li>
+        <li><a href="article.html">Articles</a></li>
         <li><a href="reports.html">Reports</a></li>
         <li><a href="adoption.html" class="active">Adoption</a></li>
         <li><a href="donation.html">Donation</a></li>
@@ -47,14 +47,20 @@
     <!-- Main Content -->
     <main class="main-content">
       <div class="page-header">
-        <h2 class="section-title">Available Pets</h2>
+        <h2 class="section-title">Adoptions</h2>
+
+        <!-- Tabs -->
+        <!-- Tabs -->
+<div class="adoption-tabs">
+  <button id="tab-available" class="adoption-tab active">Available Pets</button>
+  <button id="tab-adopted" class="adoption-tab">Adopted Pets</button>
+</div>
+
+
+        <!-- Filters -->
         <div class="filter-controls">
           <div class="search-box">
-            <input
-              type="text"
-              id="pet-search"
-              placeholder="Search pets..."
-            />
+            <input type="text" id="pet-search" placeholder="Search pets..." />
             <i class="fas fa-search"></i>
           </div>
           <div class="filter-dropdown">
@@ -67,8 +73,15 @@
         </div>
       </div>
 
-      <!-- Pet Cards Container -->
-      <div id="adoption-cards" class="pet-grid"></div>
+      <!-- Available Pets -->
+      <div id="available-section">
+        <div id="adoption-cards" class="pet-grid"></div>
+      </div>
+
+      <!-- Adopted Pets -->
+      <div id="adopted-section" style="display:none;">
+        <div id="adopted-cards" class="pet-grid"></div>
+      </div>
 
       <!-- Empty State -->
       <div id="empty-state" class="empty-state">
@@ -87,20 +100,20 @@
     <div id="pet-modal" class="modal">
       <div class="modal-content">
         <span class="close-modal">&times;</span>
-        <div class="modal-body" id="pet-details-content">
-          <!-- Pet details will be loaded here by JS -->
-        </div>
+        <div class="modal-body" id="pet-details-content"></div>
         <div class="modal-footer">
-          <!-- your existing Edit button -->
-          <button class="modal-btn edit-btn">
-            <i class="fas fa-edit"></i> Edit
-          </button>
-          <!-- NEW: a Requests button + badge -->
-          <button id="viewRequestsBtn" class="modal-btn request-btn">
-            <i class="fas fa-clipboard-list"></i> Requests
-            <span id="request-badge" class="modal-badge">0</span>
-          </button>
-        </div>
+  <button id="backBtn" class="modal-btn back-btn">
+    <i class="fas fa-arrow-left"></i> Back
+  </button>
+  <button class="modal-btn edit-btn">
+    <i class="fas fa-edit"></i> Edit
+  </button>
+  <button id="viewRequestsBtn" class="modal-btn request-btn">
+    <i class="fas fa-clipboard-list"></i> Requests
+    <span id="request-badge" class="modal-badge">0</span>
+  </button>
+</div>
+
       </div>
     </div>
 

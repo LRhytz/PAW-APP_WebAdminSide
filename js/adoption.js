@@ -1,8 +1,8 @@
-// js/adoption.js — RTDB schema–aware (orgId/photoUrl/location/ageMonths) + requests badge wiring
+// js/adoption.js — full version with Adopted Pets section integrated (and tab toggle added)
 
 (function () {
   // ----------------------------
-  // Utils: normalize a raw RTDB pet to the UI shape expected by the page
+  // Utils
   // ----------------------------
   function normalizePet(raw, id) {
     const ageText =
@@ -11,7 +11,6 @@
         ? `${raw.ageMonths} month${raw.ageMonths === 1 ? "" : "s"}`
         : "");
 
-    // contactInfo looks like a phone/email; try to split
     let contactPhone = "";
     let contactEmail = "";
     if (typeof raw.contactInfo === "string") {
@@ -30,18 +29,17 @@
       age: ageText || "—",
       size: raw.size || "",
       gender: raw.gender || "",
-      // images / location
       imageUrl: raw.imageUrl || raw.photoUrl || "",
       address: raw.address || raw.location || "",
-      // descriptions
       description: raw.description || "",
       fullDescription: raw.fullDescription || "",
-      // contact
       contactPhone: raw.contactPhone || contactPhone || "",
       contactEmail: raw.contactEmail || contactEmail || "",
       contactLocation: raw.contactLocation || "",
-      // misc flags (map common ones)
       adoptionStatus: raw.adoptionStatus || "",
+      available: raw.available !== undefined ? raw.available : true,
+      adoptedBy: raw.adoptedBy || "",
+      adoptedAt: raw.adoptedAt || 0,
       goodWithKids: !!raw.goodWithKids,
       goodWithDogs: !!raw.goodWithDogs,
       goodWithCats: !!raw.goodWithCats,
@@ -55,12 +53,13 @@
   // ----------------------------
   // State
   // ----------------------------
-  let allPetsData = []; // normalized pets for current org
-  // keep active listeners so we can detach when modal closes
+  let allPetsData = [];
+  let allAdoptedData = [];
+
   const activeRequestListeners = {};
 
   // ----------------------------
-  // Entry: auth -> load -> wire filters
+  // Entry
   // ----------------------------
   firebase.auth().onAuthStateChanged(async (user) => {
     if (!user) {
@@ -71,7 +70,9 @@
 
     try {
       loadAdoptionCards(user.uid);
+      loadAdoptedPets(user.uid);
       setupSearch();
+      setupTabSwitching(); // <-- NEW: connect tabs
     } catch (err) {
       console.error("Init error:", err);
       showEmpty("Error loading organization info.");
@@ -79,7 +80,7 @@
   });
 
   // ----------------------------
-  // Load + render
+  // Load Available Pets
   // ----------------------------
   function showEmpty(msg) {
     const cards = document.getElementById("adoption-cards");
@@ -112,11 +113,10 @@
           return;
         }
 
-        // Filter by orgId
         const filteredPets = Object.entries(allPets)
           .filter(([id, pet]) => {
             const orgId = pet.orgId || pet.organizationId || pet.organization;
-            return orgId === orgUID;
+            return orgId === orgUID && pet.available !== false;
           })
           .map(([id, pet]) => normalizePet(pet, id));
 
@@ -137,15 +137,96 @@
     );
   }
 
+// ----------------------------
+// Load Adopted Pets
+// ----------------------------
+async function loadAdoptedPets(orgUID) {
+  const dbRef = firebase.database().ref("adoptions");
+
+  // Ensure container exists early
+  let adoptedSection = document.getElementById("adopted-section");
+  if (!adoptedSection) {
+    adoptedSection = document.createElement("section");
+    adoptedSection.id = "adopted-section";
+    adoptedSection.style.display = "none"; // hidden until tab clicked
+    adoptedSection.innerHTML = `
+      <h2 class="section-title">Adopted Pets</h2>
+      <div id="adopted-cards" class="pet-grid"></div>
+      <div id="empty-adopted" class="empty-state">
+        <i class="fas fa-heart"></i>
+        <p>No adopted pets yet</p>
+        <span>Once your pets are adopted, they'll show up here</span>
+      </div>`;
+    document.querySelector(".main-content").appendChild(adoptedSection);
+  }
+
+  const adoptedGrid = adoptedSection.querySelector("#adopted-cards");
+  const emptyState = adoptedSection.querySelector("#empty-adopted");
+
+  // Listen to database changes
+  dbRef.on("value", async (snapshot) => {
+    if (!adoptedGrid) return;
+    adoptedGrid.innerHTML = "";
+
+    const allPets = snapshot.val();
+    if (!allPets) {
+      if (emptyState) emptyState.style.display = "flex";
+      return;
+    }
+
+    const adoptedPets = Object.entries(allPets)
+      .filter(([id, pet]) => {
+        const orgId = pet.orgId || pet.organizationId || pet.organization;
+        return orgId === orgUID && pet.available === false;
+      })
+      .map(([id, pet]) => normalizePet(pet, id));
+      allAdoptedData = adoptedPets; // ✅ store globally for filtering
+
+
+    if (adoptedPets.length === 0) {
+      if (emptyState) emptyState.style.display = "flex";
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = "none";
+
+    for (const pet of adoptedPets) {
+      if (pet.adoptedBy) {
+        try {
+  const userSnap = await firebase.database().ref("users/" + pet.adoptedBy).once("value");
+  const userData = userSnap.val();
+  pet.adopterName =
+    userData?.fullName ||   // ✅ corrected capitalization
+    userData?.displayName ||
+    userData?.name ||
+    userData?.email ||
+    "Unknown adopter";
+} catch (e) {
+  console.warn("Adopter lookup failed for", pet.id, e);
+  pet.adopterName = "Unknown adopter";
+}
+
+      } else {
+        pet.adopterName = "Unknown adopter";
+      }
+    }
+
+    console.log("✅ Adopted Pets loaded:", adoptedPets.map(p => ({ name: p.name, adopter: p.adopterName })));
+
+    adoptedPets.forEach((p) => adoptedGrid.appendChild(createAdoptedCard(p)));
+  });
+}
+
+
   // ----------------------------
-  // UI builders
+  // Card Builders
   // ----------------------------
   function createPetCard(pet) {
     const card = document.createElement("div");
     card.className = "card";
     card.dataset.petId = pet.id;
 
-    const tags = ["Friendly", "Neutered", "House-trained", "Playful", "Calm"];
+    const tags = ["Friendly", "Neutered", "Playful", "Calm"];
     const randomTags = tags.sort(() => 0.5 - Math.random()).slice(0, 2);
 
     card.innerHTML = `
@@ -155,7 +236,6 @@
             ? `<img src="${pet.imageUrl}" alt="${pet.name}" class="pet-img">`
             : `<img src="/api/placeholder/400/320" alt="placeholder" class="pet-img">`
         }
-        ${pet.adoptionStatus === "urgent" ? '<div class="pet-badge">Urgent</div>' : ""}
       </div>
       <div class="card-content">
         <div class="card-header">
@@ -170,21 +250,65 @@
         <div class="card-footer">
           <div class="card-location">
             <i class="fas fa-map-marker-alt"></i>
-            <span>${pet.address ? pet.address.split(",")[0] : "Unknown location"}</span>
+            <span>${pet.address ? pet.address.split(",")[0] : "Unknown"}</span>
           </div>
           <button class="card-btn view-details-btn">
             <i class="fas fa-paw"></i> Details
           </button>
         </div>
-      </div>
-    `;
+      </div>`;
+const detailsBtn = card.querySelector(".view-details-btn");
+if (detailsBtn) {
+const detailsBtn = card.querySelector(".view-details-btn");
+if (detailsBtn) {
+  detailsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openPetDetails(pet); // 🩵 open modal instead of redirecting
+  });
+}
+}
 
-    card.addEventListener("click", () => openPetDetails(pet));
+// Keep the card click to open modal if you want that preview behavior
+card.addEventListener("click", () => openPetDetails(pet));
+    return card;
+  }
+
+  function createAdoptedCard(pet) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="pet-img-container">
+        ${
+          pet.imageUrl
+            ? `<img src="${pet.imageUrl}" alt="${pet.name}" class="pet-img">`
+            : `<img src="/api/placeholder/400/320" alt="placeholder" class="pet-img">`
+        }
+        <div class="pet-badge">Adopted</div>
+      </div>
+      <div class="card-content">
+        <div class="card-header">
+          <h3>${pet.name}</h3>
+          <span class="card-age">${pet.age}</span>
+        </div>
+        <div class="card-breed">${pet.breed || "&nbsp;"}</div>
+        <p>${pet.description || "No description available."}</p>
+        <p><strong>Adopted by:</strong> ${pet.adopterName || "Unknown adopter"}</p>
+        <p style="color:#777;font-size:0.85rem;">${
+          pet.adoptedAt
+            ? "Adopted on: " +
+              new Date(pet.adoptedAt).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+              })
+            : ""
+        }</p>
+      </div>`;
     return card;
   }
 
   // ----------------------------
-  // Search / filter
+  // Search / Filter
   // ----------------------------
   function setupSearch() {
     const searchInput = document.getElementById("pet-search");
@@ -193,247 +317,189 @@
     if (speciesFilter) speciesFilter.addEventListener("change", filterPets);
   }
 
-  function filterPets() {
-    const searchInput = document.getElementById("pet-search");
-    const speciesFilter = document.getElementById("species-filter");
-    const cardsContainer = document.getElementById("adoption-cards");
+function filterPets() {
+  const searchInput = document.getElementById("pet-search");
+  const speciesFilter = document.getElementById("species-filter");
+  const searchTerm = (searchInput?.value || "").toLowerCase();
+  const selectedSpecies = (speciesFilter?.value || "").toLowerCase();
 
-    const searchTerm = (searchInput?.value || "").toLowerCase();
-    const selectedSpecies = (speciesFilter?.value || "").toLowerCase();
+  // Detect which tab is active
+  const isAdoptedTab = document.getElementById("tab-adopted")?.classList.contains("active");
 
-    const filtered = allPetsData.filter((pet) => {
-      const matchesSearch =
-        pet.name.toLowerCase().includes(searchTerm) ||
-        (pet.breed || "").toLowerCase().includes(searchTerm) ||
-        (pet.description || "").toLowerCase().includes(searchTerm);
+  // Select correct dataset & container
+  const cardsContainer = document.getElementById(
+    isAdoptedTab ? "adopted-cards" : "adoption-cards"
+  );
+  const dataSource = isAdoptedTab ? allAdoptedData : allPetsData;
 
-      const matchesSpecies =
-        !selectedSpecies || (pet.species && pet.species.toLowerCase() === selectedSpecies);
+  // Filter
+  const filtered = dataSource.filter((pet) => {
+    const matchesSearch =
+      pet.name.toLowerCase().includes(searchTerm) ||
+      (pet.breed || "").toLowerCase().includes(searchTerm) ||
+      (pet.description || "").toLowerCase().includes(searchTerm);
+    const matchesSpecies =
+      !selectedSpecies || (pet.species && pet.species.toLowerCase() === selectedSpecies);
+    return matchesSearch && matchesSpecies;
+  });
 
-      return matchesSearch && matchesSpecies;
-    });
-
-    cardsContainer.innerHTML = "";
-    if (filtered.length === 0) {
-      showEmpty("No pets found matching your criteria");
-      return;
-    }
-    hideEmpty();
-    filtered.forEach((p) => cardsContainer.appendChild(createPetCard(p)));
+  // Clear and repopulate
+  cardsContainer.innerHTML = "";
+  if (filtered.length === 0) {
+    const emptyMsg = isAdoptedTab
+      ? "No adopted pets found matching your criteria"
+      : "No available pets found matching your criteria";
+    showEmpty(emptyMsg);
+    return;
   }
 
-  // ----------------------------
-  // Requests badge helpers
-  // ----------------------------
-  async function countPendingRequests(petId) {
-    // Index: adoptionRequestsByListing/{petId} -> requestId:true
-    const idxSnap = await firebase.database().ref("adoptionRequestsByListing/" + petId).once("value");
-    if (!idxSnap.exists()) return 0;
+  hideEmpty();
 
-    const ids = [];
-    idxSnap.forEach((ch) => { if (ch.val()) ids.push(ch.key); });
-    if (!ids.length) return 0;
-
-    const reqSnaps = await Promise.all(
-      ids.map(id => firebase.database().ref("adoptionRequests/" + id + "/status").once("value"))
-    );
-
-    let pending = 0;
-    reqSnaps.forEach(s => {
-      const st = (s.val() || "pending").toLowerCase();
-      if (st === "pending") pending += 1;
-    });
-    return pending;
-  }
-
-  function attachLivePendingCounter(petId, badgeEl) {
-    // detach existing if any
-    if (activeRequestListeners[petId]) {
-      const { ref, handler } = activeRequestListeners[petId];
-      ref.off("value", handler);
-      delete activeRequestListeners[petId];
-    }
-
-    const ref = firebase.database().ref("adoptionRequestsByListing/" + petId);
-    const handler = async (snap) => {
-      if (!badgeEl) return;
-      if (!snap.exists()) {
-        badgeEl.textContent = "0";
-        badgeEl.style.visibility = "hidden";
-        return;
-      }
-      const ids = [];
-      snap.forEach((ch) => { if (ch.val()) ids.push(ch.key); });
-      if (!ids.length) {
-        badgeEl.textContent = "0";
-        badgeEl.style.visibility = "hidden";
-        return;
-      }
-
-      const reqSnaps = await Promise.all(
-        ids.map(id => firebase.database().ref("adoptionRequests/" + id + "/status").once("value"))
-      );
-
-      const pending = reqSnaps.reduce((acc, s) => {
-        const st = (s.val() || "pending").toLowerCase();
-        return acc + (st === "pending" ? 1 : 0);
-      }, 0);
-
-      badgeEl.textContent = String(pending);
-      badgeEl.style.visibility = pending > 0 ? "visible" : "hidden";
-    };
-
-    ref.on("value", handler);
-    activeRequestListeners[petId] = { ref, handler };
-  }
-
-  async function markAllPendingAsUnderReview(petId) {
-    const idxSnap = await firebase.database().ref("adoptionRequestsByListing/" + petId).once("value");
-    if (!idxSnap.exists()) return;
-
-    const ids = [];
-    idxSnap.forEach((ch) => { if (ch.val()) ids.push(ch.key); });
-    if (!ids.length) return;
-
-    // Load each request to check status and update if pending
-    const updates = {};
-    const now = Date.now();
-    const reqSnaps = await Promise.all(ids.map(id => firebase.database().ref("adoptionRequests/" + id).once("value")));
-    reqSnaps.forEach(s => {
-      const v = s.val() || {};
-      const st = (v.status || "pending").toLowerCase();
-      if (st === "pending") {
-        updates[`adoptionRequests/${s.key}/status`] = "under_review";
-        updates[`adoptionRequests/${s.key}/updatedAt`] = now;
-      }
-    });
-
-    if (Object.keys(updates).length) {
-      await firebase.database().ref().update(updates);
-    }
-  }
+  filtered.forEach((p) =>
+    cardsContainer.appendChild(
+      isAdoptedTab ? createAdoptedCard(p) : createPetCard(p)
+    )
+  );
+}
 
   // ----------------------------
-  // Modal (uses normalized pet) + requests badge wiring
+  // Modal
   // ----------------------------
-  function openPetDetails(pet) {
-    const modal = document.getElementById("pet-modal");
-    const content = document.getElementById("pet-details-content");
-    if (!modal || !content) return;
+function openPetDetails(pet) {
+  const modal = document.getElementById("pet-modal");
+  const content = document.getElementById("pet-details-content");
+  if (!modal || !content) return;
 
-    content.innerHTML = `
+  // Populate the modal content
+  content.innerHTML = `
+    <div class="pet-details-layout">
+      <!-- LEFT: Large Image -->
       <div class="pet-details-media">
-        ${
-          pet.imageUrl
-            ? `<img src="${pet.imageUrl}" alt="${pet.name}">`
-            : `<img src="/api/placeholder/800/600" alt="placeholder">`
-        }
-        <div class="pet-details-gallery">
-          ${pet.imageUrl ? `<div class="gallery-thumb active"><img src="${pet.imageUrl}" alt="${pet.name}"></div>` : ""}
-          <div class="gallery-thumb"><img src="/api/placeholder/100/100" alt="placeholder"></div>
-          <div class="gallery-thumb"><img src="/api/placeholder/100/100" alt="placeholder"></div>
-        </div>
+        <img src="${pet.imageUrl || '/api/placeholder/800/600'}" alt="${pet.name}" />
       </div>
+
+      <!-- RIGHT: Details -->
       <div class="pet-details-info">
         <div class="pet-details-header">
-          <h2>${pet.name}</h2>
+          <h2>${pet.name || "Unnamed Pet"}</h2>
           <div class="pet-details-meta">
-            <div class="pet-details-meta-item"><i class="fas fa-dog"></i><span>${pet.species || "Unknown"}</span></div>
-            <div class="pet-details-meta-item"><i class="fas fa-birthday-cake"></i><span>${pet.age}</span></div>
-            <div class="pet-details-meta-item"><i class="fas fa-venus-mars"></i><span>${pet.gender || "Unknown"}</span></div>
+            <div class="pet-details-meta-item"><i class="fas fa-paw"></i> ${pet.species || "Unknown"}</div>
+            <div class="pet-details-meta-item"><i class="fas fa-ruler-vertical"></i> ${pet.size || "N/A"}</div>
+            <div class="pet-details-meta-item"><i class="fas fa-venus-mars"></i> ${pet.gender || "N/A"}</div>
+            <div class="pet-details-meta-item"><i class="fas fa-birthday-cake"></i> ${pet.age || "N/A"}</div>
           </div>
         </div>
 
         <div class="pet-details-section">
           <h3>About ${pet.name}</h3>
-          <p class="pet-details-description">${pet.fullDescription || pet.description || "No description available."}</p>
+          <p class="pet-details-description">${pet.description || "No description available."}</p>
         </div>
 
         <div class="pet-details-section">
-          <h3>Details</h3>
-          <div class="pet-details-table">
-            <dt>Breed</dt><dd>${pet.breed || "—"}</dd>
-            <dt>Size</dt><dd>${pet.size || "—"}</dd>
-            <dt>Location</dt><dd>${pet.address || "Unknown location"}</dd>
-            <dt>Special Needs</dt><dd>${pet.specialNeeds || "None"}</dd>
-          </div>
+          <h3>Compatibility</h3>
+          <dl class="pet-details-table">
+            <dt>Good with kids:</dt><dd>${pet.goodWithKids ? "Yes" : "No"}</dd>
+            <dt>Good with dogs:</dt><dd>${pet.goodWithDogs ? "Yes" : "No"}</dd>
+            <dt>Good with cats:</dt><dd>${pet.goodWithCats ? "Yes" : "No"}</dd>
+          </dl>
         </div>
 
-        <div class="pet-details-contact">
-          <h3>Adoption Status</h3>
-          <div class="contact-info">
-            <dt><i class="fas fa-clipboard-check"></i> Status</dt>
-            <dd>${pet.adoptionStatus || "Available"}</dd>
-          </div>
+        <div class="pet-details-section">
+          <h3>Health & Training</h3>
+          <dl class="pet-details-table">
+            <dt>Vaccinated:</dt><dd>${pet.vaccinated ? "Yes" : "No"}</dd>
+            <dt>Spayed/Neutered:</dt><dd>${pet.neutered ? "Yes" : "No"}</dd>
+            <dt>House Trained:</dt><dd>${pet.houseTrained ? "Yes" : "No"}</dd>
+          </dl>
+        </div>
+
+        <div class="pet-details-section">
+          <h3>Contact Information</h3>
+          <dl class="pet-details-table">
+            <dt>Phone:</dt><dd>${pet.contactPhone || "Not provided"}</dd>
+            <dt>Email:</dt><dd>${pet.contactEmail || "Not provided"}</dd>
+            <dt>Location:</dt><dd>${pet.address || "Not specified"}</dd>
+          </dl>
         </div>
       </div>
-    `;
+    </div>
+  `;
 
-    modal.classList.add("show");
+  // Show modal
+  modal.classList.add("show");
 
-    // Close
-    modal.querySelector(".close-modal").onclick = () => {
+  // --- CLOSE BUTTON ---
+  const closeBtn = modal.querySelector(".close-modal");
+  if (closeBtn) closeBtn.onclick = () => modal.classList.remove("show");
+
+  // --- EDIT BUTTON ---
+  const editBtn = modal.querySelector(".edit-btn");
+  if (editBtn) {
+    editBtn.onclick = () => {
       modal.classList.remove("show");
-      // detach live listener for this pet (avoid leaks)
-      if (activeRequestListeners[pet.id]) {
-        const { ref, handler } = activeRequestListeners[pet.id];
-        ref.off("value", handler);
-        delete activeRequestListeners[pet.id];
-      }
+      window.location.href = `editAdoption.html?id=${encodeURIComponent(pet.id)}`;
     };
-    if (!modal._outsideHandler) {
-      modal._outsideHandler = (e) => {
-        if (e.target === modal) {
-          modal.classList.remove("show");
-          if (activeRequestListeners[pet.id]) {
-            const { ref, handler } = activeRequestListeners[pet.id];
-            ref.off("value", handler);
-            delete activeRequestListeners[pet.id];
-          }
-        }
-      };
-      modal.addEventListener("click", modal._outsideHandler);
-    }
-
-    // Edit page
-    const editBtn = modal.querySelector(".edit-btn");
-    if (editBtn) editBtn.onclick = () => (window.location.href = `editAdoption.html?id=${pet.id}`);
-
-    // Requests button + badge
-    const viewBtn = modal.querySelector("#viewRequestsBtn");
-    const badge = modal.querySelector("#request-badge");
-    if (badge) {
-      badge.style.visibility = "hidden";
-      // live counter of PENDING-only requests
-      attachLivePendingCounter(pet.id, badge);
-    }
-    if (viewBtn) {
-      viewBtn.onclick = async () => {
-        try {
-          // mark all PENDING -> UNDER_REVIEW before navigation (so count becomes 0)
-          await markAllPendingAsUnderReview(pet.id);
-        } catch (e) {
-          console.warn("Could not mark requests as under_review:", e);
-        }
-        window.location.href = `adoptionRequests.html?petId=${pet.id}`;
-      };
-    }
-
-    // thumbs
-    modal.querySelectorAll(".gallery-thumb").forEach((thumb) => {
-      thumb.onclick = () => {
-        modal.querySelectorAll(".gallery-thumb").forEach((t) => t.classList.remove("active"));
-        thumb.classList.add("active");
-        modal.querySelector(".pet-details-media > img").src = thumb.querySelector("img").src;
-      };
-    });
   }
 
+  // --- REQUESTS BUTTON ---
+  const reqBtn = modal.querySelector("#viewRequestsBtn");
+  if (reqBtn) {
+    reqBtn.onclick = () => {
+      modal.classList.remove("show");
+      window.location.href = `adoptionRequests.html?id=${encodeURIComponent(pet.id)}`;
+    };
+  }
+}
+
+
+
+
   // ----------------------------
-  // “Add Adoption” FAB
+  // Add Button
   // ----------------------------
   const addBtn = document.getElementById("addAdoptionBtn");
   if (addBtn) {
     addBtn.addEventListener("click", () => (window.location.href = "addAdoption.html"));
   }
+
+  // ----------------------------
+  // Tabs: Available ↔ Adopted
+  // ----------------------------
+  function setupTabSwitching() {
+    const tabAvailable = document.getElementById("tab-available");
+    const tabAdopted = document.getElementById("tab-adopted");
+    const availableSection = document.getElementById("available-section");
+    const adoptedSection = document.getElementById("adopted-section");
+
+    if (!tabAvailable || !tabAdopted || !availableSection || !adoptedSection) return;
+
+    tabAvailable.addEventListener("click", () => {
+      tabAvailable.classList.add("active");
+      tabAdopted.classList.remove("active");
+      availableSection.style.display = "block";
+      adoptedSection.style.display = "none";
+    });
+
+    tabAdopted.addEventListener("click", () => {
+      tabAdopted.classList.add("active");
+      tabAvailable.classList.remove("active");
+      availableSection.style.display = "none";
+      adoptedSection.style.display = "block";
+    });
+  }
+
+  // ----------------------------
+// Back Button (closes modal)
+// ----------------------------
+const backBtn = document.getElementById("backBtn");
+if (backBtn) {
+  backBtn.addEventListener("click", () => {
+    const modal = document.getElementById("pet-modal");
+    if (modal) {
+      modal.classList.remove("show"); // hide the modal
+      document.body.style.overflow = "auto"; // restore scroll
+    }
+  });
+}
+
 })();

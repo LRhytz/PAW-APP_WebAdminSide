@@ -70,30 +70,31 @@
       // Upload photo
       const photoUrl = await uploadImage(user.uid, id, file);
 
-      // Build exactly your RTDB schema
-      const payload = {
-        id,                                     // "-OZ3Tgj4jqpApd0263N8"
-        orgId: user.uid,                        // "iPtRXxir5cZbpstp36y2dRaGckQ2"
-        species: val("species").toLowerCase(),  // "cat" | "dog"
-        name: val("name"),                      // "Kahel"
-        breed: val("breed"),                    // "orange spotted cat"
-        ageMonths: num("ageMonths"),            // 24
-        gender: val("gender").toLowerCase(),    // "male" | "female"
-        size: val("size").toLowerCase(),        // "small" | "medium" | "large"
-        weightLbs: num("weightLbs"),           // 25
-        spayedNeutered: bool("spayedNeutered"),
-        vaccinated: bool("vaccinated"),
-        microchipped: bool("microchipped"),
-        goodWithKids: bool("goodWithKids"),
-        goodWithDogs: bool("goodWithDogs"),
-        goodWithCats: bool("goodWithCats"),
-        houseTrained: bool("houseTrained"),
-        description: val("description"),
-        contactInfo: val("contactInfo"),        // "092980023632 / paws@example.com"
-        location: val("location"),              // "Lahug Cebu city"
-        photoUrl,
-        createdAt: Date.now()
-      };
+// Build exactly your RTDB schema
+const payload = {
+  id,                                     // "-OZ3Tgj4jqpApd0263N8"
+  orgId: user.uid,                        // "iPtRXxir5cZbpstp36y2dRaGckQ2"
+  species: val("species").toLowerCase(),  // "cat" | "dog"
+  name: val("name"),                      // "Kahel"
+  breed: val("breed"),                    // "Aspin"
+  ageMonths: num("ageMonths"),            // 24
+  gender: val("gender").toLowerCase(),    // "male" | "female"
+  size: val("size").toLowerCase(),        // "small" | "medium" | "large"
+  weightLbs: num("weightLbs"),            // 25
+  spayedNeutered: bool("spayedNeutered"),
+  vaccinated: bool("vaccinated"),
+  microchipped: bool("microchipped"),
+  goodWithKids: bool("goodWithKids"),
+  goodWithDogs: bool("goodWithDogs"),
+  goodWithCats: bool("goodWithCats"),
+  houseTrained: bool("houseTrained"),
+  description: val("description"),
+  contactInfo: val("contactInfo"),        // "092980023632 / paws@example.com"
+  location: val("location"),              // "Lahug Cebu city"
+  photoUrl,
+  createdAt: Date.now(),
+  available: true                         // ✅ Add this line
+};
 
       // Write to /adoptions/{id}
       await newRef.set(payload);

@@ -480,93 +480,105 @@ body {
   color: var(--text-light);
 }
 
-/* Floating "+" button */
+/* ─── Force Priority for Floating Add Button ─────────────────────────── */
 .add-btn {
-  position: fixed;
-  bottom: var(--gap);
-  right: var(--gap);
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3);
-  cursor: pointer;
-  z-index: 1002;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
+  position: fixed !important;
+  bottom: 2rem !important;
+  right: 2rem !important;
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 50% !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 10px 25px rgba(255, 152, 0, 0.4) !important;
+  cursor: pointer !important;
+  z-index: 2001 !important; /* make sure it's above modals and cards */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.25s ease !important;
 }
 
 .add-btn i {
-  font-size: 1.5rem;
+  font-size: 1.6rem !important;
 }
 
 .add-btn:hover {
-  transform: scale(1.05) rotate(90deg);
-  background-color: #f57c00;
+  transform: translateY(-4px) rotate(90deg) !important;
+  background-color: #f57c00 !important;
+  box-shadow: 0 12px 28px rgba(255, 152, 0, 0.5) !important;
+}
+
+/* Mobile View */
+@media (max-width: 600px) {
+  .add-btn {
+    width: 56px !important;
+    height: 56px !important;
+    bottom: 1.5rem !important;
+    right: 1.5rem !important;
+  }
+
+  .add-btn i {
+    font-size: 1.4rem !important;
+  }
 }
 
 /* Modal for Pet Details */
 .modal {
-  display: none;
   position: fixed;
-  z-index: 2000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  overflow: auto;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  backdrop-filter: blur(5px);
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6); /* darker backdrop */
+  z-index: 1000;
 }
 
 .modal.show {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 1;
 }
 
 .modal-content {
-  position: relative;
-  background-color: var(--card-bg);
-  margin: 2rem;
-  max-width: 800px;
-  width: 95%;
-  border-radius: var(--border-radius);
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
-  animation: modalFadeIn 0.4s ease-out;
+  background: #ffffff;        /* <-- this removes the transparency */
+  color: #333;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  max-width: 1000px;
+  width: 90%;
+  height: 85vh;
   overflow: hidden;
-  max-height: 90vh;
   display: flex;
   flex-direction: column;
 }
 
+/* Fix extra right-side white space in modal */
 .modal-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  padding: 0;
-  max-height: calc(90vh - 120px);
-  overflow-y: auto;
+  flex: 1;
+  overflow-y: auto;        /* only vertical scroll allowed */
+  overflow-x: hidden !important; /* kill horizontal scroll */
+  padding: 0 !important;
+  margin: 0;
 }
 
+
 .pet-details-media {
-  position: relative;
-  background: #f8f8f8;
-  height: 100%;
-  min-height: 400px;
+  flex: 1 1 55%;
+  overflow: hidden;
 }
+
+.pet-details-layout {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
 
 .pet-details-media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .pet-details-gallery {
@@ -600,9 +612,11 @@ body {
 }
 
 .pet-details-info {
-  padding: 2rem 2rem 1rem 0;
-  display: flex;
-  flex-direction: column;
+  flex: 1 1 45%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem 2rem;
+  box-sizing: border-box;
 }
 
 .pet-details-header {
@@ -791,15 +805,21 @@ body {
 }
 
 /* Responsive adjustments */
-@media (max-width: 992px) {
-  .modal-body {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+@media (max-width: 900px) {
+  .modal-content {
+    width: 95%;
+    height: 90vh;
   }
-  
+
+    .pet-details-layout {
+    flex-direction: column;
+  }
+
+
   .pet-details-media {
-    min-height: 300px;
+    height: 300px;
   }
+
   
   .pet-details-info {
     padding: 1.5rem;
@@ -1114,4 +1134,107 @@ body {
   .summary-grid .card {
     flex: 1 1 100%;
   }
+}
+
+/* ─── Tabs for Available / Adopted Pets ─────────────────────────────────────── */
+.adoption-tabs {
+  display: inline-flex;
+  background: #fff;
+  border-radius: 50px;
+  overflow: hidden;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  margin-bottom: 2rem;
+}
+
+.adoption-tab {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all 0.25s ease;
+}
+
+.adoption-tab.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ─── Adopted Section Cards ──────────────────────────────────────────────── */
+#adopted-section {
+  margin-top: 2rem;
+  display: none; /* hidden until tab is toggled */
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+#adopted-section.show {
+  display: block;
+}
+
+#adopted-cards .card {
+  border-top: 4px solid var(--accent);
+}
+
+#adopted-cards .pet-badge {
+  background: var(--accent);
+  box-shadow: 0 3px 10px rgba(255,152,0,0.3);
+}
+
+#adopted-cards .card h3 {
+  color: #ff9800;
+}
+
+/* Adopted card text */
+#adopted-cards p {
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+/* Fade transition between tab sections */
+.section-fade {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.section-fade.active {
+  opacity: 1;
+  pointer-events: all;
+}
+body {
+  position: relative;
+  overflow-x: hidden;
+}
+
+body > .add-btn {
+  position: fixed !important;
+  bottom: 2rem !important;
+  right: 2rem !important;
+  z-index: 9999 !important;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: #444;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.btn-back:hover {
+  color: #000;
+}
+
+.back-btn {
+  background-color: #6c757d; /* gray */
+  color: #fff;
+}
+
+.back-btn:hover {
+  background-color: #5a6268;
 }

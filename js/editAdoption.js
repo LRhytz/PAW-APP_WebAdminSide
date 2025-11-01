@@ -7,6 +7,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const editForm     = document.getElementById("editForm");
   const currentImage = document.getElementById("currentImage");
   const logoutBtn    = document.getElementById("logout-btn");
+  const backBtn      = document.getElementById("back-btn");
+if (backBtn) {
+  backBtn.addEventListener("click", () => {
+    history.back();
+  });
+}
 
   // Safe placeholder (prevents 404)
   const PLACEHOLDER = "https://placehold.co/400x300?text=Loading+image";
