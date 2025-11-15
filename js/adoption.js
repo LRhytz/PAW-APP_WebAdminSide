@@ -137,6 +137,25 @@
     );
   }
 
+  // 1) Add this helper near the top (or above loadAdoptedPets)
+async function getAdopterFromFinalizedRequest(orgUID, petId) {
+  const ref = firebase.database().ref(`adoptionRequestsByOrg/${orgUID}/${petId}`);
+  const snap = await ref.once('value');
+  if (!snap.exists()) return null;
+
+  // pick the most recent finalized request
+  let chosen = null;
+  snap.forEach(cs => {
+    const r = cs.val();
+    if (r?.status === 'finalized') {
+      const t = r.updatedAt || r.createdAt || 0;
+      if (!chosen || t > (chosen.updatedAt || chosen.createdAt || 0)) chosen = r;
+    }
+  });
+  return chosen;
+}
+
+
 // ----------------------------
 // Load Adopted Pets
 // ----------------------------
@@ -190,26 +209,23 @@ async function loadAdoptedPets(orgUID) {
 
     if (emptyState) emptyState.style.display = "none";
 
-    for (const pet of adoptedPets) {
-      if (pet.adoptedBy) {
-        try {
-  const userSnap = await firebase.database().ref("users/" + pet.adoptedBy).once("value");
-  const userData = userSnap.val();
-  pet.adopterName =
-    userData?.fullName ||   // ✅ corrected capitalization
-    userData?.displayName ||
-    userData?.name ||
-    userData?.email ||
-    "Unknown adopter";
-} catch (e) {
-  console.warn("Adopter lookup failed for", pet.id, e);
+// NEW (uses adoptionRequests; no /users read)
+for (const pet of adoptedPets) {
   pet.adopterName = "Unknown adopter";
-}
-
-      } else {
-        pet.adopterName = "Unknown adopter";
-      }
+  try {
+    const req = await getAdopterFromFinalizedRequest(orgUID, pet.id);
+    if (req) {
+      pet.adopterName =
+        req.requesterName ||
+        req.requesterEmail ||
+        req.phone ||
+        "Unknown adopter";
+      pet.adopterEmail = req.requesterEmail || "";
     }
+  } catch (e) {
+    console.warn("Adopter lookup failed for", pet.id, e);
+  }
+}
 
     console.log("✅ Adopted Pets loaded:", adoptedPets.map(p => ({ name: p.name, adopter: p.adopterName })));
 
