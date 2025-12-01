@@ -1,4 +1,4 @@
-// js/adoption.js — full version with Adopted Pets section integrated (and tab toggle added)
+// js/adoption.js — available + adopted tabs, modal details, and request badge hooks
 
 (function () {
   // ----------------------------
@@ -56,8 +56,6 @@
   let allPetsData = [];
   let allAdoptedData = [];
 
-  const activeRequestListeners = {};
-
   // ----------------------------
   // Entry
   // ----------------------------
@@ -72,7 +70,7 @@
       loadAdoptionCards(user.uid);
       loadAdoptedPets(user.uid);
       setupSearch();
-      setupTabSwitching(); // <-- NEW: connect tabs
+      setupTabSwitching();
     } catch (err) {
       console.error("Init error:", err);
       showEmpty("Error loading organization info.");
@@ -105,13 +103,11 @@
     dbRef.on(
       "value",
       (snapshot) => {
-        const allPets = snapshot.val();
-        cardsContainer.innerHTML = "";
+        const allPets = snapshot.val() || {};
+        console.log("[adoption] fetched", Object.keys(allPets).length, "nodes; orgUID =", orgUID);
 
-        if (!allPets) {
-          showEmpty();
-          return;
-        }
+        if (!cardsContainer) return;
+        cardsContainer.innerHTML = "";
 
         const filteredPets = Object.entries(allPets)
           .filter(([id, pet]) => {
@@ -119,6 +115,8 @@
             return orgId === orgUID && pet.available !== false;
           })
           .map(([id, pet]) => normalizePet(pet, id));
+
+        console.log("[adoption] showing", filteredPets.length, "pets for this org");
 
         allPetsData = filteredPets;
 
@@ -137,102 +135,96 @@
     );
   }
 
-  // 1) Add this helper near the top (or above loadAdoptedPets)
-async function getAdopterFromFinalizedRequest(orgUID, petId) {
-  const ref = firebase.database().ref(`adoptionRequestsByOrg/${orgUID}/${petId}`);
-  const snap = await ref.once('value');
-  if (!snap.exists()) return null;
+  async function getAdopterFromFinalizedRequest(orgUID, petId) {
+    const ref = firebase.database().ref(`adoptionRequestsByOrg/${orgUID}/${petId}`);
+    const snap = await ref.once("value");
+    if (!snap.exists()) return null;
 
-  // pick the most recent finalized request
-  let chosen = null;
-  snap.forEach(cs => {
-    const r = cs.val();
-    if (r?.status === 'finalized') {
-      const t = r.updatedAt || r.createdAt || 0;
-      if (!chosen || t > (chosen.updatedAt || chosen.createdAt || 0)) chosen = r;
-    }
-  });
-  return chosen;
-}
-
-
-// ----------------------------
-// Load Adopted Pets
-// ----------------------------
-async function loadAdoptedPets(orgUID) {
-  const dbRef = firebase.database().ref("adoptions");
-
-  // Ensure container exists early
-  let adoptedSection = document.getElementById("adopted-section");
-  if (!adoptedSection) {
-    adoptedSection = document.createElement("section");
-    adoptedSection.id = "adopted-section";
-    adoptedSection.style.display = "none"; // hidden until tab clicked
-    adoptedSection.innerHTML = `
-      <h2 class="section-title">Adopted Pets</h2>
-      <div id="adopted-cards" class="pet-grid"></div>
-      <div id="empty-adopted" class="empty-state">
-        <i class="fas fa-heart"></i>
-        <p>No adopted pets yet</p>
-        <span>Once your pets are adopted, they'll show up here</span>
-      </div>`;
-    document.querySelector(".main-content").appendChild(adoptedSection);
+    let chosen = null;
+    snap.forEach((cs) => {
+      const r = cs.val();
+      if (r?.status === "finalized") {
+        const t = r.updatedAt || r.createdAt || 0;
+        if (!chosen || t > (chosen.updatedAt || chosen.createdAt || 0)) chosen = r;
+      }
+    });
+    return chosen;
   }
 
-  const adoptedGrid = adoptedSection.querySelector("#adopted-cards");
-  const emptyState = adoptedSection.querySelector("#empty-adopted");
+  // ----------------------------
+  // Load Adopted Pets
+  // ----------------------------
+  async function loadAdoptedPets(orgUID) {
+    const dbRef = firebase.database().ref("adoptions");
 
-  // Listen to database changes
-  dbRef.on("value", async (snapshot) => {
-    if (!adoptedGrid) return;
-    adoptedGrid.innerHTML = "";
-
-    const allPets = snapshot.val();
-    if (!allPets) {
-      if (emptyState) emptyState.style.display = "flex";
-      return;
+    // Ensure container exists early
+    let adoptedSection = document.getElementById("adopted-section");
+    if (!adoptedSection) {
+      adoptedSection = document.createElement("section");
+      adoptedSection.id = "adopted-section";
+      adoptedSection.style.display = "none";
+      adoptedSection.innerHTML = `
+        <h2 class="section-title">Adopted Pets</h2>
+        <div id="adopted-cards" class="pet-grid"></div>
+        <div id="empty-adopted" class="empty-state">
+          <i class="fas fa-heart"></i>
+          <p>No adopted pets yet</p>
+          <span>Once your pets are adopted, they'll show up here</span>
+        </div>`;
+      document.querySelector(".main-content").appendChild(adoptedSection);
     }
 
-    const adoptedPets = Object.entries(allPets)
-      .filter(([id, pet]) => {
-        const orgId = pet.orgId || pet.organizationId || pet.organization;
-        return orgId === orgUID && pet.available === false;
-      })
-      .map(([id, pet]) => normalizePet(pet, id));
-      allAdoptedData = adoptedPets; // ✅ store globally for filtering
+    const adoptedGrid = adoptedSection.querySelector("#adopted-cards");
+    const emptyState = adoptedSection.querySelector("#empty-adopted");
 
+    dbRef.on("value", async (snapshot) => {
+      if (!adoptedGrid) return;
+      adoptedGrid.innerHTML = "";
 
-    if (adoptedPets.length === 0) {
-      if (emptyState) emptyState.style.display = "flex";
-      return;
-    }
+      const allPets = snapshot.val();
+      if (!allPets) {
+        if (emptyState) emptyState.style.display = "flex";
+        return;
+      }
 
-    if (emptyState) emptyState.style.display = "none";
+      const adoptedPets = Object.entries(allPets)
+        .filter(([id, pet]) => {
+          const orgId = pet.orgId || pet.organizationId || pet.organization;
+          return orgId === orgUID && pet.available === false;
+        })
+        .map(([id, pet]) => normalizePet(pet, id));
 
-// NEW (uses adoptionRequests; no /users read)
-for (const pet of adoptedPets) {
-  pet.adopterName = "Unknown adopter";
-  try {
-    const req = await getAdopterFromFinalizedRequest(orgUID, pet.id);
-    if (req) {
-      pet.adopterName =
-        req.requesterName ||
-        req.requesterEmail ||
-        req.phone ||
-        "Unknown adopter";
-      pet.adopterEmail = req.requesterEmail || "";
-    }
-  } catch (e) {
-    console.warn("Adopter lookup failed for", pet.id, e);
+      allAdoptedData = adoptedPets;
+
+      if (adoptedPets.length === 0) {
+        if (emptyState) emptyState.style.display = "flex";
+        return;
+      }
+
+      if (emptyState) emptyState.style.display = "none";
+
+      for (const pet of adoptedPets) {
+        pet.adopterName = "Unknown adopter";
+        try {
+          const req = await getAdopterFromFinalizedRequest(orgUID, pet.id);
+          if (req) {
+            pet.adopterName =
+              req.requesterName || req.requesterEmail || req.phone || "Unknown adopter";
+            pet.adopterEmail = req.requesterEmail || "";
+          }
+        } catch (e) {
+          console.warn("Adopter lookup failed for", pet.id, e);
+        }
+      }
+
+      console.log(
+        "✅ Adopted Pets loaded:",
+        adoptedPets.map((p) => ({ name: p.name, adopter: p.adopterName }))
+      );
+
+      adoptedPets.forEach((p) => adoptedGrid.appendChild(createAdoptedCard(p)));
+    });
   }
-}
-
-    console.log("✅ Adopted Pets loaded:", adoptedPets.map(p => ({ name: p.name, adopter: p.adopterName })));
-
-    adoptedPets.forEach((p) => adoptedGrid.appendChild(createAdoptedCard(p)));
-  });
-}
-
 
   // ----------------------------
   // Card Builders
@@ -241,6 +233,7 @@ for (const pet of adoptedPets) {
     const card = document.createElement("div");
     card.className = "card";
     card.dataset.petId = pet.id;
+    card.setAttribute("data-pet-id", pet.id); // <-- ensure attribute for badge script
 
     const tags = ["Friendly", "Neutered", "Playful", "Calm"];
     const randomTags = tags.sort(() => 0.5 - Math.random()).slice(0, 2);
@@ -273,19 +266,17 @@ for (const pet of adoptedPets) {
           </button>
         </div>
       </div>`;
-const detailsBtn = card.querySelector(".view-details-btn");
-if (detailsBtn) {
-const detailsBtn = card.querySelector(".view-details-btn");
-if (detailsBtn) {
-  detailsBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    openPetDetails(pet); // 🩵 open modal instead of redirecting
-  });
-}
-}
 
-// Keep the card click to open modal if you want that preview behavior
-card.addEventListener("click", () => openPetDetails(pet));
+    const detailsBtn = card.querySelector(".view-details-btn");
+    if (detailsBtn) {
+      detailsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openPetDetails(pet);
+      });
+    }
+
+    // Clicking the card also opens details
+    card.addEventListener("click", () => openPetDetails(pet));
     return card;
   }
 
@@ -333,142 +324,129 @@ card.addEventListener("click", () => openPetDetails(pet));
     if (speciesFilter) speciesFilter.addEventListener("change", filterPets);
   }
 
-function filterPets() {
-  const searchInput = document.getElementById("pet-search");
-  const speciesFilter = document.getElementById("species-filter");
-  const searchTerm = (searchInput?.value || "").toLowerCase();
-  const selectedSpecies = (speciesFilter?.value || "").toLowerCase();
+  function filterPets() {
+    const searchInput = document.getElementById("pet-search");
+    const speciesFilter = document.getElementById("species-filter");
+    const searchTerm = (searchInput?.value || "").toLowerCase();
+    const selectedSpecies = (speciesFilter?.value || "").toLowerCase();
 
-  // Detect which tab is active
-  const isAdoptedTab = document.getElementById("tab-adopted")?.classList.contains("active");
+    const isAdoptedTab = document
+      .getElementById("tab-adopted")
+      ?.classList.contains("active");
 
-  // Select correct dataset & container
-  const cardsContainer = document.getElementById(
-    isAdoptedTab ? "adopted-cards" : "adoption-cards"
-  );
-  const dataSource = isAdoptedTab ? allAdoptedData : allPetsData;
+    const cardsContainer = document.getElementById(
+      isAdoptedTab ? "adopted-cards" : "adoption-cards"
+    );
+    const dataSource = isAdoptedTab ? allAdoptedData : allPetsData;
 
-  // Filter
-  const filtered = dataSource.filter((pet) => {
-    const matchesSearch =
-      pet.name.toLowerCase().includes(searchTerm) ||
-      (pet.breed || "").toLowerCase().includes(searchTerm) ||
-      (pet.description || "").toLowerCase().includes(searchTerm);
-    const matchesSpecies =
-      !selectedSpecies || (pet.species && pet.species.toLowerCase() === selectedSpecies);
-    return matchesSearch && matchesSpecies;
-  });
+    const filtered = dataSource.filter((pet) => {
+      const matchesSearch =
+        pet.name.toLowerCase().includes(searchTerm) ||
+        (pet.breed || "").toLowerCase().includes(searchTerm) ||
+        (pet.description || "").toLowerCase().includes(searchTerm);
+      const matchesSpecies =
+        !selectedSpecies || (pet.species && pet.species.toLowerCase() === selectedSpecies);
+      return matchesSearch && matchesSpecies;
+    });
 
-  // Clear and repopulate
-  cardsContainer.innerHTML = "";
-  if (filtered.length === 0) {
-    const emptyMsg = isAdoptedTab
-      ? "No adopted pets found matching your criteria"
-      : "No available pets found matching your criteria";
-    showEmpty(emptyMsg);
-    return;
+    if (!cardsContainer) return;
+    cardsContainer.innerHTML = "";
+
+    if (filtered.length === 0) {
+      const emptyMsg = isAdoptedTab
+        ? "No adopted pets found matching your criteria"
+        : "No available pets found matching your criteria";
+      showEmpty(emptyMsg);
+      return;
+    }
+
+    hideEmpty();
+
+    filtered.forEach((p) =>
+      cardsContainer.appendChild(isAdoptedTab ? createAdoptedCard(p) : createPetCard(p))
+    );
   }
-
-  hideEmpty();
-
-  filtered.forEach((p) =>
-    cardsContainer.appendChild(
-      isAdoptedTab ? createAdoptedCard(p) : createPetCard(p)
-    )
-  );
-}
 
   // ----------------------------
   // Modal
   // ----------------------------
-function openPetDetails(pet) {
-  const modal = document.getElementById("pet-modal");
-  const content = document.getElementById("pet-details-content");
-  if (!modal || !content) return;
+  function openPetDetails(pet) {
+    const modal = document.getElementById("pet-modal");
+    const content = document.getElementById("pet-details-content");
+    if (!modal || !content) return;
 
-  // Populate the modal content
-  content.innerHTML = `
-    <div class="pet-details-layout">
-      <!-- LEFT: Large Image -->
-      <div class="pet-details-media">
-        <img src="${pet.imageUrl || '/api/placeholder/800/600'}" alt="${pet.name}" />
-      </div>
+    content.innerHTML = `
+      <div class="pet-details-layout">
+        <div class="pet-details-media">
+          <img src="${pet.imageUrl || '/api/placeholder/800/600'}" alt="${pet.name}" />
+        </div>
+        <div class="pet-details-info">
+          <div class="pet-details-header">
+            <h2>${pet.name || "Unnamed Pet"}</h2>
+            <div class="pet-details-meta">
+              <div class="pet-details-meta-item"><i class="fas fa-paw"></i> ${pet.species || "Unknown"}</div>
+              <div class="pet-details-meta-item"><i class="fas fa-ruler-vertical"></i> ${pet.size || "N/A"}</div>
+              <div class="pet-details-meta-item"><i class="fas fa-venus-mars"></i> ${pet.gender || "N/A"}</div>
+              <div class="pet-details-meta-item"><i class="fas fa-birthday-cake"></i> ${pet.age || "N/A"}</div>
+            </div>
+          </div>
 
-      <!-- RIGHT: Details -->
-      <div class="pet-details-info">
-        <div class="pet-details-header">
-          <h2>${pet.name || "Unnamed Pet"}</h2>
-          <div class="pet-details-meta">
-            <div class="pet-details-meta-item"><i class="fas fa-paw"></i> ${pet.species || "Unknown"}</div>
-            <div class="pet-details-meta-item"><i class="fas fa-ruler-vertical"></i> ${pet.size || "N/A"}</div>
-            <div class="pet-details-meta-item"><i class="fas fa-venus-mars"></i> ${pet.gender || "N/A"}</div>
-            <div class="pet-details-meta-item"><i class="fas fa-birthday-cake"></i> ${pet.age || "N/A"}</div>
+          <div class="pet-details-section">
+            <h3>About ${pet.name}</h3>
+            <p class="pet-details-description">${pet.description || "No description available."}</p>
+          </div>
+
+          <div class="pet-details-section">
+            <h3>Compatibility</h3>
+            <dl class="pet-details-table">
+              <dt>Good with kids:</dt><dd>${pet.goodWithKids ? "Yes" : "No"}</dd>
+              <dt>Good with dogs:</dt><dd>${pet.goodWithDogs ? "Yes" : "No"}</dd>
+              <dt>Good with cats:</dt><dd>${pet.goodWithCats ? "Yes" : "No"}</dd>
+            </dl>
+          </div>
+
+          <div class="pet-details-section">
+            <h3>Health & Training</h3>
+            <dl class="pet-details-table">
+              <dt>Vaccinated:</dt><dd>${pet.vaccinated ? "Yes" : "No"}</dd>
+              <dt>Spayed/Neutered:</dt><dd>${pet.neutered ? "Yes" : "No"}</dd>
+              <dt>House Trained:</dt><dd>${pet.houseTrained ? "Yes" : "No"}</dd>
+            </dl>
+          </div>
+
+          <div class="pet-details-section">
+            <h3>Contact Information</h3>
+            <dl class="pet-details-table">
+              <dt>Phone:</dt><dd>${pet.contactPhone || "Not provided"}</dd>
+              <dt>Email:</dt><dd>${pet.contactEmail || "Not provided"}</dd>
+              <dt>Location:</dt><dd>${pet.address || "Not specified"}</dd>
+            </dl>
           </div>
         </div>
-
-        <div class="pet-details-section">
-          <h3>About ${pet.name}</h3>
-          <p class="pet-details-description">${pet.description || "No description available."}</p>
-        </div>
-
-        <div class="pet-details-section">
-          <h3>Compatibility</h3>
-          <dl class="pet-details-table">
-            <dt>Good with kids:</dt><dd>${pet.goodWithKids ? "Yes" : "No"}</dd>
-            <dt>Good with dogs:</dt><dd>${pet.goodWithDogs ? "Yes" : "No"}</dd>
-            <dt>Good with cats:</dt><dd>${pet.goodWithCats ? "Yes" : "No"}</dd>
-          </dl>
-        </div>
-
-        <div class="pet-details-section">
-          <h3>Health & Training</h3>
-          <dl class="pet-details-table">
-            <dt>Vaccinated:</dt><dd>${pet.vaccinated ? "Yes" : "No"}</dd>
-            <dt>Spayed/Neutered:</dt><dd>${pet.neutered ? "Yes" : "No"}</dd>
-            <dt>House Trained:</dt><dd>${pet.houseTrained ? "Yes" : "No"}</dd>
-          </dl>
-        </div>
-
-        <div class="pet-details-section">
-          <h3>Contact Information</h3>
-          <dl class="pet-details-table">
-            <dt>Phone:</dt><dd>${pet.contactPhone || "Not provided"}</dd>
-            <dt>Email:</dt><dd>${pet.contactEmail || "Not provided"}</dd>
-            <dt>Location:</dt><dd>${pet.address || "Not specified"}</dd>
-          </dl>
-        </div>
       </div>
-    </div>
-  `;
+    `;
 
-  // Show modal
-  modal.classList.add("show");
+    modal.classList.add("show");
 
-  // --- CLOSE BUTTON ---
-  const closeBtn = modal.querySelector(".close-modal");
-  if (closeBtn) closeBtn.onclick = () => modal.classList.remove("show");
+    const closeBtn = modal.querySelector(".close-modal");
+    if (closeBtn) closeBtn.onclick = () => modal.classList.remove("show");
 
-  // --- EDIT BUTTON ---
-  const editBtn = modal.querySelector(".edit-btn");
-  if (editBtn) {
-    editBtn.onclick = () => {
-      modal.classList.remove("show");
-      window.location.href = `editAdoption.html?id=${encodeURIComponent(pet.id)}`;
-    };
+    const editBtn = modal.querySelector(".edit-btn");
+    if (editBtn) {
+      editBtn.onclick = () => {
+        modal.classList.remove("show");
+        window.location.href = `editAdoption.html?id=${encodeURIComponent(pet.id)}`;
+      };
+    }
+
+    const reqBtn = modal.querySelector("#viewRequestsBtn");
+    if (reqBtn) {
+      reqBtn.onclick = () => {
+        modal.classList.remove("show");
+        window.location.href = `adoptionRequests.html?id=${encodeURIComponent(pet.id)}`;
+      };
+    }
   }
-
-  // --- REQUESTS BUTTON ---
-  const reqBtn = modal.querySelector("#viewRequestsBtn");
-  if (reqBtn) {
-    reqBtn.onclick = () => {
-      modal.classList.remove("show");
-      window.location.href = `adoptionRequests.html?id=${encodeURIComponent(pet.id)}`;
-    };
-  }
-}
-
-
-
 
   // ----------------------------
   // Add Button
@@ -505,17 +483,16 @@ function openPetDetails(pet) {
   }
 
   // ----------------------------
-// Back Button (closes modal)
-// ----------------------------
-const backBtn = document.getElementById("backBtn");
-if (backBtn) {
-  backBtn.addEventListener("click", () => {
-    const modal = document.getElementById("pet-modal");
-    if (modal) {
-      modal.classList.remove("show"); // hide the modal
-      document.body.style.overflow = "auto"; // restore scroll
-    }
-  });
-}
-
+  // Back Button in modal
+  // ----------------------------
+  const backBtn = document.getElementById("backBtn");
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      const modal = document.getElementById("pet-modal");
+      if (modal) {
+        modal.classList.remove("show");
+        document.body.style.overflow = "auto";
+      }
+    });
+  }
 })();

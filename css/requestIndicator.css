@@ -1,0 +1,116 @@
+/* Bigger, clean bell + dropdown + unread dot */
+
+.req-bell{
+  position:relative;
+  margin-left:auto;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:.7rem;
+  color:#fff;
+  padding:8px 10px;
+  border-radius:12px;
+}
+.req-bell i{
+  font-size:24px;
+  line-height:1;
+}
+.req-bell .pill{
+  position:absolute;
+  top:-6px;
+  right:-8px;
+  min-width:22px;
+  height:22px;
+  padding:0 7px;
+  border-radius:11px;
+  background:#e53935;
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  line-height:22px;
+  text-align:center;
+  box-shadow:0 1px 2px rgba(0,0,0,.25);
+}
+
+/* Dropdown */
+.req-menu{
+  position:absolute;
+  right:0;
+  top:160%;
+  width:460px;
+  max-width:95vw;
+  background:#fff;
+  border:1px solid #eee;
+  border-radius:14px;
+  box-shadow:0 16px 40px rgba(0,0,0,.16);
+  z-index:3000;
+  overflow:hidden;
+}
+.req-menu[hidden]{display:none}
+
+.req-menu-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-weight:700;
+  padding:14px 16px;
+  border-bottom:1px solid #f1f1f1;
+  font-size:15px;
+}
+.req-menu-header .sub{
+  font-weight:600;
+  color:#6b7280;
+  font-size:12px;
+}
+
+.req-menu-list{max-height:460px;overflow:auto}
+
+.req-item{
+  padding:14px 16px;
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  border-bottom:1px solid #f6f6f6;
+  cursor:pointer;
+}
+.req-item:hover{background:#fafafa}
+.req-item i{color:#4caf50;font-size:18px;margin-top:2px}
+.req-item .title{font-size:15px;font-weight:700;margin-bottom:2px;color:#111827}
+.req-item .meta{font-size:12px;color:#6b7280}
+.req-item .status{
+  margin-left:auto;
+  font-size:12px;
+  padding:5px 10px;
+  background:#eef3ff;
+  color:#1565c0;
+  border-radius:999px;
+  align-self:center;
+}
+
+/* blue unread dot */
+.req-item .new-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15);
+  margin-left:8px;margin-top:6px;
+}
+
+.req-menu-footer{
+  padding:12px 14px;
+  text-align:center;
+  background:#fafafa;
+  font-size:14px;
+}
+
+/* Per-card badge next to “Details” button */
+.req-badge{
+  margin-left:8px;
+  background:#43a047;
+  color:#fff;
+  font-size:12px;
+  padding:4px 10px;
+  border-radius:999px;
+  vertical-align:middle;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.req-badge[hidden]{display:none}

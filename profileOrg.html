@@ -5,32 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Profile Management</title>
 
-    <!-- Font Awesome for icons -->
+    <!-- Icons (optional) -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
 
-    <!-- AOS CSS (unpkg) -->
+    <!-- AOS (optional) -->
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
 
-    <!-- Your custom styles -->
+    <!-- ✅ Use your exact CSS filename/path -->
     <link rel="stylesheet" href="css/profile-management.css" />
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase v8 SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
-    <!-- Config & Nav -->
+    <!-- Your Firebase config (must call firebase.initializeApp) -->
     <script src="js/config.js"></script>
+
+    <!-- Nav helpers (uses #navbar / #main-content) -->
     <script src="js/nav.js" defer></script>
 
-    <!-- AOS JS (unpkg) -->
-    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
-
-    <!-- Your profile-management logic -->
+    <!-- ✅ Use your exact JS filename -->
     <script src="js/profile-management-org.js" defer></script>
   </head>
   <body>
@@ -46,10 +45,8 @@
     <div id="navbar" class="navbar">
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
-        <li>
-          <a href="organizationDashboard.html" class="active">Dashboard</a>
-        </li>
-          <li><a href="article.html">Articles</a></li>
+        <li><a href="organizationDashboard.html" class="active">Dashboard</a></li>
+        <li><a href="article.html">Articles</a></li>
         <li><a href="reports.html">Reports</a></li>
         <li><a href="adoption.html">Adoption</a></li>
         <li><a href="donation.html">Donation</a></li>
@@ -65,7 +62,6 @@
           <h2>Manage Your Profile</h2>
 
           <div class="profile-info">
-            <!-- updated placeholder URL -->
             <img
               id="avatar"
               class="profile-avatar"
@@ -100,12 +96,13 @@
     </main>
 
     <script>
-      // Initialize AOS as soon as it's available
       document.addEventListener("DOMContentLoaded", () => {
-        if (window.AOS) {
-          AOS.init({ duration: 500, once: true });
-        }
+        if (window.AOS) AOS.init({ duration: 500, once: true });
       });
     </script>
+    <!-- AOS JS + init (enables elements with data-aos to show) -->
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script>document.addEventListener("DOMContentLoaded",()=>{ AOS.init({ duration: 500, once: true }); });</script>
+
   </body>
 </html>

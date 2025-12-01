@@ -1,81 +1,87 @@
-const form = document.getElementById("profile-form");
-const avatar = document.getElementById("avatar");
-const fileInput = document.getElementById("profileImage");
-const msg = document.getElementById("msg");
+// File: js/profile-management-org.js  (paste over your current file)
+(function () {
+  const form = document.getElementById("profile-form");
+  const saveBtn = form.querySelector(".btn.save");
+  const avatar = document.getElementById("avatar");
+  const fileInput = document.getElementById("profileImage");
+  const msg = document.getElementById("msg");
+  const PLACEHOLDER = "https://placehold.co/96x96";
 
-firebase.auth().onAuthStateChanged((user) => {
-  if (!user) {
-    window.location = "index.html";
-    return;
-  }
+  // Sidebar toggle (matches your CSS)
+  window.openNav = () => document.body.classList.add("nav-open");
+  window.closeNav = () => document.body.classList.remove("nav-open");
 
-  const uid = user.uid;
-  document.getElementById("email").innerText = user.email;
+  // Load current profile
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) { window.location = "index.html"; return; }
+    document.getElementById("email").innerText = user.email;
 
-  // Fetch the organization profile data
-  firebase
-    .database()
-    .ref(`organizations/${uid}`)
-    .once("value")
-    .then((snapshot) => {
-      const data = snapshot.val() || {};
-      const orgName = data.orgName || "(not set)";
-      const profileImageUrl =
-        data.profileImage || "https://via.placeholder.com/96";
-
-      document.getElementById("orgNames").innerText = orgName;
-      document.getElementById("orgName").value = data.orgName || "";
-
-      // Log and set the profile image
-      console.log("Fetched profile image URL:", profileImageUrl);
-      avatar.src = profileImageUrl;
-    })
-    .catch((error) => {
-      console.error("Error fetching data: ", error);
+    try {
+      const snap = await firebase.database().ref(`users/${user.uid}`).once("value");
+      const data = snap.val() || {};
+      document.getElementById("orgNames").innerText = data.organizationName || "(not set)";
+      document.getElementById("orgName").value = data.organizationName || "";
+      avatar.src = data.logoImageUri || PLACEHOLDER;
+    } catch (e) {
+      console.error("Fetch error:", e);
       msg.innerText = "Error loading profile.";
-    });
-});
+    }
+  });
 
-// Handle preview of the new avatar
-fileInput.addEventListener("change", () => {
-  const file = fileInput.files[0];
-  if (file) avatar.src = URL.createObjectURL(file);
-});
+  // Local preview
+  fileInput.addEventListener("change", () => {
+    const f = fileInput.files[0];
+    if (f) avatar.src = URL.createObjectURL(f); // why: instant feedback
+  });
 
-// Save changes to the profile
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
+  // Save (rename + photo)
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const user = firebase.auth().currentUser;
+    if (!user) return;
 
-  const user = firebase.auth().currentUser;
-  if (!user) return;
+    const newName = document.getElementById("orgName").value.trim();
+    if (!newName) { msg.innerText = "Organization name is required."; return; }
 
-  const uid = user.uid;
-  const orgNameValue = document.getElementById("orgName").value.trim();
-  const updates = { orgName: orgNameValue };
+    saveBtn.disabled = true;
+    msg.innerText = "Saving…";
 
-  const file = fileInput.files[0];
-  let promise = Promise.resolve();
+    const updates = { organizationName: newName };
 
-  // If there is a file, upload and get the download URL
-  if (file) {
-    const ref = firebase
-      .storage()
-      .ref(`profile_images/organizations/${uid}/${file.name}`);
-    promise = ref
-      .put(file)
-      .then((snap) => snap.ref.getDownloadURL())
-      .then((url) => {
-        updates.profileImage = url;
-      });
-  }
+    try {
+      const file = fileInput.files[0];
+      if (file) {
+        // Unique filename avoids cache + orphaned files
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+        const filename = `avatar_${Date.now()}.${ext}`;
+        const ref = firebase.storage().ref(`profile_images/organizations/${user.uid}/${filename}`);
+        const snap = await ref.put(file);
+        updates.logoImageUri = await snap.ref.getDownloadURL();
+      }
 
-  // Update the organization profile
-  promise
-    .then(() => firebase.database().ref(`organizations/${uid}`).update(updates))
-    .then(() => {
+      await firebase.database().ref(`users/${user.uid}`).update(updates);
+
+      // Reflect changes immediately (cache-bust img)
+      document.getElementById("orgNames").innerText = updates.organizationName || "(not set)";
+      if (updates.logoImageUri) avatar.src = `${updates.logoImageUri}#${Date.now()}`;
+      fileInput.value = "";
+
       msg.innerText = "Profile updated!";
-    })
-    .catch((err) => {
-      msg.innerText = err.message;
+    } catch (err) {
+      console.error("Save error:", err);
+      msg.innerText = err.message || "Failed to update profile.";
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  // Optional logout
+  document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("logout-btn");
+    if (!btn) return;
+    btn.addEventListener("click", async () => {
+      try { await firebase.auth().signOut(); window.location = "index.html"; }
+      catch (e) { alert(e.message || "Failed to logout"); }
     });
-});
+  });
+})();

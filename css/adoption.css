@@ -1238,3 +1238,21 @@ body > .add-btn {
 .back-btn:hover {
   background-color: #5a6268;
 }
+
+/* keep Request button + count in the pet details modal footer tidy */
+.modal-footer .request-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:.3rem;
+  padding:.5rem .75rem;
+  background:var(--accent);
+  color:#fff;
+  border:none;
+  border-radius:5px;
+  font-size:.9rem;
+  cursor:pointer;
+  transition:background .2s ease;
+}
+.modal-footer .request-btn:hover{ background:#e68a00; }
+.modal-badge{ visibility:hidden; } /* already in your paste; keep it */
+
