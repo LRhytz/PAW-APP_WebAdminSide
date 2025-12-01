@@ -133,3 +133,22 @@ h1 {
   color: var(--error-color);
   min-height: 18px;
 }
+
+/* --- signup link (added) --- */
+.signup-cta{
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #666;
+}
+.signup-cta .signup-link{
+  color: #2e7d32;
+  font-weight: 700;
+  text-decoration: none;
+}
+.signup-cta .signup-link:hover,
+.signup-cta .signup-link:focus{
+  text-decoration: underline;
+}
+/* --- /signup link --- */
+
