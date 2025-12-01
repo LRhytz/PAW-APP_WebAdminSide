@@ -111,3 +111,137 @@ body {
 /* Sidebar push effect */
 body.nav-open #navbar { width: 240px; }
 body.nav-open #main-content { margin-left: 240px; }
+
+/* =========================================================
+   ORG PROFILE (scoped with .orgp- so it won't affect admin)
+   ========================================================= */
+
+/* Hero */
+.orgp-hero{
+  background:#2e7d32;
+  color:#fff;
+  border-radius:12px;
+  padding:18px;
+  margin:40px auto 16px;
+  box-shadow:0 6px 18px rgba(0,0,0,.12);
+}
+.orgp-hero-inner{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.orgp-avatar-wrap{ position:relative; width:84px; height:84px; }
+.orgp-avatar{
+  width:84px; height:84px; border-radius:50%;
+  object-fit:cover; background:#eee; border:3px solid rgba(255,255,255,.95);
+}
+.orgp-avatar-btn{
+  position:absolute; right:-4px; bottom:-4px;
+  width:28px; height:28px; border-radius:50%;
+  border:none; cursor:pointer; background:#1b5e20; color:#fff;
+  display:grid; place-items:center; box-shadow:0 6px 14px rgba(0,0,0,.25);
+}
+.orgp-hero-meta{ line-height:1.25; }
+.orgp-name{ margin:0 0 4px; font-size:1.2rem; font-weight:800; }
+.orgp-email{ opacity:.9; font-size:.95rem; }
+.orgp-plan{ margin-top:4px; font-weight:700; }
+
+/* Generic card */
+.orgp-card{
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+  padding:14px 16px;
+  margin:14px 0;
+}
+.orgp-card-title{
+  display:flex; align-items:center; gap:8px;
+  font-weight:800; color:#333; margin-bottom:10px;
+}
+
+/* Metrics */
+.orgp-metrics{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+@media (max-width:640px){ .orgp-metrics{ grid-template-columns:1fr; } }
+.orgp-metric{
+  border:1px solid #e9e9e9; border-radius:12px;
+  padding:14px; text-align:center; background:#fafafa;
+}
+.orgp-metric i{ font-size:22px; color:#2e7d32; }
+.orgp-metric-value{ font-size:1.6rem; font-weight:800; color:#2e7d32; margin-top:4px; }
+.orgp-metric-label{ font-size:.85rem; color:#666; }
+
+/* Subscription (display-only) */
+.orgp-subscription{ background:#fffef6; border:1px solid #f7e7a3; }
+.orgp-sub-row{ display:flex; align-items:center; gap:12px; }
+.orgp-sub-row > i{ color:#fbc02d; font-size:22px; }
+.orgp-sub-title{ font-weight:800; }
+.orgp-sub-subtitle{ color:#666; font-size:.95rem; }
+
+/* Section list rows */
+.orgp-section-label{
+  font-size:.9rem; font-weight:800; color:#6b7280; margin-bottom:6px;
+}
+.orgp-list{ display:flex; flex-direction:column; }
+.orgp-list-row{
+  display:flex; align-items:center; gap:10px; width:100%;
+  padding:12px 10px; background:#fff; border:1px solid #e9e9e9;
+  border-radius:10px; cursor:pointer; text-align:left;
+}
+.orgp-list-row + .orgp-list-row{ margin-top:8px; }
+.orgp-list-row:hover{ background:#fafafa; }
+.orgp-list-row i{ color:#6b7280; }
+.orgp-chevron{ margin-left:auto; color:#9aa1a9; }
+
+/* Footer bits */
+.orgp-version{ text-align:center; color:#888; margin:12px 0 20px; }
+
+/* -------------------------
+   Modal (Edit/About/Privacy)
+   ------------------------- */
+.orgp-modal[aria-hidden="true"]{ display:none; }
+.orgp-modal{
+  position:fixed; inset:0; background:rgba(0,0,0,.35);
+  display:grid; place-items:center; z-index:1002;
+}
+.orgp-modal-dialog{
+  width:min(720px, 92vw);
+  background:#fff; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.orgp-modal-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 14px; border-bottom:1px solid #eee;
+}
+.orgp-modal-header h3{ margin:0; font-weight:800; }
+.orgp-modal-close{
+  background:transparent; border:none; font-size:22px; cursor:pointer; color:#666;
+}
+.orgp-modal-body{ padding:14px; }
+
+/* Edit form layout inside modal */
+.orgp-edit-row{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.orgp-edit-avatar{
+  width:84px; height:84px; border-radius:50%; object-fit:cover; border:2px solid #eee;
+}
+.orgp-modal-body .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:620px){ .orgp-modal-body .grid-2{ grid-template-columns:1fr; } }
+.orgp-modal-body .form-group{ display:flex; flex-direction:column; gap:6px; }
+.orgp-modal-body label{ font-weight:600; color:#333; font-size:.95rem; }
+.orgp-modal-body input,
+.orgp-modal-body select,
+.orgp-modal-body textarea{
+  width:100%; padding:.7rem .85rem; border:1px solid #e5e7eb;
+  border-radius:10px; font-size:.95rem; outline:none;
+  transition:border .15s, box-shadow .15s; background:#fff; color:#111827;
+}
+.orgp-modal-body input:focus,
+.orgp-modal-body select:focus,
+.orgp-modal-body textarea:focus{
+  border-color:#4caf50; box-shadow:0 0 0 3px rgba(76,175,80,.15);
+}
+
+/* Modal buttons */
+.orgp-modal-body .btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:.6rem;
+  border:none; border-radius:10px; padding:.7rem 1.1rem; font-weight:700; cursor:pointer;
+}
+.orgp-modal-body .btn.primary{ background:#4caf50; color:#fff; }
+.orgp-modal-body .btn.primary:hover{ background:#3d9c40; }
+.orgp-modal-body .btn.outline{ background:#fff; color:#333; border:1px solid #e5e7eb; }
+.orgp-modal-body .btn.outline:hover{ background:#f7f7f7; }
+.orgp-modal-body .message{ margin-top:.5rem; min-height:20px; color:#2563eb; }

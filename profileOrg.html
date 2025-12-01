@@ -5,16 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Profile Management</title>
 
-    <!-- Icons (optional) -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-
-    <!-- AOS (optional) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
-
-    <!-- ✅ Use your exact CSS filename/path -->
     <link rel="stylesheet" href="css/profile-management.css" />
 
     <!-- Firebase v8 SDKs -->
@@ -23,21 +15,14 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
-    <!-- Your Firebase config (must call firebase.initializeApp) -->
     <script src="js/config.js"></script>
-
-    <!-- Nav helpers (uses #navbar / #main-content) -->
     <script src="js/nav.js" defer></script>
-
-    <!-- ✅ Use your exact JS filename -->
     <script src="js/profile-management-org.js" defer></script>
   </head>
   <body>
     <!-- fixed header -->
     <header class="app-header">
-      <button class="openbtn" onclick="openNav()">
-        <i class="fas fa-bars"></i>
-      </button>
+      <button class="openbtn" onclick="openNav()"><i class="fas fa-bars"></i></button>
       <h1 class="app-title">Profile Management</h1>
     </header>
 
@@ -51,58 +36,186 @@
         <li><a href="adoption.html">Adoption</a></li>
         <li><a href="donation.html">Donation</a></li>
         <li><a href="profileOrg.html">Profile</a></li>
-        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
       </ul>
     </div>
 
     <!-- main content -->
     <main id="main-content" class="main-content">
       <div class="container">
-        <div class="card profile-card" data-aos="fade-up">
-          <h2>Manage Your Profile</h2>
 
-          <div class="profile-info">
-            <img
-              id="avatar"
-              class="profile-avatar"
-              src="https://placehold.co/96x96"
-              alt="Avatar"
-            />
-            <div class="profile-details">
-              <p><strong>Email:</strong> <span id="email">Loading…</span></p>
-              <p>
-                <strong>Organization Name:</strong>
-                <span id="orgNames">Loading…</span>
-              </p>
+        <!-- HERO -->
+        <section class="orgp-hero" data-aos="fade-up">
+          <div class="orgp-hero-inner">
+            <div class="orgp-avatar-wrap">
+              <img id="avatar" class="orgp-avatar" src="https://placehold.co/200x200" alt="Avatar" />
+              <button type="button" class="orgp-avatar-btn" id="btnChangeAvatar" title="Change photo">
+                <i class="fa-solid fa-camera"></i>
+              </button>
+              <input id="profileImage" type="file" accept="image/*" hidden />
+            </div>
+
+            <div class="orgp-hero-meta">
+              <h2 id="orgNames" class="orgp-name">(not set)</h2>
+              <div id="email" class="orgp-email">Loading…</div>
+              <div id="tvOrgPlan" class="orgp-plan">Free Plan</div>
             </div>
           </div>
+        </section>
 
-          <form id="profile-form">
-            <div class="field">
-              <label for="orgName">Organization Name</label>
-              <input type="text" id="orgName" required />
+        <!-- METRICS -->
+        <section class="orgp-card" data-aos="fade-up">
+          <div class="orgp-card-title">
+            <i class="fa-solid fa-heart"></i>
+            <span>Organization Metrics</span>
+          </div>
+          <div class="orgp-metrics">
+            <div class="orgp-metric">
+              <i class="fa-solid fa-paw"></i>
+              <div id="tvTotalPets" class="orgp-metric-value">—</div>
+              <div class="orgp-metric-label">Pets Listed</div>
             </div>
-            <div class="field">
-              <label for="profileImage">Change Avatar</label>
-              <input type="file" id="profileImage" accept="image/*" />
+            <div class="orgp-metric">
+              <i class="fa-regular fa-newspaper"></i>
+              <div id="tvTotalArticles" class="orgp-metric-value">—</div>
+              <div class="orgp-metric-label">Articles</div>
             </div>
-            <div class="buttons">
-              <button type="submit" class="btn save">Save Changes</button>
+            <div class="orgp-metric">
+              <i class="fa-solid fa-hand-holding-dollar"></i>
+              <div id="tvDonationCampaigns" class="orgp-metric-value">—</div>
+              <div class="orgp-metric-label">Donation Campaigns</div>
             </div>
-            <div id="msg" class="message"></div>
-          </form>
-        </div>
+          </div>
+        </section>
+
+        <!-- SUBSCRIPTION (display only) -->
+        <section class="orgp-card orgp-subscription" data-aos="fade-up">
+          <div class="orgp-sub-row">
+            <i class="fa-solid fa-star"></i>
+            <div class="orgp-sub-texts">
+              <div id="tvSubscriptionStatus" class="orgp-sub-title">Free Plan</div>
+              <div id="tvSubscriptionSubtitle" class="orgp-sub-subtitle">Upgrade to unlock more features</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACCOUNT SETTINGS -->
+        <section class="orgp-card" data-aos="fade-up">
+          <div class="orgp-section-label">Account Settings</div>
+          <div class="orgp-list">
+            <button class="orgp-list-row" id="btnEditProfileRow" type="button">
+              <i class="fa-regular fa-pen-to-square"></i>
+              <span>Edit Profile</span>
+              <i class="fa-solid fa-chevron-right orgp-chevron"></i>
+            </button>
+          </div>
+        </section>
+
+        <!-- SUPPORT & INFORMATION -->
+        <section class="orgp-card" data-aos="fade-up">
+          <div class="orgp-section-label">Support & Information</div>
+          <div class="orgp-list">
+            <button class="orgp-list-row" id="btnAbout" type="button">
+              <i class="fa-solid fa-circle-info"></i>
+              <span>About PAW APP</span>
+              <i class="fa-solid fa-chevron-right orgp-chevron"></i>
+            </button>
+            <button class="orgp-list-row" id="btnPrivacy" type="button">
+              <i class="fa-solid fa-user-shield"></i>
+              <span>Privacy Policy</span>
+              <i class="fa-solid fa-chevron-right orgp-chevron"></i>
+            </button>
+          </div>
+        </section>
+
       </div>
     </main>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        if (window.AOS) AOS.init({ duration: 500, once: true });
-      });
-    </script>
-    <!-- AOS JS + init (enables elements with data-aos to show) -->
-<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
-<script>document.addEventListener("DOMContentLoaded",()=>{ AOS.init({ duration: 500, once: true }); });</script>
+    <!-- EDIT PROFILE MODAL -->
+    <div id="editModal" class="orgp-modal" aria-hidden="true">
+      <div class="orgp-modal-dialog">
+        <div class="orgp-modal-header">
+          <h3>Edit Profile</h3>
+          <button class="orgp-modal-close" data-close-edit>&times</button>
+        </div>
+        <div class="orgp-modal-body">
+          <form id="editForm">
+            <div class="orgp-edit-row">
+              <img id="editAvatar" class="orgp-edit-avatar" src="https://placehold.co/84" alt="">
+              <div>
+                <button type="button" id="btnPickNewLogo" class="btn outline">Change Photo</button>
+                <input id="newLogoFile" type="file" accept="image/*" hidden>
+              </div>
+            </div>
 
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="ef_orgName">Organization Name</label>
+                <input id="ef_orgName" type="text" maxlength="120" required>
+              </div>
+              <div class="form-group">
+                <label for="ef_repName">Representative Name</label>
+                <input id="ef_repName" type="text" maxlength="120">
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="ef_email">Email</label>
+                <input id="ef_email" type="email" required>
+              </div>
+              <div class="form-group">
+                <label for="ef_phone">Phone</label>
+                <input id="ef_phone" type="tel">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="ef_address">Address</label>
+              <input id="ef_address" type="text" maxlength="300">
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="ef_license">License / Registration</label>
+                <input id="ef_license" type="text" maxlength="120">
+              </div>
+              <div class="form-group">
+                <label for="ef_type">Organization Type</label>
+                <select id="ef_type">
+                  <option value="">Select type</option>
+                  <option value="Shelter">Shelter</option>
+                  <option value="Rescue Group">Rescue Group</option>
+                  <option value="Advocacy Group">Advocacy Group</option>
+                  <option value="Veterinary Clinic">Veterinary Clinic</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="editMsg" class="message"></div>
+            <div class="buttons" style="margin-top:10px">
+              <button type="submit" class="btn save">Save</button>
+              <button type="button" class="btn outline" data-close-edit>Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIMPLE MODAL (ABOUT / PRIVACY) -->
+    <div id="infoModal" class="orgp-modal" aria-hidden="true">
+      <div class="orgp-modal-dialog">
+        <div class="orgp-modal-header">
+          <h3 id="infoTitle">Info</h3>
+          <button class="orgp-modal-close" data-close-info>&times</button>
+        </div>
+        <div id="infoBody" class="orgp-modal-body" style="max-height:60vh; overflow:auto;">
+          <!-- content injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script>document.addEventListener("DOMContentLoaded",()=>{ if (window.AOS) AOS.init({ duration: 500, once: true }); });</script>
   </body>
 </html>
