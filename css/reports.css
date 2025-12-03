@@ -70,11 +70,13 @@ body { font-family: "Roboto", sans-serif; background: var(--bg); color: var(--te
 
 .filter-container { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
 .filter-container label { font-size: 1rem; font-weight: 500; color: var(--text); }
-.status-filter, .severity-filter, .report-search {
+
+/* include assignment-filter so it matches the others */
+.status-filter, .severity-filter, .assignment-filter, .report-search {
   padding: 8px 12px; font-size: 1rem; border: 1px solid var(--border); border-radius: 6px;
   background: var(--card-bg); color: var(--text);
 }
-.status-filter:focus, .report-search:focus, .severity-filter:focus {
+.status-filter:focus, .severity-filter:focus, .assignment-filter:focus, .report-search:focus {
   outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(76,175,80,.2);
 }
 .report-search { margin-left: auto; width: 250px; }

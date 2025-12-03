@@ -4,6 +4,14 @@
   if (typeof window.updateMapMarkers !== "function") window.updateMapMarkers = function () {};
 })();
 
+// Keep track of the current signed-in org uid for filtering
+let CURRENT_UID = null;
+try {
+  const cu = firebase.auth().currentUser;
+  if (cu) CURRENT_UID = cu.uid;
+  firebase.auth().onAuthStateChanged((u) => { CURRENT_UID = u ? u.uid : null; });
+} catch {}
+
 // -------- Utilities --------
 
 function animateNumber(id, end, duration = 800) {
@@ -190,7 +198,11 @@ function normalizeReport(id, r) {
   };
 }
 
-/** Subscribe -> normalize -> emit to page */
+/** Subscribe -> normalize -> emit to page
+ *  Filter rule:
+ *   - show UNASSIGNED reports (no organizationId)
+ *   - show reports ASSIGNED to CURRENT_UID
+ */
 function subscribeReports() {
   const db = firebase.database();
   db.ref("reports").on("value", (snapshot) => {
@@ -199,17 +211,25 @@ function subscribeReports() {
       window.updateReportsMapData?.([]);
       return;
     }
-    const visible = Object.entries(raw).map(([id, r]) => normalizeReport(id, r));
+    const all = Object.entries(raw).map(([id, r]) => normalizeReport(id, r));
+
+    const filtered = all.filter((rep) => {
+      const orgId = rep.organizationId || null;
+      // Unassigned OR assigned to me
+      return !orgId || (CURRENT_UID && orgId === CURRENT_UID);
+    });
+
     try {
       console.debug(
         "reports.subscribe -> normalized preview",
-        visible.slice(0, 5).map((x) => ({ id: x.id, createdAt: x.createdAt, name: x.reporterDisplayName, email: x.email }))
+        filtered.slice(0, 5).map((x) => ({ id: x.id, createdAt: x.createdAt, name: x.reporterDisplayName, email: x.email }))
       );
     } catch {}
+
     if (typeof window.updateReportsMapData === "function") {
-      window.updateReportsMapData(visible);
+      window.updateReportsMapData(filtered);
     } else {
-      window.dispatchEvent(new CustomEvent("reportsLoaded", { detail: { reports: visible } }));
+      window.dispatchEvent(new CustomEvent("reportsLoaded", { detail: { reports: filtered } }));
     }
   });
 }
@@ -544,7 +564,7 @@ function showReportModal(report) {
       ${report.severity || "Unknown"}
     </span>`;
 
-  // ===== MEDIA (now under description in the left column) =====
+  // ===== MEDIA =====
   const imagesContainer = modal.querySelector(".report-images");
   if (report.imageUrls && report.imageUrls.length > 0) {
     imagesContainer.innerHTML = `
@@ -576,7 +596,7 @@ function showReportModal(report) {
   // For actions
   modal.setAttribute("data-report-id", report.id);
 
-  // -------- Extra metadata (Assigned Org / Created / Updated + updated-ago) --------
+  // -------- Extra metadata --------
   const metaGrid = modal.querySelector(".report-metadata");
 
   const assignedVal = ensureMetaItem(metaGrid, "meta-assigned-org", "fas fa-building", "Assigned Organization");
@@ -607,15 +627,15 @@ function showReportModal(report) {
     const updatedStr = updatedAtMs ? new Date(updatedAtMs).toLocaleString() : "—";
     updatedVal.textContent = updatedStr;
 
-    // Update header sub ("Report Details • … ago")
+    // Update header sub
     const subEl = modal.querySelector(".header-sub");
     const ago = buildUpdatedAgo(updatedAtMs, report.id);
     if (subEl) subEl.textContent = `Report Details${ago || ""}`;
 
-    // ===== NEW: render right-side timeline =====
+    // Timeline
     renderTimelineFromSnapshot(report.id, snap);
 
-    // ===== ACTION BUTTONS (now use fresh data + ownership) =====
+    // ===== ACTION BUTTONS =====
     const actionsWrap = modal.querySelector(".modal-footer .action-buttons");
     actionsWrap.innerHTML = "";
 
@@ -623,12 +643,8 @@ function showReportModal(report) {
     const statusNow = String(data.status || report.status || "SUBMITTED").toUpperCase();
     const assignedOrgId = data.organizationId || null;
 
-    // Only show controls if:
-    // - status is SUBMITTED  -> any org user can see "Respond"
-    // - otherwise            -> ONLY the assigned org can see transition controls
     const isOwner = !!assignedOrgId && !!meUid && assignedOrgId === meUid;
 
-    // Helper to create a button
     const addBtn = (label, value, icon, className) => {
       const btn = document.createElement("button");
       btn.className = `btn ${className}`;
@@ -649,12 +665,11 @@ function showReportModal(report) {
         addBtn("In Progress", "IN PROGRESS", "fa-spinner", "btn-inprogress");
         addBtn("Completed", "COMPLETED", "fa-check-circle", "btn-completed");
       }
-      // COMPLETED -> no buttons
     }
-    // If not owner and not SUBMITTED => no buttons (read-only)
+    // COMPLETED -> no buttons
   });
 
-  // ---------- LEFT: Message button slot (participants on active statuses only) ----------
+  // ---------- LEFT: Message button slot ----------
   const footerEl = modal.querySelector(".modal-footer");
   let leftSlot = modal.querySelector(".footer-left-actions");
   if (!leftSlot) {
@@ -678,7 +693,7 @@ function showReportModal(report) {
     leftSlot.appendChild(msgBtn);
   }
 
-  // Show modal (no body scroll locking)
+  // Show modal
   modal.classList.add("show");
 }
 
@@ -689,7 +704,6 @@ function closeModal() {
   const modal = document.getElementById("report-modal");
   if (modal) {
     modal.classList.remove("show");
-    // leave background scroll as-is
   }
 }
 
@@ -721,16 +735,13 @@ function showToast(message, type = "success") {
             /* Scoped to #message-modal only */
             #message-modal .modal-content.modal-wide{
               max-width:980px; width:calc(100% - 48px);
-              /* make the whole modal taller and let the middle row truly fill */
               height:calc(100vh - 24px);
               max-height:calc(100vh - 24px);
               overflow:hidden;
               display:grid;
-              grid-template-rows:auto minmax(0,1fr) auto; /* header • FULL • input */
+              grid-template-rows:auto minmax(0,1fr) auto;
               overscroll-behavior: contain;
             }
-
-            /* Header */
             #message-modal .chat-header{
               position:sticky; top:0; z-index:2;
               display:flex; align-items:center; gap:12px;
@@ -744,26 +755,21 @@ function showToast(message, type = "success") {
             #message-modal .peer-avatar{ width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #e5e7eb; }
             #message-modal .chat-title{ font-weight:700; font-size:16px; line-height:1.2; }
             #message-modal .chat-sub{ font-size:12px; color:#6b7280; }
-
-            /* Messages list — now truly takes all free space */
             #message-modal .chat-body{
               padding:12px 16px;
               overflow:auto;
               background:#fff;
-              min-height:0;   /* CRITICAL so the grid row can shrink/expand */
+              min-height:0;
             }
             #message-modal .msg-row{ display:flex; align-items:flex-end; gap:10px; margin:10px 0; }
             #message-modal .msg-left{ justify-content:flex-start; }
             #message-modal .msg-right{ justify-content:flex-end; }
-            #message-modal .msg-avatar{ width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid #e5e7eb; flex:0 0 32px; }
-            /* Make bubbles wider so the chat “feels” larger without changing layout */
+            #message-modal .msg-avatar{ width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid var(--border); flex:0 0 32px; }
             #message-modal .bubble{ max-width:96%; padding:10px 14px; border-radius:16px; font-size:14px; line-height:1.45; word-break:break-word; }
             #message-modal .bubble.org{ background:#e8f5e9; color:#1b5e20; }
             #message-modal .bubble.citizen{ background:#fffde7; color:#7a4b00; }
             #message-modal .bubble.peer{ background:#f3f4f6; color:#111827; }
             #message-modal .ts{ font-size:10px; color:#888; margin-top:2px; }
-
-            /* Input bar (fixed at the bottom) */
             #message-modal .chat-input{
               display:flex; gap:8px; padding:12px 16px;
               border-top:1px solid var(--border); background:#fafafa;
@@ -798,14 +804,12 @@ function showToast(message, type = "success") {
       </div>`;
     document.body.insertAdjacentHTML("beforeend", html);
 
-    // Backdrop click closes
     const mm = document.getElementById("message-modal");
     mm.addEventListener("click", (e) => { if (e.target.id === "message-modal") closeMessageModal(); });
     document.getElementById("message-modal-close-btn").addEventListener("click", closeMessageModal);
   }
 
   function closeMessageModal() {
-    // Clean listeners
     if (_msgsOff) { _msgsOff(); _msgsOff = null; }
     if (_headerOff) { _headerOff(); _headerOff = null; }
     const modal = document.getElementById("message-modal");
@@ -815,7 +819,6 @@ function showToast(message, type = "success") {
   }
   window.closeMessageModal = closeMessageModal;
 
-  // Safe getters for participants like Android
   function resolveCitizenUid(report) {
     return (
       report.reportUserId ||
@@ -860,7 +863,6 @@ function showToast(message, type = "success") {
       return;
     }
 
-    // ----- Header, participants & input visibility -----
     let orgUid = null, citizenUid = null, myRole = "CITIZEN";
 
     const onReportValue = async (snap) => {
@@ -869,15 +871,13 @@ function showToast(message, type = "success") {
       citizenUid = resolveCitizenUid(r);
       myRole = (myUid && orgUid === myUid) ? "ORG" : "CITIZEN";
 
-      // Title + sub
       const peerName = (myRole === "ORG"
         ? (r.reporterDisplayName || r.reportUserEmail)
         : (r.organizationName || r.organizationEmail)) || fallbackPeerLabel || "Chat";
       titleEl.textContent = peerName;
       subEl.textContent = `${r.reportType || "Report"}${r.severity ? " • " + r.severity : ""}`;
 
-      // Peer avatar (denorm first, then /users fallback)
-      let url = (myRole === "ORG" ? r.reporterPhotoUrl : r.organizationPhotoUrl) || "";
+      let url = (myRole === "ORG") ? (r.reporterPhotoUrl || "") : (r.organizationPhotoUrl || "");
       if (!url) {
         const peerUid = (myRole === "ORG") ? citizenUid : orgUid;
         if (peerUid) {
@@ -901,7 +901,6 @@ function showToast(message, type = "success") {
           encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="32" fill="#e5e7eb"/><text x="50%" y="54%" text-anchor="middle" font-family="Arial" font-size="22" fill="#9ca3af">👤</text></svg>');
       };
 
-      // If some incoming bubbles were rendered before we had the URL, patch them
       if (url) {
         document.querySelectorAll('#message-modal .msg-avatar.peer').forEach(img => {
           if (!img.getAttribute('data-set')) {
@@ -911,14 +910,12 @@ function showToast(message, type = "success") {
         });
       }
 
-      // Input allowed only on active statuses
       const allowed = ["ACCEPTED", "IN PROGRESS", "ON HOLD"].includes(String(r.status || "").toUpperCase());
       inputWrap.classList.toggle("hidden", !allowed);
     };
     reportRef.on("value", onReportValue);
     _headerOff = () => reportRef.off("value", onReportValue);
 
-    // ----- Seed existing messages (once), then live stream -----
     let lastTs = 0;
     historyDiv.innerHTML = "<em>Loading…</em>";
     msgsRef.once("value").then((s) => {
@@ -931,13 +928,11 @@ function showToast(message, type = "success") {
       });
       historyDiv.scrollTop = historyDiv.scrollHeight;
 
-      // live: only newer messages
       const q = msgsRef.orderByChild("timestamp").startAt(lastTs + 1);
       const onChildAdded = (sn) => {
         const m = sn.val() || {};
         historyDiv.insertAdjacentHTML("beforeend", renderRow(m, myUid, me?.photoURL, peerAvatarEl.src));
         historyDiv.scrollTop = historyDiv.scrollHeight;
-        // mark read (best effort)
         if (m.senderId && m.senderId !== myUid) {
           msgsRef.child(sn.key).child("readBy").update({ [myUid]: true }).catch(() => {});
         }
@@ -946,14 +941,12 @@ function showToast(message, type = "success") {
       _msgsOff = () => q.off("child_added", onChildAdded);
     });
 
-    // ----- Send (UPDATED to resolve sender name/photo and write to notifications) -----
     sendBtn.onclick = async () => {
       const text = (inputEl.value || "").trim();
       if (!text) return;
 
       const role = (myUid === orgUid) ? "ORG" : "CITIZEN";
 
-      // Resolve a good-looking name/photo from /users (Android parity)
       const { name: niceName, photo: nicePhoto } = await resolveNiceProfile(myUid);
 
       const node = msgsRef.push();
@@ -968,17 +961,11 @@ function showToast(message, type = "success") {
       };
 
       try {
-        // write message
         await node.set(payload);
-
-        // bump thread timestamp (allowed since author is a participant)
         await reportRef.update({ lastMessageAt: Date.now() });
-
-        // clear input + keep view at bottom
         inputEl.value = "";
         historyDiv.scrollTop = historyDiv.scrollHeight;
 
-        // notify peer
         const recipientUid = (role === "ORG") ? citizenUid : orgUid;
         if (recipientUid) {
           const notifRef = firebase.database().ref("notifications").child(recipientUid).push();
@@ -987,8 +974,8 @@ function showToast(message, type = "success") {
             type: "message",
             reportId,
             messageId: node.key,
-            title: niceName,       // show the sender name as notification title
-            senderName: niceName,  // and store under senderName (mobile reads this)
+            title: niceName,
+            senderName: niceName,
             body: text.substring(0, 80),
             createdAt: Date.now(),
             seen: false
@@ -1000,7 +987,6 @@ function showToast(message, type = "success") {
       }
     };
 
-    // Helpers
     function renderRow(m, myUid, myPhotoUrl, peerPhotoUrl) {
       const isMine = m.senderId === myUid;
       const side = isMine ? "msg-right" : "msg-left";
@@ -1008,7 +994,6 @@ function showToast(message, type = "success") {
         ? (String(m.senderRole || "").toUpperCase() === "ORG" ? "org" : "citizen")
         : "peer";
       const ts = m.timestamp ? new Date(m.timestamp).toLocaleString() : "";
-      // Show avatar only for peer (incoming) messages
       const avatarHtml = !isMine
         ? `<img class="msg-avatar peer" src="${peerPhotoUrl || ""}" alt="">`
         : "";
@@ -1063,8 +1048,12 @@ document.addEventListener("DOMContentLoaded", () => {
     .once("value")
     .then((snapshot) => {
       const reports = snapshot.val();
-      const totalReports = reports ? Object.keys(reports).length : 0;
-      animateNumber("totalReports", totalReports);
+      // apply the same filter here for the counter
+      const total = Object.entries(reports || {}).filter(([id, r]) => {
+        const orgId = r && r.organizationId || null;
+        return !orgId || (CURRENT_UID && orgId === CURRENT_UID);
+      }).length;
+      animateNumber("totalReports", total);
     });
 
   if (window.AOS) AOS.init({ duration: 600, once: true });

@@ -4,11 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>Adoptions</title>
+
+    <!-- Page styles -->
     <link rel="stylesheet" href="css/adoption.css" />
-    <!-- requestIndicator.css removed to disable global request notifications -->
+    <!-- Global notifications styles -->
+    <link rel="stylesheet" href="css/notifications.css" />
+
+    <!-- Font Awesome v6 (matches the rest of the app) -->
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
 
     <!-- Firebase SDKs -->
@@ -29,6 +34,9 @@
     <header class="app-header">
       <button class="openbtn" onclick="openNav()">☰ Menu</button>
       <div class="app-title">PawApp Adoptions</div>
+
+      <!-- Right-side actions mount so the bell can attach here -->
+      <div id="nav-actions-right"></div>
     </header>
 
     <!-- Sidebar Nav -->
@@ -118,6 +126,8 @@
     <!-- App Logic -->
     <script src="js/adoption.js"></script>
     <script src="js/orgListingRequestBadges.js"></script>
-    <!-- orgRequestsIndicator.js removed to disable org-level notifications -->
+
+    <!-- Global notifications module (auto-inits on this page) -->
+    <script src="js/notifications.js" defer></script>
   </body>
 </html>

@@ -119,6 +119,13 @@
             <option value="Low">Low</option>
           </select>
 
+          <!-- Assignment filter (renamed UI) -->
+          <label for="assignment-filter" title="Limit to accepted reports">Accepted:</label>
+          <select id="assignment-filter" class="assignment-filter" title="Show only the reports accepted/assigned to your org">
+            <option value="ALL_VISIBLE" selected>All</option>
+            <option value="ASSIGNED_ANY">Accepted by me</option>
+          </select>
+
           <input
             type="text"
             id="report-search"
@@ -354,6 +361,10 @@
 
         document.getElementById("status-filter")?.addEventListener("change", () => { renderReportsTable(); updateMapMarkers(); });
         document.getElementById("severity-filter")?.addEventListener("change", () => { renderReportsTable(); updateMapMarkers(); });
+
+        // Assignment filter
+        document.getElementById("assignment-filter")?.addEventListener("change", () => { renderReportsTable(); updateMapMarkers(); });
+
         document.getElementById("report-search")?.addEventListener("input", () => { renderReportsTable(); updateMapMarkers(); });
 
         initTableSorting();
@@ -368,20 +379,45 @@
             if (found && typeof openModal === "function") openModal(found);
             window.removeEventListener("reportsLoaded", once);
           });
+
+          // Fallback: fetch directly if not in the visible subset
+          setTimeout(() => {
+            const already = allReportsData.find(r => r.id === deepId);
+            if (!already) {
+              firebase.database().ref("reports").child(deepId).once("value").then(s => {
+                const v = s.val();
+                if (v) {
+                  const norm = normalizeReport(deepId, v);
+                  if (typeof openModal === "function") openModal(norm);
+                }
+              });
+            }
+          }, 800);
         }
       });
 
       function getFilteredReports() {
         const statusFilter = (document.getElementById("status-filter")?.value || "ALL").toUpperCase();
         const severityFilter = (document.getElementById("severity-filter")?.value || "ALL").toUpperCase();
+        const assignmentFilter = (document.getElementById("assignment-filter")?.value || "ALL_VISIBLE").toUpperCase();
         const searchQuery = (document.getElementById("report-search")?.value || "").toLowerCase();
+
+        const ME = (typeof CURRENT_UID === "string" && CURRENT_UID) ? CURRENT_UID : null;
 
         return allReportsData.filter((report) => {
           const status = (report.status || "").toUpperCase();
           const severity = (report.severity || "").toUpperCase();
+          const assignedToMe = !!ME && report.organizationId === ME;
 
+          // UI filters
           const matchesStatus = statusFilter === "ALL" || status === statusFilter;
           const matchesSeverity = severityFilter === "ALL" || severity === severityFilter;
+
+          // Assignment filter (values unchanged; only labels changed)
+          let matchesAssignment = true;
+          if (assignmentFilter === "ASSIGNED_ANY") {
+            matchesAssignment = assignedToMe;
+          } // ALL_VISIBLE -> unassigned + mine (as provided by the subscription)
 
           const hay = [
             report.description || "",
@@ -394,7 +430,7 @@
           ].join(" ").toLowerCase();
 
           const matchesSearch = !searchQuery || hay.includes(searchQuery);
-          return matchesStatus && matchesSeverity && matchesSearch;
+          return matchesStatus && matchesSeverity && matchesAssignment && matchesSearch;
         });
       }
 
