@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>Adoptions</title>
     <link rel="stylesheet" href="css/adoption.css" />
-    <link rel="stylesheet" href="css/requestIndicator.css" />
+    <!-- requestIndicator.css removed to disable global request notifications -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
@@ -51,12 +51,10 @@
         <h2 class="section-title">Adoptions</h2>
 
         <!-- Tabs -->
-        <!-- Tabs -->
-<div class="adoption-tabs">
-  <button id="tab-available" class="adoption-tab active">Available Pets</button>
-  <button id="tab-adopted" class="adoption-tab">Adopted Pets</button>
-</div>
-
+        <div class="adoption-tabs">
+          <button id="tab-available" class="adoption-tab active">Available Pets</button>
+          <button id="tab-adopted" class="adoption-tab">Adopted Pets</button>
+        </div>
 
         <!-- Filters -->
         <div class="filter-controls">
@@ -103,25 +101,23 @@
         <span class="close-modal">&times;</span>
         <div class="modal-body" id="pet-details-content"></div>
         <div class="modal-footer">
-  <button id="backBtn" class="modal-btn back-btn">
-    <i class="fas fa-arrow-left"></i> Back
-  </button>
-  <button class="modal-btn edit-btn">
-    <i class="fas fa-edit"></i> Edit
-  </button>
-  <button id="viewRequestsBtn" class="modal-btn request-btn">
-    <i class="fas fa-clipboard-list"></i> Requests
-    <span id="request-badge" class="modal-badge">0</span>
-  </button>
-</div>
-
+          <button id="backBtn" class="modal-btn back-btn">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button class="modal-btn edit-btn">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button id="viewRequestsBtn" class="modal-btn request-btn">
+            <i class="fas fa-clipboard-list"></i> Requests
+            <span id="request-badge" class="modal-badge">0</span>
+          </button>
+        </div>
       </div>
     </div>
 
-<!-- App Logic -->
-<script src="js/adoption.js"></script>
-<script src="js/orgListingRequestBadges.js"></script>
-<script src="js/orgRequestsIndicator.js"></script>
-
+    <!-- App Logic -->
+    <script src="js/adoption.js"></script>
+    <script src="js/orgListingRequestBadges.js"></script>
+    <!-- orgRequestsIndicator.js removed to disable org-level notifications -->
   </body>
 </html>
