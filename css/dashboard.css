@@ -32,11 +32,20 @@ body{
   position:fixed; inset:0 0 auto 0; height:64px;
   background:var(--header-bg); color:#fff;
   display:flex; align-items:center; gap:12px;
+  justify-content:flex-start;                 /* Title stays left */
   padding:0 16px; z-index:1001;
   box-shadow:0 2px 8px var(--shadow-md);
 }
 .app-header .openbtn{background:none;border:0;color:#fff;font-size:1.05rem;cursor:pointer}
 .app-title{font-size:1.35rem;font-weight:700}
+
+/* Right-side actions mount (notifications, etc.) */
+#nav-actions-right{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  margin-left:auto;                            /* Pushes bell to the right */
+}
 
 /* NAVBAR */
 .navbar{
@@ -210,3 +219,225 @@ body{
 }
 .trend-up { color: #2ecc71; font-weight: 600; }
 .trend-down { color: #e74c3c; font-weight: 600; }
+
+/* === Dashboard additions (non-breaking) === */
+.summary-card .card-header span { font-weight: 600; }
+
+.card h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: .5rem;
+}
+
+/* Slightly tighter activity spacing */
+#activityFeed li b { font-weight: 700; }
+
+/* Ensure the two-chart layout breathes on narrow screens */
+@media (max-width: 800px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Improve pie/line legend readability */
+.chart-card .legend {
+  font-size: .9rem;
+  color: #555;
+}
+
+/* ===== Quick Insights: improved cards ===== */
+.insights-card { margin-top: 1rem; }
+.insight-list { margin-top: .75rem; }
+
+.insights-grid {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.insight-item {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 6px 16px var(--shadow-md);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.insight-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px var(--shadow-lg);
+}
+
+.insight-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .35rem;
+}
+
+.insight-icon {
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: rgba(76,120,168,.12);
+  color: var(--c1);
+}
+.icon-paw { background: rgba(84,162,75,.12); color: var(--c3); }
+.icon-donate { background: rgba(245,133,24,.12); color: var(--c2); }
+.icon-user { background: rgba(76,120,168,.12); color: var(--c1); }
+.icon-org { background: rgba(178,121,162,.12); color: var(--c6); }
+
+.insight-badge {
+  font-size: .75rem;
+  font-weight: 600;
+  padding: .25rem .5rem;
+  border-radius: 999px;
+  background: #eef7f0;
+  color: var(--primary);
+}
+.insight-badge.neutral {
+  background: #eef2f7;
+  color: #566;
+}
+
+.insight-main {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .25rem .5rem;
+  align-items: baseline;
+}
+.insight-label {
+  grid-column: 1 / 2;
+  font-size: .9rem;
+  color: #666;
+  font-weight: 600;
+}
+.insight-value {
+  grid-column: 1 / 2;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.15;
+}
+.insight-delta {
+  grid-column: 2 / 3;
+  justify-self: end;
+  font-size: .85rem;
+  font-weight: 700;
+  padding: .2rem .5rem;
+  border-radius: 999px;
+  background: #eceff1;
+  color: #455a64;
+}
+.insight-delta.up {
+  background: rgba(46, 204, 113, .14);
+  color: #2ecc71;
+}
+.insight-delta.down {
+  background: rgba(231, 76, 60, .14);
+  color: #e74c3c;
+}
+
+.insight-sub {
+  margin-top: .5rem;
+  font-size: .85rem;
+  color: #555;
+}
+.insight-sub.muted { color: #777; }
+
+/* Compact two-bar comparator (current vs last) */
+.mini-bars {
+  position: relative;
+  margin-top: .5rem;
+  height: 8px;
+  background: #eef2f7;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mini-bars .bar {
+  position: absolute; top: 0; left: 0; height: 100%;
+  border-radius: 6px;
+}
+.mini-bars .bar.current { background: var(--primary); opacity: .9; }
+.mini-bars .bar.prev { background: var(--accent); opacity: .5; filter: saturate(.9); }
+
+/* Reuse your flicker animation for subtle attention */
+.pulse-trend { animation: flickerTrend 0.7s ease; }
+
+/* ===== Right sidebar layout for dashboard ===== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;  /* main | sidebar */
+  gap: var(--gap);
+  align-items: start;
+  margin-top: 1rem;
+}
+
+.content-main { min-width: 0; }
+
+.content-aside {
+  position: sticky;
+  top: 84px; /* header (64px) + spacing */
+  align-self: start;
+}
+
+/* Sidebar activity card sizing */
+.activity-card {
+  margin-top: 0;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+#activityFeed {
+  overflow: auto;
+  padding-right: 4px;
+}
+
+/* Scrollbar cosmetics for the feed */
+#activityFeed::-webkit-scrollbar { width: 8px; }
+#activityFeed::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.15);
+  border-radius: 6px;
+}
+
+/* Responsive: collapse to one column */
+@media (max-width: 1100px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .content-aside { position: static; }
+  .activity-card { max-height: none; }
+}
+
+@media (max-width: 800px) {
+  .charts-grid { grid-template-columns: 1fr; }
+}
+
+/* ==== Wide-screen utilization (no HTML/JS changes) ==== */
+@media (min-width: 1200px) {
+  .main-content {
+    max-width: min(1800px, 96vw);
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .content-grid { grid-template-columns: 1fr 380px; }
+  .insights-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .chart-card { height: 420px; }
+  .chart-card canvas {
+    height: 340px !important;
+    max-height: 360px !important;
+  }
+}
+
+/* Ultra-wide screens */
+@media (min-width: 1600px) {
+  .main-content { max-width: min(1920px, 96vw); }
+  .content-grid { grid-template-columns: 1fr 420px; }
+  .charts-grid {
+    grid-template-columns: repeat(2, minmax(520px, 1fr));
+    gap: calc(var(--gap) + 4px);
+  }
+}
+
+/* Keep things comfy just below wide breakpoints */
+@media (min-width: 1000px) and (max-width: 1199px) {
+  .content-grid { grid-template-columns: 1fr 340px; }
+}

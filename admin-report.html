@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PAW Admin • Reports Management</title>
+
+  <!-- Icons & AOS CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
+
+  <!-- Base styles -->
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <!-- Page-scoped additions -->
+  <link rel="stylesheet" href="css/admin-report.css"/>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- App Config -->
+  <script src="js/config.js"></script>
+  <script src="js/dbAccess.js"></script>
+
+  <!-- Logic -->
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="js/nav.js" defer></script>
+  <script src="js/admin-report.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <button class="openbtn" onclick="openNav()"><i class="fas fa-bars"></i> Menu</button>
+    <h1 class="app-title">📝 Reports Management (Admin)</h1>
+  </header>
+
+  <div id="navbar" class="navbar">
+    <button class="closebtn" onclick="closeNav()">&times;</button>
+    <ul class="nav-links">
+      <li><a href="home.html">Dashboard</a></li>
+      <li><a href="admin-report.html" class="active">Reports Management</a></li>
+      <li><a href="admin-articles.html">Articles Moderation</a></li>
+      <li><a href="admin-donations.html">Donation Tracking</a></li>
+      <li><a href="accounts.html">Accounts Management</a></li>
+      <li><a href="profile.html">Profile</a></li>
+      <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
+    </ul>
+  </div>
+
+  <main class="main-content">
+    <!-- Filters -->
+    <section class="card panel" data-aos="fade-up">
+      <div class="panel-header">
+        <h2 class="section-title">Filters</h2>
+        <div class="actions">
+          <button id="exportCsvBtn" class="btn btn-secondary">
+            <i class="fas fa-file-csv"></i> Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="filters-grid">
+        <div class="filter-item">
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter" class="chart-filter">
+            <option value="">All</option>
+            <option>SUBMITTED</option>
+            <option>ACCEPTED</option>
+            <option>IN PROGRESS</option>
+            <option>ON HOLD</option>
+            <option>COMPLETED</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label for="typeSearch">Type (search)</label>
+          <input id="typeSearch" class="chart-filter" placeholder="Lost/Found Pet, Abuse..." />
+        </div>
+
+        <div class="filter-item">
+          <label for="orgFilter">Organization</label>
+          <select id="orgFilter" class="chart-filter">
+            <option value="">All</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>Date range</label>
+          <div class="date-range">
+            <input id="dateFrom" type="date" class="chart-filter"/>
+            <span>to</span>
+            <input id="dateTo" type="date" class="chart-filter"/>
+          </div>
+        </div>
+
+        <div class="filter-item">
+          <label>&nbsp;</label>
+          <button id="clearFiltersBtn" class="btn btn-light"><i class="fas fa-undo"></i> Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Table + pagination -->
+    <section class="card panel" data-aos="fade-up">
+      <div class="panel-header">
+        <h2 class="section-title">Reports</h2>
+        <div class="actions">
+          <span id="resultsCount" class="muted"></span>
+          <select id="pageSize" class="chart-filter">
+            <option value="10">10 / page</option>
+            <option value="25">25 / page</option>
+            <option value="50">50 / page</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Severity</th>
+              <th>Organization</th>
+              <th>Reporter</th>
+              <th>Created</th>
+              <th>Last Activity</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTbody">
+            <tr><td colspan="8" class="muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <button id="prevPage" class="btn btn-light" disabled>&laquo; Prev</button>
+        <span id="pageInfo" class="muted"></span>
+        <button id="nextPage" class="btn btn-light" disabled>Next &raquo;</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Right Drawer -->
+  <aside id="reportDrawer" class="drawer">
+    <div class="drawer-header">
+      <h3 id="drawerTitle">Report</h3>
+      <button id="drawerClose" class="drawer-close">&times;</button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </aside>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.AOS) AOS.init({ duration: 600, once: true });
+    });
+  </script>
+</body>
+</html>

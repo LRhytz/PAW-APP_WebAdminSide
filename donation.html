@@ -4,12 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Donation Campaigns</title>
-    <!-- External CSS -->
+
+    <!-- Page CSS -->
     <link rel="stylesheet" href="css/donation.css" />
+
+    <!-- Font Awesome (keep existing v5 and add v6 so notification icons render) -->
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -20,6 +29,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="js/config.js"></script>
+
+    <!-- Notifications (shared across pages) -->
+    <link rel="stylesheet" href="css/notifications.css" />
+    <script src="js/notifications.js" defer></script>
   </head>
   <body>
     <!-- Header -->
@@ -28,6 +41,9 @@
         <i class="fas fa-bars"></i> Menu
       </button>
       <h1 class="app-title">🐾 Donation Campaigns</h1>
+
+      <!-- Right-side actions mount (Notifications, etc.) -->
+      <div id="nav-actions-right"></div>
     </header>
 
     <!-- Navigation Sidebar -->
@@ -35,7 +51,7 @@
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
         <li><a href="organizationDashboard.html">Dashboard</a></li>
-          <li><a href="article.html">Articles</a></li>
+        <li><a href="article.html">Articles</a></li>
         <li><a href="reports.html">Reports</a></li>
         <li><a href="adoption.html">Adoption</a></li>
         <li><a href="donation.html" class="active">Donation</a></li>
@@ -47,7 +63,7 @@
     <!-- Main Content Area -->
     <main id="main-content" class="main-content">
       <h2 class="section-title">Current Donation Campaigns</h2>
-      
+
       <!-- Donation Cards Container -->
       <div id="donation-cards-container">
         <div class="loading-indicator">
@@ -55,7 +71,7 @@
           <p>Loading donation campaigns...</p>
         </div>
       </div>
-      
+
       <!-- Add Donation Floating Button -->
       <a href="addDonation.html" class="floating-button" aria-label="Add new donation campaign">
         <i class="fas fa-plus"></i>

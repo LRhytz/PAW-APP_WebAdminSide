@@ -107,6 +107,42 @@ function buildUpdatedAgo(updatedAt, fallbackReportId) {
   return ` • ${days} day${days === 1 ? "" : "s"} ago`;
 }
 
+// ---------- NEW: Nice profile resolver (name/photo) ----------
+async function resolveNiceProfile(uid) {
+  const authUser = firebase.auth().currentUser || {};
+  const db = firebase.database();
+  try {
+    const snap = await db.ref("users").child(uid).once("value");
+    const u = snap.val() || {};
+    const name =
+      u.organizationName ||
+      u.representativeName ||
+      u.fullName ||
+      u.displayName ||
+      u.name ||
+      u.email ||
+      authUser.displayName ||
+      authUser.email ||
+      "User";
+
+    const photo =
+      u.logoImageUri ||
+      u.organizationPhotoUrl ||
+      u.photoUrl ||
+      u.profilePhotoUrl ||
+      u.avatarUrl ||
+      authUser.photoURL ||
+      "";
+
+    return { name, photo };
+  } catch {
+    return {
+      name: authUser.displayName || authUser.email || "User",
+      photo: authUser.photoURL || ""
+    };
+  }
+}
+
 // -------- Data normalization --------
 
 function pickReportEmail(r) {
@@ -547,7 +583,7 @@ function showReportModal(report) {
   const createdVal  = ensureMetaItem(metaGrid, "meta-created-at", "fas fa-calendar-plus", "Created At");
   const updatedVal  = ensureMetaItem(metaGrid, "meta-updated-at", "fas fa-clock", "Updated At");
 
-  // Load fresh snapshot for organizationName/Email + updatedAt + TIMELINE
+  // Load fresh snapshot for organizationName/Email + updatedAt + TIMELINE + **ACTION BUTTON PERMISSIONS**
   firebase.database().ref(`reports/${report.id}`).once("value").then((snap) => {
     const data = snap.val() || {};
     const orgName = data.organizationName;
@@ -578,6 +614,44 @@ function showReportModal(report) {
 
     // ===== NEW: render right-side timeline =====
     renderTimelineFromSnapshot(report.id, snap);
+
+    // ===== ACTION BUTTONS (now use fresh data + ownership) =====
+    const actionsWrap = modal.querySelector(".modal-footer .action-buttons");
+    actionsWrap.innerHTML = "";
+
+    const meUid = firebase.auth().currentUser?.uid || null;
+    const statusNow = String(data.status || report.status || "SUBMITTED").toUpperCase();
+    const assignedOrgId = data.organizationId || null;
+
+    // Only show controls if:
+    // - status is SUBMITTED  -> any org user can see "Respond"
+    // - otherwise            -> ONLY the assigned org can see transition controls
+    const isOwner = !!assignedOrgId && !!meUid && assignedOrgId === meUid;
+
+    // Helper to create a button
+    const addBtn = (label, value, icon, className) => {
+      const btn = document.createElement("button");
+      btn.className = `btn ${className}`;
+      btn.innerHTML = `<i class="fas ${icon}"></i><span>${label}</span>`;
+      btn.onclick = () => (value === "ACCEPTED" ? acceptReport(report.id) : updateReportStatus(report.id, value));
+      actionsWrap.appendChild(btn);
+    };
+
+    if (statusNow === "SUBMITTED") {
+      addBtn("Respond", "ACCEPTED", "fa-check", "btn-accept");
+    } else if (isOwner) {
+      if (statusNow === "ACCEPTED") {
+        addBtn("In Progress", "IN PROGRESS", "fa-spinner", "btn-inprogress");
+      } else if (statusNow === "IN PROGRESS") {
+        addBtn("On Hold", "ON HOLD", "fa-pause-circle", "btn-onhold");
+        addBtn("Completed", "COMPLETED", "fa-check-circle", "btn-completed");
+      } else if (statusNow === "ON HOLD") {
+        addBtn("In Progress", "IN PROGRESS", "fa-spinner", "btn-inprogress");
+        addBtn("Completed", "COMPLETED", "fa-check-circle", "btn-completed");
+      }
+      // COMPLETED -> no buttons
+    }
+    // If not owner and not SUBMITTED => no buttons (read-only)
   });
 
   // ---------- LEFT: Message button slot (participants on active statuses only) ----------
@@ -603,34 +677,6 @@ function showReportModal(report) {
     msgBtn.onclick = () => showMessageModal(report.id, report.email || "Anonymous");
     leftSlot.appendChild(msgBtn);
   }
-
-  // ---------- RIGHT: status action buttons (use allowedTransitions + special ACCEPTED rule) ----------
-  const actionsWrap = modal.querySelector(".modal-footer .action-buttons");
-  actionsWrap.innerHTML = "";
-
-  const curr = statusUpper;
-
-  // Helper to create a button
-  const addBtn = (label, value, icon, className) => {
-    const btn = document.createElement("button");
-    btn.className = `btn ${className}`;
-    btn.innerHTML = `<i class="fas ${icon}"></i><span>${label}</span>`;
-    btn.onclick = () => (value === "ACCEPTED" ? acceptReport(report.id) : updateReportStatus(report.id, value));
-    actionsWrap.appendChild(btn);
-  };
-
-  if (curr === "SUBMITTED") {
-    addBtn("Respond", "ACCEPTED", "fa-check", "btn-accept");
-  } else if (curr === "ACCEPTED") {
-    addBtn("In Progress", "IN PROGRESS", "fa-spinner", "btn-inprogress");
-  } else if (curr === "IN PROGRESS") {
-    addBtn("On Hold", "ON HOLD", "fa-pause-circle", "btn-onhold");
-    addBtn("Completed", "COMPLETED", "fa-check-circle", "btn-completed");
-  } else if (curr === "ON HOLD") {
-    addBtn("In Progress", "IN PROGRESS", "fa-spinner", "btn-inprogress");
-    addBtn("Completed", "COMPLETED", "fa-check-circle", "btn-completed");
-  }
-  // COMPLETED -> no buttons
 
   // Show modal (no body scroll locking)
   modal.classList.add("show");
@@ -900,12 +946,16 @@ function showToast(message, type = "success") {
       _msgsOff = () => q.off("child_added", onChildAdded);
     });
 
-    // ----- Send -----
+    // ----- Send (UPDATED to resolve sender name/photo and write to notifications) -----
     sendBtn.onclick = async () => {
       const text = (inputEl.value || "").trim();
       if (!text) return;
 
       const role = (myUid === orgUid) ? "ORG" : "CITIZEN";
+
+      // Resolve a good-looking name/photo from /users (Android parity)
+      const { name: niceName, photo: nicePhoto } = await resolveNiceProfile(myUid);
+
       const node = msgsRef.push();
       const payload = {
         messageId: node.key,
@@ -913,8 +963,8 @@ function showToast(message, type = "success") {
         senderRole: role,
         text,
         timestamp: Date.now(),
-        senderName: me.displayName || me.email || null,
-        senderPhotoUrl: me.photoURL || null
+        senderName: niceName,
+        senderPhotoUrl: nicePhoto || null
       };
 
       try {
@@ -937,8 +987,8 @@ function showToast(message, type = "success") {
             type: "message",
             reportId,
             messageId: node.key,
-            title: me.displayName || "New message",
-            senderName: me.displayName || "User",
+            title: niceName,       // show the sender name as notification title
+            senderName: niceName,  // and store under senderName (mobile reads this)
             body: text.substring(0, 80),
             createdAt: Date.now(),
             seen: false

@@ -33,55 +33,76 @@
   <header class="app-header">
     <button class="openbtn" onclick="openNav()"><i class="fas fa-bars"></i> Menu</button>
     <h1 class="app-title">
-  🐾 PAW Admin Dashboard
-  <span id="liveIndicator" class="live-dot"></span>
-</h1>
-
+      🐾 PAW Admin Dashboard
+      <span id="liveIndicator" class="live-dot"></span>
+    </h1>
   </header>
 
   <div id="navbar" class="navbar">
     <button class="closebtn" onclick="closeNav()">&times;</button>
     <ul class="nav-links">
       <li><a href="home.html" class="active">Dashboard</a></li>
+      <li><a href="admin-report.html">Reports Management</a></li>
       <li><a href="profile.html">Profile Management</a></li>
       <li><a href="subscription-management.html">Subscription Management</a></li>
       <li><a href="accounts.html">Accounts Management</a></li>
-            <li><a href="admin-articles.html" class="active">Articles Moderation</a></li>
-                  <li><a href="admin-donations.html" class="active">Donation Tracking</a></li>
-
-
+      <li><a href="admin-articles.html" class="active">Articles Moderation</a></li>
+      <li><a href="admin-donations.html" class="active">Donation Tracking</a></li>
       <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
     </ul>
   </div>
 
   <main id="main-content" class="main-content">
-    <!-- Summary Cards -->
+    <!-- KPI Summary Cards -->
     <section class="summary-grid" id="summarySection"></section>
-<section id="quickInsights" class="card insights-card" data-aos="fade-up" data-aos-delay="500">
-  <h2 class="section-title">Quick Insights</h2>
-  <ul class="insight-list" id="insightList">
-    <li>Loading weekly insights...</li>
-  </ul>
-</section>
 
+    <!-- 2-column layout: left = charts, right = recent activity -->
+    <div class="content-grid">
+      <div class="content-main">
+        <!-- Charts -->
+        <section class="charts-grid">
+          <div class="card chart-card">
+            <h2>Users by Role</h2>
+            <canvas id="usersRoleChart"></canvas>
+          </div>
 
-    <!-- Charts -->
-    <section class="charts-grid">
-      <div class="card chart-card"><h2>Registrations</h2><canvas id="registrationChart"></canvas></div>
-      <div class="card chart-card"><h2>Performance Trends</h2><canvas id="performanceChart"></canvas></div>
-      <div class="card chart-card"><h2>Reports Status</h2><canvas id="reportsChart"></canvas></div>
-      <div class="card chart-card"><h2>Donation Categories</h2><canvas id="donationCategoryChart"></canvas></div>
-    </section>
+          <div class="card chart-card">
+            <h2>Pets Listed by Species</h2>
+            <canvas id="adoptionsSpeciesChart"></canvas>
+          </div>
 
-    <!-- Activity Feed -->
-    <section class="card activity-card" data-aos="fade-up">
-      <h2>Recent Activity</h2>
-      <ul id="activityFeed"></ul>
-    </section>
+          <div class="card chart-card">
+            <h2>Donations (Last 30 Days)</h2>
+            <canvas id="donations30Chart"></canvas>
+          </div>
+
+          <div class="card chart-card">
+            <h2>Reports by Status</h2>
+            <canvas id="reportsStatusChart"></canvas>
+          </div>
+
+          <!-- UPDATED: Articles by Category -->
+          <div class="card chart-card">
+            <h2>Articles by Category</h2>
+            <canvas id="articlesCategoryChart"></canvas>
+          </div>
+        </section>
+      </div>
+
+      <aside class="content-aside">
+        <!-- Recent Activity (sticky sidebar) -->
+        <section class="card activity-card" data-aos="fade-left" data-aos-delay="200">
+          <h2>Recent Activity</h2>
+          <ul id="activityFeed"></ul>
+        </section>
+      </aside>
+    </div>
   </main>
 
   <script>
-    document.addEventListener("DOMContentLoaded", ()=>{ if(window.AOS) AOS.init({duration:600,once:true}); });
+    document.addEventListener("DOMContentLoaded", function () {
+      if (window.AOS) AOS.init({ duration: 600, once: true });
+    });
   </script>
 </body>
 </html>

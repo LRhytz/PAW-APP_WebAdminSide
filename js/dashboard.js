@@ -1,3 +1,4 @@
+// js/dashboard.js
 (async function initDashboard() {
   const me = await DB.waitForAuthUser();
   if (!me) return (window.location = "index.html");
@@ -7,50 +8,76 @@
   const db = firebase.database();
   const $ = (id) => document.getElementById(id);
 
-  /* ---------- SUMMARY SECTION ---------- */
+  /* ---------- REFS ---------- */
   const refs = {
     users: db.ref("users"),
-    subs: db.ref("subscriptions"),
+    orgSubs: db.ref("orgSubscriptions"),
     adoptions: db.ref("adoptions"),
     reports: db.ref("reports"),
     campaigns: db.ref("donationCampaigns"),
+    donations: db.ref("donations"),          // grouped by campaignId
+    articles: db.ref("articles")
   };
 
+  /* ---------- SUMMARY STATE ---------- */
   const summary = {
-    citizens: 0,
-    orgs: 0,
-    activeSubs: 0,
-    adoptions: 0,
-    reportsPending: 0,
-    campaigns: 0,
+    totalUsers: 0,
+    verifiedOrgs: 0,
+    petsListed: 0,
+    petsAdopted: 0,
+    activeCampaigns: 0,
+    totalDonations: 0,
+    openReports: 0
   };
 
-  // 🔄 Animated Summary Rendering
+  // Animated Summary Rendering
   function renderSummary() {
     const section = $("summarySection");
     if (!section) return;
 
-    // Capture old values to detect change
+    // Keep previous numbers to animate changes
     const prev = {};
-    section.querySelectorAll(".stat-number").forEach(el => {
-      const label = el.parentElement.querySelector("span")?.textContent.trim() || "";
-      prev[label] = parseInt(el.textContent) || 0;
+    section.querySelectorAll(".stat-number").forEach((el) => {
+      const label = el.getAttribute("data-label") || "";
+      prev[label] = parseInt((el.textContent || "0").replace(/[₱,]/g, ""), 10) || 0;
     });
 
-    // Re-render summary
     section.innerHTML = `
-      <div class="card summary-card"><div class="card-header"><i class="fas fa-user"></i><span>Citizens</span></div><p class="stat-number">${summary.citizens}</p></div>
-      <div class="card summary-card"><div class="card-header"><i class="fas fa-users"></i><span>Organizations</span></div><p class="stat-number">${summary.orgs}</p></div>
-      <div class="card summary-card"><div class="card-header"><i class="fas fa-check-circle"></i><span>Active Subs</span></div><p class="stat-number">${summary.activeSubs}</p></div>
-      <div class="card summary-card"><div class="card-header"><i class="fas fa-paw"></i><span>Adoptions Listed</span></div><p class="stat-number">${summary.adoptions}</p></div>
-      <div class="card summary-card"><div class="card-header"><i class="fas fa-file-alt"></i><span>Pending Reports</span></div><p class="stat-number">${summary.reportsPending}</p></div>
-      <div class="card summary-card"><div class="card-header"><i class="fas fa-hand-holding-heart"></i><span>Active Campaigns</span></div><p class="stat-number">${summary.campaigns}</p></div>
+      <div class="card summary-card">
+        <div class="card-header"><i class="fas fa-users"></i><span>Total Users</span></div>
+        <p class="stat-number" data-label="totalUsers">${summary.totalUsers}</p>
+      </div>
+      <div class="card summary-card">
+        <div class="card-header"><i class="fas fa-building"></i><span>Verified Orgs</span></div>
+        <p class="stat-number" data-label="verifiedOrgs">${summary.verifiedOrgs}</p>
+      </div>
+      <div class="card summary-card">
+        <div class="card-header"><i class="fas fa-paw"></i><span>Pets Listed</span></div>
+        <p class="stat-number" data-label="petsListed">${summary.petsListed}</p>
+      </div>
+      <div class="card summary-card">
+        <div class="card-header"><i class="fas fa-heart"></i><span>Pets Adopted</span></div>
+        <p class="stat-number" data-label="petsAdopted">${summary.petsAdopted}</p>
+      </div>
+      <div class="card summary-card">
+        <div class="card-header"><i class="fas fa-hand-holding-heart"></i><span>Active Campaigns</span></div>
+        <p class="stat-number" data-label="activeCampaigns">${summary.activeCampaigns}</p>
+      </div>
+      <div class="card summary-card">
+        <div class="card-header"><i class="fas fa-peso-sign"></i><span>Total Donations</span></div>
+        <p class="stat-number" data-label="totalDonations">₱${(summary.totalDonations || 0).toLocaleString()}</p>
+      </div>
+      <div class="card summary-card">
+        <div class="card-header"><i class="fas fa-file-alt"></i><span>Open Reports</span></div>
+        <p class="stat-number" data-label="openReports">${summary.openReports}</p>
+      </div>
     `;
 
-    // Animate numbers that changed
-    section.querySelectorAll(".stat-number").forEach(el => {
-      const label = el.parentElement.querySelector("span")?.textContent.trim() || "";
-      const newVal = parseInt(el.textContent) || 0;
+    // Animate changed stats
+    section.querySelectorAll(".stat-number").forEach((el) => {
+      const label = el.getAttribute("data-label") || "";
+      const text = el.textContent || "0";
+      const newVal = parseInt(text.replace(/[₱,]/g, ""), 10) || 0;
       if (prev[label] !== undefined && prev[label] !== newVal) {
         el.classList.add("pulse");
         setTimeout(() => el.classList.remove("pulse"), 500);
@@ -58,269 +85,307 @@
     });
   }
 
+  /* ---------- SUMMARY LISTENERS ---------- */
+
+  // Users → total users + users-by-role chart
   refs.users.on("value", (snap) => {
     const users = snap.val() || {};
-    summary.citizens = Object.values(users).filter(u => (u.role || "").toLowerCase() === "citizen").length;
-    summary.orgs = Object.values(users).filter(u => (u.role || "").toLowerCase() === "organization").length;
+    summary.totalUsers = Object.keys(users).length;
+
+    // Update users by role chart
+    let citizens = 0, orgs = 0;
+    Object.values(users).forEach((u) => {
+      const r = (u.role || "").toLowerCase();
+      if (r === "citizen") citizens++;
+      else if (r === "organization") orgs++;
+    });
+    usersRoleChart.data.labels = ["Citizens", "Organizations"];
+    usersRoleChart.data.datasets[0].data = [citizens, orgs];
+    usersRoleChart.update();
+
     renderSummary();
   });
 
-// Count active subscriptions from both users and organizations
-async function updateActiveSubs() {
-  const [subsSnap, orgSubsSnap] = await Promise.all([
-    db.ref("subscriptions").once("value"),
-    db.ref("orgSubscriptions").once("value"),
-  ]);
-  const subs = subsSnap.val() || {};
-  const orgSubs = orgSubsSnap.val() || {};
+  // Org subscriptions → verified orgs
+  refs.orgSubs.on("value", (snap) => {
+    const orgs = snap.val() || {};
+    summary.verifiedOrgs = Object.values(orgs).filter((s) => s && s.verified === true).length;
+    renderSummary();
+  });
 
-  const activeUserSubs = Object.values(subs).filter(
-    (s) => (s.status || "").toLowerCase() === "active"
-  ).length;
-  const activeOrgSubs = Object.values(orgSubs).filter(
-    (s) => (s.status || "").toLowerCase() === "active"
-  ).length;
-
-  summary.activeSubs = activeUserSubs + activeOrgSubs;
-  renderSummary();
-}
-
-// initial call + live updates
-updateActiveSubs();
-db.ref("subscriptions").on("value", updateActiveSubs);
-db.ref("orgSubscriptions").on("value", updateActiveSubs);
-
-  // ✅ FIXED: Count all available or listed adoptions
+  // Adoptions → pets listed & adopted + species chart
   refs.adoptions.on("value", (snap) => {
     const ads = snap.val() || {};
-    summary.adoptions = Object.values(ads).filter(a => {
+    let listed = 0;
+    let adopted = 0;
+
+    // Count listed/adopted + update species chart (listed only)
+    let dogs = 0, cats = 0;
+    Object.values(ads).forEach((a) => {
       const status = (a.status || "").toLowerCase();
-      return a.available === true || a.available === undefined || status === "listed";
-    }).length;
+      const isListed = a.available === true || a.available === undefined || status === "listed";
+      if (isListed) {
+        listed++;
+        const s = (a.species || "").toLowerCase();
+        if (s === "dog") dogs++;
+        else if (s === "cat") cats++;
+      }
+      if (status === "adopted" || a.available === false || a.adoptedAt) adopted++;
+    });
+
+    summary.petsListed = listed;
+    summary.petsAdopted = adopted;
     renderSummary();
+
+    // Update species chart
+    speciesChart.data.datasets[0].data = [dogs, cats];
+    speciesChart.update();
   });
 
+  // Reports → open reports + status chart
   refs.reports.on("value", (snap) => {
-    const reports = snap.val() || {};
-    summary.reportsPending = Object.values(reports).filter(r => (r.status || "").toLowerCase() !== "completed").length;
+    const obj = snap.val() || {};
+    const arr = Object.values(obj);
+
+    summary.openReports = arr.filter(
+      (r) => (r.status || "").toUpperCase() !== "COMPLETED"
+    ).length;
     renderSummary();
+
+    const counts = { submitted: 0, accepted: 0, "in progress": 0, "on hold": 0, completed: 0 };
+    arr.forEach((r) => {
+      const s = (r.status || "").toLowerCase();
+      if (s === "submitted") counts.submitted++;
+      else if (s === "accepted") counts.accepted++;
+      else if (s === "in progress") counts["in progress"]++;
+      else if (s === "on hold") counts["on hold"]++;
+      else if (s === "completed") counts.completed++;
+    });
+    updateReportsStatusChart(counts);
   });
 
+  // Articles → category chart (sorted desc, "Uncategorized" for missing)
+  refs.articles.on("value", (snap) => {
+    const obj = snap.val() || {};
+    const counts = {};
+    Object.values(obj).forEach((a) => {
+      const cat = (a.category || "Uncategorized").trim();
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+
+    // Sort by count desc
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const labels = entries.map((e) => e[0]);
+    const data = entries.map((e) => e[1]);
+
+    updateArticlesCategoryChart(labels, data);
+  });
+
+  // Campaigns → active campaigns (status === Active)
   refs.campaigns.on("value", (snap) => {
     const c = snap.val() || {};
-    summary.campaigns = Object.values(c).filter(ca => (ca.status || "").toLowerCase() === "active").length;
+    summary.activeCampaigns = Object.values(c).filter(
+      (ca) => (ca.status || "").toLowerCase() === "active"
+    ).length;
     renderSummary();
+  });
+
+  // Donations → total donations (sum all-time, non-negative) + 30-day time series
+  refs.donations.on("value", (snap) => {
+    let total = 0;
+    const byDay = {};
+    const now = Date.now();
+    const dayMs = 86400000;
+    const start = now - 29 * dayMs;
+
+    snap.forEach((campSnap) => {
+      campSnap.forEach((donSnap) => {
+        const d = donSnap.val() || {};
+        const rawAmt = Number(d.amount);
+        const amt = Number.isFinite(rawAmt) ? Math.max(0, rawAmt) : 0;
+        const ts = Number(d.createdAt || d.timestamp || 0);
+        total += amt;
+        if (ts && ts >= start) {
+          const dayKey = new Date(ts).toISOString().slice(0, 10);
+          byDay[dayKey] = (byDay[dayKey] || 0) + amt;
+        }
+      });
+    });
+
+    summary.totalDonations = total;
+    renderSummary();
+    updateDonations30Chart(byDay, start, now);
   });
 
   /* ---------- CHARTS ---------- */
-  const palette = ["#4C78A8","#F58518","#54A24B","#E45756","#72B7B2","#B279A2"];
+  const palette = ["#4C78A8", "#F58518", "#54A24B", "#E45756", "#72B7B2", "#B279A2"];
 
-  const regChart = new Chart($("registrationChart"), {
-    type:"bar",
-    data:{labels:["Citizens","Organizations"],
-      datasets:[{label:"Registrations",backgroundColor:[palette[2],palette[0]],data:[0,0]}]},
-    options:{responsive:true,maintainAspectRatio:false}
-  });
-  refs.users.on("value", snap=>{
-    const users=snap.val()||{};
-    const c=Object.values(users).filter(u=>u.role==="citizen").length;
-    const o=Object.values(users).filter(u=>u.role==="organization").length;
-    regChart.data.datasets[0].data=[c,o]; regChart.update();
+  // Users by Role
+  const usersRoleChart = new Chart($("usersRoleChart"), {
+    type: "bar",
+    data: {
+      labels: ["Citizens", "Organizations"],
+      datasets: [{ label: "Users", backgroundColor: [palette[0], palette[2]], data: [0, 0] }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
   });
 
-  const perfChart = new Chart($("performanceChart"), {
-    type:"line",
-    data:{labels:[],datasets:[
-      {label:"Adoptions",borderColor:palette[2],data:[],fill:false,tension:.3},
-      {label:"Donations (₱)",borderColor:palette[0],data:[],fill:false,tension:.3}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false}
+  // Pets Listed by Species (dogs & cats only, listed only)
+  const speciesChart = new Chart($("adoptionsSpeciesChart"), {
+    type: "pie",
+    data: {
+      labels: ["Dogs", "Cats"],
+      datasets: [{ data: [0, 0], backgroundColor: [palette[0], palette[3]] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
   });
-  const adoptionMonthly={}, donationMonthly={};
-  function formatMonth(ts){return new Date(ts).toLocaleString("default",{month:"short"});}
-  function updatePerformance(){
-    const months=[...new Set([...Object.keys(adoptionMonthly),...Object.keys(donationMonthly)])];
-    perfChart.data.labels=months;
-    perfChart.data.datasets[0].data=months.map(m=>adoptionMonthly[m]||0);
-    perfChart.data.datasets[1].data=months.map(m=>donationMonthly[m]||0);
-    perfChart.update();
+
+  // Donations over last 30 days (line)
+  const donations30Chart = new Chart($("donations30Chart"), {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [{
+        label: "₱ per day",
+        borderColor: palette[1],
+        data: [],
+        fill: false,
+        tension: 0.25
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { min: 0, ticks: { callback: (v) => "₱" + Number(v).toLocaleString() } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  function updateDonations30Chart(byDayMap, startMs, nowMs) {
+    const labels = [];
+    const data = [];
+    const dayMs = 86400000;
+    for (let t = startMs; t <= nowMs; t += dayMs) {
+      const d = new Date(t);
+      const key = d.toISOString().slice(0, 10);
+      labels.push(d.toLocaleDateString(undefined, { month: "short", day: "numeric" }));
+      data.push(byDayMap[key] || 0);
+    }
+    donations30Chart.data.labels = labels;
+    donations30Chart.data.datasets[0].data = data;
+    donations30Chart.update();
   }
-  refs.adoptions.on("value",snap=>{
-    Object.keys(adoptionMonthly).forEach(k=>delete adoptionMonthly[k]);
-    Object.values(snap.val()||{}).forEach(a=>{
-      if(a.createdAt){
-        const m=formatMonth(a.createdAt);
-        adoptionMonthly[m]=(adoptionMonthly[m]||0)+1;
-      }
-    });
-    updatePerformance();
-  });
-  refs.campaigns.on("value",snap=>{
-    Object.keys(donationMonthly).forEach(k=>delete donationMonthly[k]);
-    Object.values(snap.val()||{}).forEach(c=>{
-      if(c.stats?.amountRaised){
-        const m=formatMonth(c.updatedAt||c.createdAt||Date.now());
-        donationMonthly[m]=(donationMonthly[m]||0)+c.stats.amountRaised;
-      }
-    });
-    updatePerformance();
+
+  // Reports by Status (doughnut)
+  const reportsStatusChart = new Chart($("reportsStatusChart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Submitted", "Accepted", "In Progress", "On Hold", "Completed"],
+      datasets: [{
+        data: [0, 0, 0, 0, 0],
+        backgroundColor: [palette[0], palette[2], palette[1], palette[3], palette[5]]
+      }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } }, cutout: "55%" }
   });
 
-  const repChart = new Chart($("reportsChart"),{
-    type:"doughnut",
-    data:{labels:["Pending","In Progress","Completed"],
-      datasets:[{backgroundColor:[palette[3],palette[1],palette[2]],data:[0,0,0]}]},
-    options:{responsive:true,maintainAspectRatio:false}
-  });
-  refs.reports.on("value",snap=>{
-    const reports=Object.values(snap.val()||{});
-    const counts={pending:0,progress:0,completed:0};
-    reports.forEach(r=>{
-      const s=(r.status||"").toLowerCase();
-      if(s==="completed")counts.completed++;
-      else if(s==="in progress")counts.progress++;
-      else counts.pending++;
-    });
-    repChart.data.datasets[0].data=[counts.pending,counts.progress,counts.completed];
-    repChart.update();
-  });
-
-  const catChart=new Chart($("donationCategoryChart"),{
-    type:"bar",
-    data:{labels:[],datasets:[{label:"Campaigns",backgroundColor:palette[5],data:[]}]},
-    options:{responsive:true,maintainAspectRatio:false}
-  });
-  refs.campaigns.on("value",snap=>{
-    const campaigns=Object.values(snap.val()||{});
-    const catCount={};
-    campaigns.forEach(c=>{
-      const cat=(c.category||"Uncategorized").trim();
-      catCount[cat]=(catCount[cat]||0)+1;
-    });
-    const labels=Object.keys(catCount);
-    catChart.data.labels=labels;
-    catChart.data.datasets[0].data=labels.map(l=>catCount[l]);
-    catChart.update();
-  });
-
-  /* ---------- ACTIVITY FEED ---------- */
-  const feed=$("activityFeed");
-  function addActivity(msg,ts){
-    const li=document.createElement("li");
-    li.innerHTML=`${msg}<time>${new Date(ts).toLocaleString()}</time>`;
-    feed.prepend(li); if(feed.children.length>10)feed.removeChild(feed.lastChild);
+  function updateReportsStatusChart(counts) {
+    reportsStatusChart.data.datasets[0].data = [
+      counts.submitted || 0,
+      counts.accepted || 0,
+      counts["in progress"] || 0,
+      counts["on hold"] || 0,
+      counts.completed || 0
+    ];
+    reportsStatusChart.update();
   }
-  refs.reports.on("child_added",snap=>{
-    const r=snap.val(); addActivity(`📝 New report: <b>${r.category||"Report"}</b>`,r.createdAt||Date.now());
+
+  // Articles by Category (bar, dynamic labels)
+  const articlesCategoryChart = new Chart($("articlesCategoryChart"), {
+    type: "bar",
+    data: { labels: [], datasets: [{ label: "Articles", backgroundColor: palette[4], data: [] }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
   });
-  refs.adoptions.on("child_added",snap=>{
-    const a=snap.val(); addActivity(`🐾 Adoption listed: <b>${a.name||"Pet"}</b>`,a.createdAt||Date.now());
+
+  function updateArticlesCategoryChart(labels, data) {
+    articlesCategoryChart.data.labels = labels;
+    articlesCategoryChart.data.datasets[0].data = data;
+    articlesCategoryChart.update();
+  }
+
+  /* ---------- RECENT ACTIVITY (sorted, de-duped) ---------- */
+  const feed = $("activityFeed");
+  const activityMap = new Map(); // key -> {ts, html}
+  const MAX_ITEMS = 20;
+
+  function safeTs(v) {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : Date.now();
+  }
+
+  function upsertActivity(key, ts, html) {
+    activityMap.set(key, { ts: safeTs(ts), html });
+    renderActivity();
+  }
+
+  function renderActivity() {
+    if (!feed) return;
+    // sort by ts desc
+    const items = Array.from(activityMap.values())
+      .sort((a, b) => b.ts - a.ts)
+      .slice(0, MAX_ITEMS);
+
+    feed.innerHTML = "";
+    for (const it of items) {
+      const li = document.createElement("li");
+      li.innerHTML = `${it.html}<time>${new Date(it.ts).toLocaleString()}</time>`;
+      feed.appendChild(li);
+    }
+  }
+
+  // Listeners (compose stable keys to de-dupe)
+  refs.reports.on("child_added", (snap) => {
+    const r = snap.val() || {};
+    const ts = r.lastActivityAt || r.createdAt || r.updatedAt || Date.now();
+    upsertActivity(`report:${snap.key}`, ts, `📝 New report: <b>${(r.reportType || r.type || "Report")}</b>`);
   });
-  refs.campaigns.on("child_added",snap=>{
-    const c=snap.val(); addActivity(`💰 Campaign: <b>${c.title||"Campaign"}</b>`,c.createdAt||Date.now());
+
+  refs.adoptions.on("child_added", (snap) => {
+    const a = snap.val() || {};
+    const ts = a.createdAt || a.updatedAt || Date.now();
+    upsertActivity(`adopt:${snap.key}`, ts, `🐾 Adoption listed: <b>${a.name || "Pet"}</b> (${a.species || "N/A"})`);
+  });
+
+  refs.campaigns.on("child_added", (snap) => {
+    const c = snap.val() || {};
+    const ts = c.createdAt || c.updatedAt || Date.now();
+    upsertActivity(`camp:${snap.key}`, ts, `💰 Campaign created: <b>${c.title || "Campaign"}</b>`);
+  });
+
+  refs.articles.on("child_added", (snap) => {
+    const art = snap.val() || {};
+    const ts = art.publishedAt || art.createdAt || art.updatedAt || Date.now();
+    upsertActivity(`article:${snap.key}`, ts, `📰 Article: <b>${art.title || "Article"}</b>`);
   });
 
   // Live indicator
-  firebase.database().ref(".info/connected").on("value", snap => {
+  firebase.database().ref(".info/connected").on("value", (snap) => {
     const dot = document.getElementById("liveIndicator");
     if (!dot) return;
-    dot.style.background = snap.val() ? "#0f0" : "#f00";
-    dot.style.boxShadow = snap.val() ? "0 0 8px #0f0" : "0 0 8px #f00";
-  });
-
-  /* ---------- QUICK INSIGHTS ---------- */
-  const insightsData = {
-    citizens: 0,
-    orgs: 0,
-    adoptions: { thisWeek: 0, lastWeek: 0 },
-    donations: { thisWeek: 0, lastWeek: 0 }
-  };
-
-  function getWeekNumber(d) {
-    const date = new Date(d);
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDays = (date - firstDayOfYear) / 86400000;
-    return Math.ceil((pastDays + firstDayOfYear.getDay() + 1) / 7);
-  }
-
-  function updateQuickInsights() {
-    const list = document.getElementById("insightList");
-    if (!list) return;
-
-    const {
-      citizens,
-      orgs,
-      adoptions: { thisWeek: adThis, lastWeek: adLast },
-      donations: { thisWeek: dnThis, lastWeek: dnLast }
-    } = insightsData;
-
-    const adDiff = adThis - adLast;
-    const dnDiff = dnThis - dnLast;
-
-    const adTrend =
-      adDiff > 0
-        ? `<span class="trend-up pulse-trend">📈 +${adDiff}</span>`
-        : adDiff < 0
-        ? `<span class="trend-down pulse-trend">📉 ${adDiff}</span>`
-        : `<span>⚖️ No change</span>`;
-
-    const dnTrend =
-      dnDiff > 0
-        ? `<span class="trend-up pulse-trend">📈 +₱${dnDiff.toLocaleString()}</span>`
-        : dnDiff < 0
-        ? `<span class="trend-down pulse-trend">📉 ₱${dnDiff.toLocaleString()}</span>`
-        : `<span>⚖️ No change</span>`;
-
-    list.innerHTML = `
-      <li>🐾 <strong>${adThis}</strong> adoptions this week ${adTrend}</li>
-      <li>💰 <strong>₱${dnThis.toLocaleString()}</strong> raised this week ${dnTrend}</li>
-      <li>👥 <strong>${citizens}</strong> citizens registered</li>
-      <li>🏢 <strong>${orgs}</strong> organizations onboarded</li>
-    `;
-
-    // Add highlight flicker when trends change
-    list.querySelectorAll(".pulse-trend").forEach(el => {
-      el.style.animation = "flickerTrend 0.7s ease";
-      setTimeout(() => el.style.animation = "", 700);
-    });
-  }
-
-  db.ref("users").on("value", snap => {
-    const users = snap.val() || {};
-    insightsData.citizens = Object.values(users).filter(u => u.role === "citizen").length;
-    insightsData.orgs = Object.values(users).filter(u => u.role === "organization").length;
-    updateQuickInsights();
-  });
-
-  db.ref("adoptions").on("value", snap => {
-    const now = new Date();
-    const currentWeek = getWeekNumber(now);
-    const lastWeek = currentWeek - 1;
-    insightsData.adoptions = { thisWeek: 0, lastWeek: 0 };
-    snap.forEach(ch => {
-      const val = ch.val();
-      if (val.createdAt) {
-        const wk = getWeekNumber(val.createdAt);
-        if (wk === currentWeek) insightsData.adoptions.thisWeek++;
-        else if (wk === lastWeek) insightsData.adoptions.lastWeek++;
-      }
-    });
-    updateQuickInsights();
-  });
-
-  db.ref("donationCampaigns").on("value", snap => {
-    const now = new Date();
-    const currentWeek = getWeekNumber(now);
-    const lastWeek = currentWeek - 1;
-    insightsData.donations = { thisWeek: 0, lastWeek: 0 };
-    snap.forEach(ch => {
-      const val = ch.val();
-      const ts = val.updatedAt || val.createdAt || Date.now();
-      const wk = getWeekNumber(ts);
-      const amt = val.stats?.amountRaised || 0;
-      if (wk === currentWeek) insightsData.donations.thisWeek += amt;
-      else if (wk === lastWeek) insightsData.donations.lastWeek += amt;
-    });
-    updateQuickInsights();
+    const on = !!snap.val();
+    dot.style.background = on ? "#0f0" : "#f00";
+    dot.style.boxShadow = on ? "0 0 8px #0f0" : "0 0 8px #f00";
   });
 })();

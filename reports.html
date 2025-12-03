@@ -16,32 +16,14 @@
     />
 
     <!-- Leaflet + Clustering -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      defer
-    ></script>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
-    />
-    <script
-      src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
-      defer
-    ></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" defer></script>
 
-    <!-- AOS (optional, already used in page) -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/aos@2.3.4/dist/aos.css"
-    />
+    <!-- AOS -->
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
 
     <!-- Firebase 8 -->
@@ -49,7 +31,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-    <!-- Optional charts (untouched) -->
+    <!-- Optional charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- App config & nav -->
@@ -58,9 +40,13 @@
 
     <!-- Page styles -->
     <link rel="stylesheet" href="css/reports.css" />
+    <!-- Notifications styles (reusable across the site) -->
+    <link rel="stylesheet" href="css/notifications.css" />
 
-    <!-- Data loader / normalizer -->
+    <!-- Page logic -->
     <script src="js/reports.js" defer></script>
+    <!-- Notifications module (reusable across the site) -->
+    <script src="js/notifications.js" defer></script>
   </head>
 
   <body>
@@ -69,7 +55,11 @@
       <button class="openbtn" onclick="openNav()">
         <i class="fas fa-bars"></i> Menu
       </button>
+
       <h1 class="app-title">🐾 Reports</h1>
+
+      <!-- Right-side actions mount (Notifications, etc.) -->
+      <div id="nav-actions-right"></div>
     </header>
 
     <!-- Sidebar -->
@@ -222,7 +212,7 @@
     </aside>
     <div id="filter-tab-backdrop" class="filter-tab-backdrop" tabindex="-1" aria-hidden="true"></div>
 
-        <!-- Report Modal (enhanced layout, fixed tall height via CSS) -->
+    <!-- Report Modal -->
     <div id="report-modal" class="modal">
       <div class="modal-content modal-wide">
         <div class="modal-header report-details-header">
@@ -230,20 +220,18 @@
             <h3 class="modal-report-type">
               <span class="modal-report-type-value">Report</span>
             </h3>
-            <div class="header-sub"><!-- “updated … ago” injected by JS --></div>
+            <div class="header-sub"></div>
           </div>
           <div class="header-right">
-            <div class="modal-report-status"><!-- status badge injected --></div>
+            <div class="modal-report-status"></div>
           </div>
           <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
 
-        <!-- Body scrolls internally when content exceeds fixed height -->
         <div class="modal-body details-layout">
           <!-- LEFT COLUMN -->
           <section class="details-col">
             <div class="report-metadata report-meta-grid">
-              <!-- JS adds assigned org / created / updated -->
               <div class="metadata-item meta-severity">
                 <i class="fas fa-exclamation-circle"></i>
                 <div class="metadata-content">
@@ -291,7 +279,6 @@
             <h4 class="section-heading"><i class="fas fa-align-left"></i> Description</h4>
             <p class="report-description">No description provided.</p>
 
-            <!-- MEDIA now BELOW description -->
             <div class="media-block">
               <button class="map-location-btn" id="open-map-btn">
                 <i class="fas fa-map-marker-alt"></i> Map Location
@@ -305,9 +292,7 @@
           <!-- RIGHT COLUMN — STATUS TIMELINE -->
           <aside class="timeline-col">
             <h4 class="section-heading"><i class="fas fa-clock"></i> Status Timeline</h4>
-            <div class="timeline-list" id="timeline-list">
-              <!-- timeline items injected -->
-            </div>
+            <div class="timeline-list" id="timeline-list"></div>
           </aside>
         </div>
 
@@ -318,7 +303,7 @@
       </div>
     </div>
 
-    <!-- Map Modal (keeps normal overlay behavior) -->
+    <!-- Map Modal -->
     <div id="map-modal" class="modal">
       <div class="modal-content map-modal-content">
         <div class="modal-header">
@@ -344,7 +329,6 @@
       let allReportsData = [];
       let tableSort = { key: "createdAt", dir: "desc" };
 
-      // Severity ranking for sorting
       const SEVERITY_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
 
       document.addEventListener("DOMContentLoaded", function () {
@@ -374,6 +358,17 @@
 
         initTableSorting();
         initFilterTab();
+
+        // Deep link: ?reportId=...
+        const url = new URL(window.location.href);
+        const deepId = url.searchParams.get('reportId');
+        if (deepId) {
+          window.addEventListener("reportsLoaded", function once(ev) {
+            const found = (ev.detail?.reports || []).find(r => r.id === deepId);
+            if (found && typeof openModal === "function") openModal(found);
+            window.removeEventListener("reportsLoaded", once);
+          });
+        }
       });
 
       function getFilteredReports() {
@@ -496,7 +491,6 @@
               tableSort.dir = tableSort.dir === "asc" ? "desc" : "asc";
             } else {
               tableSort.key = newKey;
-              // default direction: date desc, severity desc, others asc
               tableSort.dir = (newKey === "createdAt" || newKey === "severity") ? "desc" : "asc";
             }
             document.querySelectorAll("#reports-table thead th.sortable").forEach((h) => h.classList.remove("sort-asc", "sort-desc"));

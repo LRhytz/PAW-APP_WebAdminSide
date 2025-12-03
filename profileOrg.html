@@ -15,27 +15,36 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
+    <!-- App scripts -->
     <script src="js/config.js"></script>
     <script src="js/nav.js" defer></script>
     <script src="js/profile-management-org.js" defer></script>
+
+    <!-- Notifications (shared) -->
+    <link rel="stylesheet" href="css/notifications.css" />
+    <script src="js/notifications.js" defer></script>
   </head>
   <body>
     <!-- fixed header -->
     <header class="app-header">
       <button class="openbtn" onclick="openNav()"><i class="fas fa-bars"></i></button>
       <h1 class="app-title">Profile Management</h1>
+      <!-- Right-side actions mount (Notifications, etc.) -->
+      <div id="nav-actions-right"></div>
     </header>
 
     <!-- sidebar -->
     <div id="navbar" class="navbar">
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
-        <li><a href="organizationDashboard.html" class="active">Dashboard</a></li>
+        <li><a href="organizationDashboard.html">Dashboard</a></li>
         <li><a href="article.html">Articles</a></li>
         <li><a href="reports.html">Reports</a></li>
         <li><a href="adoption.html">Adoption</a></li>
         <li><a href="donation.html">Donation</a></li>
-        <li><a href="profileOrg.html">Profile</a></li>
+        <li><a href="profileOrg.html" class="active">Profile</a></li>
+        <!-- ✅ Logout (wired by nav.js via #logout-btn) -->
+        <li><a href="javascript:void(0)" id="logout-btn">Logout</a></li>
       </ul>
     </div>
 

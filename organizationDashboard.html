@@ -20,11 +20,15 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- App scripts -->
+    <!-- App scripts (order matters) -->
     <script src="js/config.js"></script>
     <script src="js/nav.js" defer></script>
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js" defer></script>
     <script src="js/dashboardOrg.js" defer></script>
+
+    <!-- Notifications (shared across pages) -->
+    <link rel="stylesheet" href="css/notifications.css"/>
+    <script src="js/notifications.js" defer></script>
   </head>
 
   <body>
@@ -34,6 +38,9 @@
         <i class="fas fa-bars"></i> Menu
       </button>
       <h1 class="app-title">🐾 Organization Dashboard</h1>
+
+      <!-- Right-side actions mount (Notifications, etc.) -->
+      <div id="nav-actions-right"></div>
     </header>
 
     <!-- Sidebar -->
@@ -41,6 +48,7 @@
       <button class="closebtn" onclick="closeNav()">&times;</button>
       <ul class="nav-links">
         <li><a href="organizationDashboard.html" class="active">Dashboard</a></li>
+        <li><a href="article.html">Articles</a></li>
         <li><a href="reports.html">Reports</a></li>
         <li><a href="adoption.html">Adoption</a></li>
         <li><a href="donation.html">Donation</a></li>
@@ -85,29 +93,28 @@
       </section>
 
       <!-- Adoptions -->
-<section class="panel" data-aos="fade-up">
-  <div class="panel-header">
-    <h2 class="section-title">Adoptions</h2>
-  </div>
-  <div class="summary-grid">
-    <div class="card summary-card">
-      <div class="card-header"><i class="fas fa-dog"></i><span>Total Pets Listed</span></div>
-      <p class="stat-number" id="adp_listed">0</p>
-    </div>
-    <div class="card summary-card">
-      <div class="card-header"><i class="fas fa-envelope"></i><span>Requests Received</span></div>
-      <p class="stat-number" id="adp_available">0</p>
-    </div>
-    <div class="card summary-card">
-      <div class="card-header"><i class="fas fa-house-circle-check"></i><span>Adopted</span></div>
-      <p class="stat-number" id="adp_adopted">0</p>
-    </div>
-  </div>
-  <div class="card chart-card">
-    <canvas id="adoptionChart" height="320"></canvas>
-  </div>
-</section>
-
+      <section class="panel" data-aos="fade-up">
+        <div class="panel-header">
+          <h2 class="section-title">Adoptions</h2>
+        </div>
+        <div class="summary-grid">
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-dog"></i><span>Total Pets Listed</span></div>
+            <p class="stat-number" id="adp_listed">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-envelope"></i><span>Requests Received</span></div>
+            <p class="stat-number" id="adp_available">0</p>
+          </div>
+          <div class="card summary-card">
+            <div class="card-header"><i class="fas fa-house-circle-check"></i><span>Adopted</span></div>
+            <p class="stat-number" id="adp_adopted">0</p>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <canvas id="adoptionChart" height="320"></canvas>
+        </div>
+      </section>
 
       <!-- Donations Section -->
       <section class="panel" data-aos="fade-up">
@@ -145,8 +152,11 @@
 
       <!-- Articles Section -->
       <section class="panel" data-aos="fade-up">
-        <div class="panel-header">
-          <h2 class="section-title">Articles</h2>
+        <div class="panel-header" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <h2 class="section-title" style="margin:0;">Articles</h2>
+          <a href="article.html" class="btn" style="text-decoration:none; background:#e3f2fd; color:#0b5394; padding:8px 12px; border-radius:8px; font-weight:700;">
+            <i class="fas fa-newspaper"></i> Manage Articles
+          </a>
         </div>
 
         <div class="summary-grid">

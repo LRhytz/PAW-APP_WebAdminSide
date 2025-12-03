@@ -15,6 +15,10 @@
     <link rel="stylesheet" href="css/dashboard.css" />
     <link rel="stylesheet" href="css/article.css" />
 
+    <!-- Notifications (shared across pages) -->
+    <link rel="stylesheet" href="css/notifications.css" />
+    <script src="js/notifications.js" defer></script>
+
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -33,6 +37,9 @@
         <i class="fas fa-bars"></i>
       </button>
       <h1 class="app-title">🐾 Articles</h1>
+
+      <!-- Right-side actions mount (Notifications, etc.) -->
+      <div id="nav-actions-right"></div>
     </header>
 
     <!-- SIDEBAR -->

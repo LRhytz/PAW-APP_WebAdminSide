@@ -1,6 +1,5 @@
 /* =========================
-   File: /css/report.css
-   (only #message-history updated; rest unchanged)
+   File: /css/reports.css
    ========================= */
 
 /* =============== Root & Reset =============== */
@@ -110,7 +109,7 @@ body { font-family: "Roboto", sans-serif; background: var(--bg); color: var(--te
 .sev-Medium { background: #fbc02d; }
 .sev-Low { background: #388e3c; }
 
-/* Status badges used in table & popup (gradient set keeps your design) */
+/* Status badges */
 .status-badge {
   display: inline-block; padding: 6px 12px; border-radius: 14px; font-size: 12px; font-weight: 700; color: #fff;
   line-height: 1; vertical-align: middle; box-shadow: 0 2px 6px rgba(0,0,0,.08); text-transform: uppercase; letter-spacing: .6px;
@@ -251,65 +250,40 @@ body { font-family: "Roboto", sans-serif; background: var(--bg); color: var(--te
 #leaflet-map { height: 400px; width: 100%; border-radius: 10px; margin-top: 10px; }
 .map-modal-content { max-width: 700px; padding: 20px; }
 
-/* Footer buttons in report modal */
+/* Footer buttons */
 .action-buttons { display: flex; gap: 16px; position: relative; }
 .unread-badge { background: #e74c3c; color: #fff; border-radius: 50%; padding: 2px 7px; font-size: 11px; position: absolute; top: 0; right: -8px; font-weight: bold; }
 
-/* Base style shared by all footer buttons (message included) */
 .btn-accept, .btn-completed, .btn-inprogress, .btn-onhold, .btn-reject, .btn-message {
   border: none; outline: none; border-radius: 999px; padding: 12px 22px; font-size: 1rem; font-weight: 600;
   display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.06);
   background: #fff; color: #333; transition: background .18s, color .18s, box-shadow .18s, transform .12s; cursor: pointer;
 }
-
-/* Per-button color schemes */
 .btn-accept    { background: #e8f5e9; color: #388e3c; }
-.btn-accept:hover,
-.btn-completed:hover { background: #388e3c; color: #fff; }
-
+.btn-accept:hover, .btn-completed:hover { background: #388e3c; color: #fff; }
 .btn-completed { background: #e8f5e9; color: #388e3c; }
-
 .btn-inprogress { background: #e3f2fd; color: #1976d2; }
 .btn-inprogress:hover { background: #1976d2; color: #fff; }
-
 .btn-onhold    { background: #fff3e0; color: #f57c00; }
 .btn-onhold:hover { background: #f57c00; color: #fff; }
-
 .btn-reject    { background: #ffebee; color: #d32f2f; }
 .btn-reject:hover { background: #d32f2f; color: #fff; }
-
-/* New: Message button */
 .btn-message   { background: #e3f2fd; color: #1976d2; }
 .btn-message:hover { background: #1976d2; color: #fff; }
-
-/* Optional: disabled state (if you ever disable it) */
 .btn-message[disabled] { opacity: .6; cursor: not-allowed; }
-
-/* Always show text on footer buttons (no hover-reveal) */
 .modal-footer .btn span { opacity: 1 !important; width: auto !important; margin-left: 8px; }
 
-/* =============== “Message” Modal (legacy styles) ===============
-   NOTE: The chat now uses a grid layout defined inline in reports.js.
-   We neutralize the fixed heights here so the middle row can fully expand. */
+/* “Message” Modal legacy styles (kept) */
 #message-modal.modal { background: rgba(0,0,0,.45); z-index: 2000; }
 #message-modal .modal-content {
   background: var(--card-bg); border-radius: var(--radius); box-shadow: 0 8px 30px var(--shadow-lg);
   width: 95vw !important; max-width: 900px !important; min-width: 500px; padding: 0; overflow: hidden;
 }
-
-/* ↓↓↓ CRITICAL FIX: remove caps so chat-body can fill available space */
 #message-history {
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-  min-height: 0;
-  max-height: none;     /* was 180px */
-  overflow-y: auto;
-  font-size: .97rem;
-  margin-bottom: 0;     /* grid handles spacing */
+  background: transparent; border-radius: 0; padding: 0; min-height: 0;
+  max-height: none; overflow-y: auto; font-size: .97rem; margin-bottom: 0;
 }
 
-/* Keep send bar styles (safe) */
 #message-modal #message-input { border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 1rem; background: #fafafa; color: var(--text); resize: none; transition: border .2s; }
 #message-modal #message-input:focus { outline: none; border-color: var(--primary); }
 #message-modal #send-message-btn { background: var(--primary); color: #fff; border: 0; border-radius: 20px; padding: 8px 22px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background .2s; box-shadow: 0 2px 8px var(--shadow-sm); }
@@ -319,18 +293,17 @@ body { font-family: "Roboto", sans-serif; background: var(--bg); color: var(--te
   #message-modal .modal-content { max-width: 98vw; min-width: 0; }
 }
 
-/* =============== Responsive grid =============== */
+/* Responsive grid tweaks */
 @media (max-width: 768px) {
   .report-metadata { grid-template-columns: 1fr; }
 }
 
-/* Web-friendly thumbnail sizing */
+/* Media grid */
 .image-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 10px;
 }
-
 .report-image {
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -347,169 +320,75 @@ body { font-family: "Roboto", sans-serif; background: var(--bg); color: var(--te
   .report-image { max-height: 120px; }
 }
 
-/* Left-side slot for the Message button */
-.footer-left-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Two-line date cell in the reports table */
+.footer-left-actions { display: flex; align-items: center; gap: 12px; }
 .date-cell { line-height: 1.2; }
 .date-cell .time { color: #777; font-size: 12px; }
 
 /* ====== ENHANCED REPORT DETAILS LAYOUT ====== */
 .modal .modal-content.modal-wide {
-  max-width: 980px;
-  width: calc(100% - 48px);
-  height: 88vh;
-  max-height: 88vh;
-  overflow: hidden;
+  max-width: 980px; width: calc(100% - 48px); height: 88vh; max-height: 88vh; overflow: hidden;
 }
-
-/* Allow page (background) to remain scrollable while #report-modal is open */
 #report-modal.modal { pointer-events: none; }
 #report-modal .modal-content { pointer-events: auto; }
 
-/* Header layout */
 .report-details-header {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 16px;
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 16px;
 }
-.report-details-header .header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.report-details-header .header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.report-details-header .header-left { display: flex; flex-direction: column; gap: 4px; }
+.report-details-header .header-right { display: flex; align-items: center; gap: 10px; }
 .report-details-header .modal-report-type { margin: 0; line-height: 1.2; }
 .report-details-header .header-sub { font-size: 12px; color: #6b7280; }
 
-/* Two-column body */
-.details-layout {
-  display: grid;
-  grid-template-columns: 1.35fr 1fr;
-  gap: 24px;
-}
+.details-layout { display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; }
 
-/* Quick facts grid */
 .report-meta-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
 }
 .report-meta-grid .metadata-item {
-  display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 10px;
-  align-items: start;
-  background: #fafafa;
-  border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 10px 12px;
+  display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start;
+  background: #fafafa; border: 1px solid #eee; border-radius: 12px; padding: 10px 12px;
 }
 .report-meta-grid .metadata-item i { font-size: 16px; color: #6b7280; margin-top: 2px; }
-.report-meta-grid .metadata-content .metadata-label { font-size: 11px; text-transform: uppercase; letter-spacing: .02em; color: #6b7280; margin-bottom: 2px; }
-.report-meta-grid .metadata-content .metadata-value { font-size: 14px; color: #111827; }
+.report-meta-grid .metadata-label { font-size: 11px; text-transform: uppercase; letter-spacing: .02em; color: #6b7280; margin-bottom: 2px; }
+.report-meta-grid .metadata-value { font-size: 14px; color: #111827; }
 
-/* Section title */
-.section-heading {
-  margin: 8px 0 8px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #374151;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.section-heading { margin: 8px 0 8px; font-size: 14px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 8px; }
 
-/* Media column */
-.media-col {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-}
+.media-col { display: grid; align-content: start; gap: 14px; }
 .media-col .map-location-btn {
-  width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #0b5394;
-  transition: transform .08s ease, box-shadow .12s ease, background .12s ease;
-  cursor: pointer;
+  width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px;
+  border-radius: 10px; border: 1px solid #e5e7eb; background: #f9fafb; color: #0b5394;
+  transition: transform .08s ease, box-shadow .12s ease, background .12s ease; cursor: pointer;
 }
-.media-col .map-location-btn:hover {
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,.06);
-  transform: translateY(-1px);
-}
+.media-col .map-location-btn:hover { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.06); transform: translateY(-1px); }
 
-/* Footer grid alignment: message (left) + status buttons (right) */
-.modal .modal-footer {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 16px;
-}
+.modal .modal-footer { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; }
 .modal .modal-footer .action-buttons { display: inline-flex; gap: 10px; }
 
 @media (max-width: 980px) {
   .details-layout { grid-template-columns: 1fr; }
   .report-meta-grid { grid-template-columns: 1fr; }
+  .timeline-col { order: 3; }
 }
 
-/* Keep footer at bottom; body scrolls inside the tall modal */
-.modal .modal-content.modal-wide { display: flex; flex-direction: column; }
-.modal .modal-content.modal-wide .modal-body { flex: 1; overflow: auto; }
-
-/* Right column layout for timeline */
 .timeline-col { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
-.timeline-list {
-  overflow: auto; padding-right: 6px; min-height: 0;
-}
+.timeline-list { overflow: auto; padding-right: 6px; min-height: 0; }
 
-/* Timeline items */
 .timeline-item {
-  display: grid; grid-template-columns: 80px 24px 1fr; gap: 10px; align-items: start;
-  padding: 10px 0;
+  display: grid; grid-template-columns: 80px 24px 1fr; gap: 10px; align-items: start; padding: 10px 0;
 }
-.timeline-date {
-  text-align: right; line-height: 1.15;
-}
+.timeline-date { text-align: right; line-height: 1.15; }
 .timeline-date .d { font-weight: 700; color: #111827; }
 .timeline-date .t { font-size: 12px; color: #6b7280; }
 
 .timeline-axis { position: relative; width: 24px; display: flex; justify-content: center; }
-.timeline-dot {
-  width: 12px; height: 12px; border-radius: 999px; background: #9ca3af; margin-top: 2px; z-index: 1;
-}
+.timeline-dot { width: 12px; height: 12px; border-radius: 999px; background: #9ca3af; margin-top: 2px; z-index: 1; }
 .timeline-item:first-child .timeline-dot { background: #4caf50; box-shadow: 0 0 0 3px rgba(76,175,80,.2); }
-.timeline-line {
-  position: absolute; top: 14px; bottom: -10px; width: 2px; background: #e5e7eb;
-}
+.timeline-line { position: absolute; top: 14px; bottom: -10px; width: 2px; background: #e5e7eb; }
 .timeline-item:last-child .timeline-line { display: none; }
 
 .timeline-body { background:#fafafa; border:1px solid #eee; border-radius:12px; padding:10px 12px; }
 .timeline-title { font-weight:700; color:#374151; margin-bottom:4px; }
 .timeline-sub { font-size:13px; color:#6b7280; }
 
-/* Media block spacing under description */
 .media-block { display: grid; gap: 14px; align-content: start; margin-top: 8px; }
-
-/* Small screens: stack columns */
-@media (max-width: 980px) {
-  .details-layout { grid-template-columns: 1fr; }
-  .timeline-col { order: 3; } /* keep after description/media on small screens */
-}

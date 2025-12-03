@@ -3,7 +3,6 @@
 // ===================
 (function () {
   const logoutBtn = document.getElementById("logout-btn");
-  const fab = document.getElementById("fab"); // handle FAB visibility
 
   // ===================
   // Sidebar open/close controls
@@ -25,7 +24,7 @@
   window.closeNav = closeNav;
 
   // ===================
-  // ✅ Safe logout handler
+  // Safe logout handler
   // ===================
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
@@ -40,7 +39,64 @@
   }
 
   // ===================
-  // ✅ Role-based visibility
+  // Helpers: nav mount for actions (notifications, etc.)
+  // ===================
+  function ensureActionsMount() {
+    let mount = document.getElementById("nav-actions-right");
+    if (!mount) {
+      const header = document.querySelector(".app-header");
+      if (header) {
+        mount = document.createElement("div");
+        mount.id = "nav-actions-right";
+        mount.style.display = "inline-flex";
+        mount.style.alignItems = "center";
+        mount.style.gap = "10px";
+        header.appendChild(mount);
+      }
+    }
+    return mount;
+  }
+
+  // ===================
+  // Notifications bootstrap (if notifications.js is present)
+  // ===================
+  function initNotificationsIfAvailable(user) {
+    try {
+      const mount = ensureActionsMount();
+      if (!mount) return;
+
+      // Optional: avoid double init
+      if (mount.__notificationsMounted) return;
+
+      if (window.Notifications && typeof window.Notifications.init === "function") {
+        window.Notifications.init({
+          mount,
+          // You can pass options here if your module supports them:
+          // e.g., maxItems: 20, pollMs: 0 (realtime), menuAlign: 'right'
+        });
+        mount.__notificationsMounted = true;
+      } else {
+        // Graceful placeholder so layout doesn't jump if notifications.js isn't loaded yet
+        if (!mount.querySelector(".notif-placeholder")) {
+          const btn = document.createElement("button");
+          btn.className = "notif-placeholder";
+          btn.style.background = "transparent";
+          btn.style.border = "0";
+          btn.style.color = "#fff";
+          btn.style.fontSize = "18px";
+          btn.style.cursor = "default";
+          btn.title = "Notifications";
+          btn.innerHTML = '<i class="fas fa-bell"></i>';
+          mount.appendChild(btn);
+        }
+      }
+    } catch (e) {
+      console.warn("initNotificationsIfAvailable error:", e);
+    }
+  }
+
+  // ===================
+  // Role-based visibility
   // ===================
   async function applyRoleVisibility() {
     try {
@@ -68,7 +124,7 @@
   }
 
   // ===================
-  // ✅ Highlight active page
+  // Highlight active page
   // ===================
   function highlightActiveNav() {
     const currentPage = window.location.pathname.split("/").pop();
@@ -83,21 +139,32 @@
   }
 
   // ===================
-  // ✅ Initialize after Auth + ensure DOM ready
+  // Initialize after Auth + ensure DOM ready
   // ===================
-  firebase.auth().onAuthStateChanged(() => {
+  firebase.auth().onAuthStateChanged((user) => {
+    // Mount the right-side actions container early
+    ensureActionsMount();
+
     applyRoleVisibility()
       .then(() => {
-        // small delay ensures DOM + role filters fully applied
         setTimeout(() => {
           highlightActiveNav();
 
-          // Optional: close sidebar when clicking a nav link (mobile UX)
+          // Close sidebar when clicking a nav link (better mobile UX)
           document.querySelectorAll(".nav-links a").forEach((link) => {
             link.addEventListener("click", () => closeNav());
           });
+
+          // Try to initialize notifications (if module is loaded)
+          initNotificationsIfAvailable(user);
         }, 100);
       })
       .catch(console.error);
+  });
+
+  // Also try once after DOM has fully loaded (covers anonymous / delayed script load)
+  window.addEventListener("DOMContentLoaded", () => {
+    ensureActionsMount();
+    initNotificationsIfAvailable(firebase.auth().currentUser);
   });
 })();
